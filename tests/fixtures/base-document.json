@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "title": "Make one useful point at a time",
+  "platform": "linkedin",
+  "templateId": "editorial-grid",
+  "templateVersion": 1,
+  "theme": {
+    "paletteId": "paper",
+    "fontPairId": "source-serif-inter",
+    "textScale": 1,
+    "spacing": "comfortable",
+    "alignment": "left",
+    "background": {
+      "kind": "solid",
+      "value": "#F5F1E8",
+      "opacity": 1
+    },
+    "arrow": "line",
+    "radius": 32,
+    "counterStyle": "fraction"
+  },
+  "brandSnapshot": null,
+  "slides": [
+    {
+      "id": "local-slide-01",
+      "revision": 1,
+      "role": "intro",
+      "mode": "text",
+      "layoutId": "intro-centered",
+      "eyebrow": "WRITING",
+      "title": "Make one useful point at a time",
+      "bodyBlocks": [],
+      "cta": null,
+      "assetSlots": [],
+      "counterVisible": false,
+      "overrides": {}
+    },
+    {
+      "id": "local-slide-02",
+      "revision": 1,
+      "role": "content",
+      "mode": "text",
+      "layoutId": "statement",
+      "eyebrow": null,
+      "title": "A carousel is not a chopped-up article.",
+      "bodyBlocks": [
+        {
+          "kind": "paragraph",
+          "text": "Each page should move the reader forward.",
+          "emphasisRanges": []
+        }
+      ],
+      "cta": null,
+      "assetSlots": [],
+      "counterVisible": true,
+      "overrides": {}
+    },
+    {
+      "id": "local-slide-03",
+      "revision": 1,
+      "role": "content",
+      "mode": "text",
+      "layoutId": "numbered-point",
+      "eyebrow": "01",
+      "title": "Lead with the conclusion",
+      "bodyBlocks": [],
+      "cta": null,
+      "assetSlots": [],
+      "counterVisible": true,
+      "overrides": {}
+    },
+    {
+      "id": "local-slide-04",
+      "revision": 1,
+      "role": "content",
+      "mode": "text",
+      "layoutId": "numbered-point",
+      "eyebrow": "02",
+      "title": "Give every page one job",
+      "bodyBlocks": [],
+      "cta": null,
+      "assetSlots": [],
+      "counterVisible": true,
+      "overrides": {}
+    },
+    {
+      "id": "local-slide-05",
+      "revision": 1,
+      "role": "content",
+      "mode": "text",
+      "layoutId": "quote",
+      "eyebrow": "REMEMBER",
+      "title": "Clarity is a design decision.",
+      "bodyBlocks": [],
+      "cta": null,
+      "assetSlots": [],
+      "counterVisible": true,
+      "overrides": {}
+    },
+    {
+      "id": "local-slide-06",
+      "revision": 1,
+      "role": "outro",
+      "mode": "text",
+      "layoutId": "outro-cta",
+      "eyebrow": null,
+      "title": "Build the next useful page.",
+      "bodyBlocks": [],
+      "cta": "Save this for your next carousel.",
+      "assetSlots": [],
+      "counterVisible": false,
+      "overrides": {}
+    }
+  ],
+  "caption": "",
+  "assetRefs": []
+}
