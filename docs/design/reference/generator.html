@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>New carousel · Orincard</title>
+<link rel="stylesheet" href="assets/orincard.css" />
+<style>
+  .gen-grid { display: grid; grid-template-columns: minmax(0, 1fr) 336px; gap: var(--gap-lg); align-items: start; }
+  .gen-source { grid-column: 1; grid-row: 1; }
+  .gen-side   { grid-column: 2; grid-row: 1 / span 2; }
+  .gen-run    { grid-column: 1; grid-row: 2; }
+  /* .stack lays out with margin-top; an inline gap on the same element adds to
+     it rather than replacing it, which put these columns on a 52px / 40px
+     rhythm that is not on the spacing scale. Let the gap alone decide. */
+  .gen-source > * + *, .gen-side > * + *, .gen-run > * + * { margin-top: 0; }
+  @media (max-width: 1080px) {
+    .gen-grid { grid-template-columns: 1fr; }
+    /* Outline settings decide what gets generated, so in one column they have
+       to sit above the button that generates it. */
+    .gen-source, .gen-side, .gen-run { grid-column: 1; grid-row: auto; }
+  }
+
+  .preset-row { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-md); flex-wrap: wrap; }
+  .preset-note { text-align: right; }
+  @media (max-width: 780px) { .preset-note { text-align: left; } }
+  .source-panel { display: none; }
+  .source-panel[data-open="true"] { display: block; }
+  .example-row { display: flex; flex-wrap: wrap; gap: 7px; }
+
+  button.dropzone { display: block; width: 100%; color: inherit; }
+  .file-row {
+    display: flex; align-items: center; gap: 12px; padding: 11px 13px; flex-wrap: wrap;
+    border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+  }
+  .file-row[data-state="error"] { border-color: color-mix(in oklch, var(--danger) 30%, var(--border)); }
+  .file-row .fi { width: 30px; height: 30px; border-radius: 7px; background: var(--surface-2); display: grid; place-items: center; flex: none; }
+  .file-row .fi svg { width: 15px; height: 15px; color: var(--muted); stroke-width: 1.6; }
+  .file-row .nm { font-size: 13.5px; font-weight: 550; margin: 0; }
+  .file-row .fr-txt { min-width: 0; flex: 1 1 190px; }
+  .file-row .fr-act { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  @media (max-width: 560px) { .file-row .fr-act { margin-left: 0; width: 100%; } }
+
+  .job { display: none; }
+  .job[data-open="true"] { display: block; }
+  .job-run { display: flex; align-items: flex-start; gap: 22px; }
+  .job-ori { flex: none; }
+  @media (max-width: 620px) { .job-ori { display: none; } }
+
+  .tpl-swatches { display: flex; gap: 6px; }
+  .sw { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--fg-line); }
+  /* A 9:16 preset would render this preview ~600px tall in a 336px column and
+     push the whole sidebar off-screen. Cap the height; width follows the ratio. */
+  .tpl-shot { display: flex; justify-content: center; }
+  .tpl-shot .slide-frame { --ar-w: 4; --ar-h: 5; width: 100%; max-width: calc(400px * var(--ar-w) / var(--ar-h)); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail" data-od-id="rail">
+    <div class="rail-brand">
+      <span class="mark" aria-hidden="true">
+        <svg class="ori ori-mark" viewBox="0 0 24 24"><polygon points="8.8,13.4 6.4,20.4 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 16.6,12.8 14.6,16.2 8.8,13.4" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="16.6,12.8 22.8,15.6 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 21.2,3 16.6,12.8" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="5.4,4.8 11,11 8.8,13.4 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="1.8,8.6 5.4,4.8 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="word">Orincard</span>
+    </div>
+    <nav class="rail-nav" aria-label="Main">
+      <a class="nav-item" href="projects.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="10" rx="1.5"/></svg><span>Projects</span></a>
+      <a class="nav-item" href="generator.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg><span>New carousel</span></a>
+      <a class="nav-item" href="brand-kits.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg><span>Brand Kits</span></a>
+      <a class="nav-item" href="editor.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h16"/><path d="M14.5 4.5a2.1 2.1 0 0 1 3 3L9 16l-4 1 1-4Z"/></svg><span>Editor</span></a>
+      <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span>Prototype map</span></a>
+    </nav>
+    <div class="rail-foot">
+      <div class="plan-card">
+        <p class="label" style="margin-bottom: 6px;">Not signed in</p>
+        <p style="margin: 0 0 10px; font-size: 12.5px; line-height: 1.45;">Drafts stay in this browser. Sign in to save projects and export at full resolution.</p>
+        <button class="btn btn-secondary btn-sm" style="width: 100%;">Sign in</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar" data-od-id="topbar">
+      <div class="crumbs">
+        <a href="projects.html">Projects</a><span class="sep">/</span><strong>New carousel</strong>
+      </div>
+      <div class="row">
+        <span class="badge"><span class="dot"></span>Anonymous draft</span>
+        <a class="btn btn-secondary btn-sm" href="editor.html">Start from blank</a>
+      </div>
+    </header>
+
+    <div class="work" data-od-id="generator">
+      <div class="gen-grid">
+
+        <!-- ─────────── source column ─────────── -->
+        <div class="stack gen-source" style="gap: var(--gap-lg);">
+          <div>
+            <h1 style="font-size: 34px;">Create a carousel</h1>
+            <p class="lead" style="margin-top: 8px; font-size: 16px;">Pick a platform, give Orincard a source, and get an editable draft — no account needed to preview.</p>
+          </div>
+
+          <section class="panel" data-od-id="platform-preset">
+            <div class="panel-body preset-row">
+              <div>
+                <p class="label" style="margin-bottom: 8px;" id="presetLabel">Platform preset</p>
+                <div class="seg" role="radiogroup" aria-labelledby="presetLabel" id="presetSeg">
+                  <button type="button" role="radio" aria-checked="true" data-preset="linkedin" data-ratio="4 / 5" data-size="1080 × 1350">LinkedIn</button>
+                  <button type="button" role="radio" aria-checked="false" data-preset="instagram" data-ratio="4 / 5" data-size="1080 × 1350">Instagram</button>
+                  <button type="button" role="radio" aria-checked="false" data-preset="tiktok" data-ratio="9 / 16" data-size="1080 × 1920">TikTok</button>
+                </div>
+              </div>
+              <p class="meta preset-note">Canvas <span class="num" id="presetSize">1080 × 1350</span><br />Switching later runs a relayout check first.</p>
+            </div>
+          </section>
+
+          <section class="panel" data-od-id="source-input">
+            <div class="tabs" role="tablist" aria-label="Source type" id="sourceTabs">
+              <button class="tab" type="button" role="tab" id="tab-topic" aria-controls="panel-topic" aria-selected="true" data-src="topic">Topic</button>
+              <button class="tab" type="button" role="tab" id="tab-text" aria-controls="panel-text" aria-selected="false" data-src="text">Text</button>
+              <button class="tab" type="button" role="tab" id="tab-url" aria-controls="panel-url" aria-selected="false" data-src="url">URL</button>
+              <button class="tab" type="button" role="tab" id="tab-video" aria-controls="panel-video" aria-selected="false" data-src="video">Video</button>
+              <button class="tab" type="button" role="tab" id="tab-pdf" aria-controls="panel-pdf" aria-selected="false" data-src="pdf">PDF</button>
+              <button class="tab" type="button" role="tab" id="tab-slides" aria-controls="panel-slides" aria-selected="false" data-src="slides">Slides</button>
+            </div>
+
+            <!-- Topic -->
+            <div class="panel-body source-panel" data-open="true" data-panel="topic"
+                 id="panel-topic" role="tabpanel" aria-labelledby="tab-topic">
+              <div class="field">
+                <label for="topicInput">What is the carousel about?
+                  <span class="counter" id="topicCount">0 / 500</span>
+                </label>
+                <textarea class="textarea" id="topicInput" placeholder="Why weekly status meetings hide a lack of progress — and what to run instead.">Why weekly status meetings hide a lack of progress — and what to run instead.</textarea>
+              </div>
+              <div class="notice notice-danger gen-err" data-err="topic" hidden style="margin-top: 14px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/></svg>
+                <p></p>
+              </div>
+              <p class="label" style="margin: 16px 0 8px;">Or start from one of these</p>
+              <div class="example-row">
+                <button class="chip" type="button" data-example="The four questions to ask before you accept a consulting retainer.">Retainer questions</button>
+                <button class="chip" type="button" data-example="How to write a project brief a freelancer can actually price.">Briefing freelancers</button>
+                <button class="chip" type="button" data-example="What to keep when you cut an operations process in half.">Cutting process</button>
+              </div>
+            </div>
+
+            <!-- Text -->
+            <div class="panel-body source-panel" data-panel="text"
+                 id="panel-text" role="tabpanel" aria-labelledby="tab-text">
+              <div class="field">
+                <label for="textInput">Paste the text you want turned into slides
+                  <span class="counter" id="textCount">0 / 30,000</span>
+                </label>
+                <textarea class="textarea" id="textInput" style="min-height: 190px;" placeholder="Paste a newsletter, a post draft, meeting notes, or a section of a longer article."></textarea>
+              </div>
+              <div class="notice notice-danger gen-err" data-err="text" hidden style="margin-top: 14px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/></svg>
+                <p></p>
+              </div>
+              <p class="hint" style="margin-top: 10px; font-size: 12.5px; color: var(--muted);">Orincard keeps your wording where it can and only rewrites to fit the layout. You can undo every rewrite in the editor.</p>
+            </div>
+
+            <!-- URL -->
+            <div class="panel-body source-panel" data-panel="url"
+                 id="panel-url" role="tabpanel" aria-labelledby="tab-url">
+              <div class="field">
+                <label for="urlInput">Public article or page URL</label>
+                <input class="input" id="urlInput" type="url" value="https://elenamarsh.co/notes/status-meeting-illusion" />
+                <p class="hint" id="urlHint">Public HTTP or HTTPS pages only.</p>
+              </div>
+              <div class="notice notice-danger gen-err" data-err="url" hidden style="margin-top: 14px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/></svg>
+                <p></p>
+              </div>
+              <div class="notice" style="margin-top: 14px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 16v-4M12 8h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                <p>Orincard refuses credential URLs, localhost and private addresses, redirects that land on a private address, paywalled pages, empty bodies, and unsupported file types. A refused link never starts a generation job and never spends credit.</p>
+              </div>
+            </div>
+
+            <!-- Video -->
+            <div class="panel-body source-panel" data-panel="video"
+                 id="panel-video" role="tabpanel" aria-labelledby="tab-video">
+              <div class="field">
+                <label for="videoInput">Public video URL</label>
+                <input class="input" id="videoInput" type="url" placeholder="https://www.youtube.com/watch?v=…" />
+              </div>
+              <label class="switch" style="margin-top: 14px;">
+                <input type="checkbox" id="videoRights" />
+                <span class="track"><span class="thumb"></span></span>
+                <span>I have the right to use this video’s content.</span>
+              </label>
+              <div class="notice notice-danger gen-err" data-err="video" hidden style="margin-top: 14px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/></svg>
+                <p></p>
+              </div>
+              <div class="notice" style="margin-top: 14px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 16v-4M12 8h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                <p>Transcription runs as a background job. If the transcript or frame extraction fails, Orincard reports the failure — it will never invent lines the video does not contain.</p>
+              </div>
+            </div>
+
+            <!-- PDF -->
+            <div class="panel-body source-panel" data-panel="pdf"
+                 id="panel-pdf" role="tabpanel" aria-labelledby="tab-pdf">
+              <button class="dropzone" type="button" id="pdfDrop">
+                <p style="margin: 0 0 4px; font-weight: 550;">Drop a PDF, or browse</p>
+                <p class="meta" style="margin: 0;">Up to 40 pages · text must be selectable</p>
+              </button>
+              <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;" id="pdfList">
+                <div class="file-row" data-state="ready">
+                  <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3v5h5"/><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/></svg></span>
+                  <div class="fr-txt">
+                    <p class="nm">ops-playbook-2026.pdf</p>
+                    <p class="meta" style="margin: 0;">12 pages · 3,400 words extracted</p>
+                  </div>
+                  <div class="fr-act">
+                    <span class="badge badge-ok"><span class="dot"></span>Ready</span>
+                    <button class="btn btn-ghost btn-sm btn-icon fr-del" type="button" aria-label="Remove ops-playbook-2026.pdf">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="file-row" data-state="error">
+                  <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3v5h5"/><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/></svg></span>
+                  <div class="fr-txt">
+                    <p class="nm">scanned-notes.pdf</p>
+                    <p class="meta" style="margin: 0;">No extractable text — scanned images only</p>
+                  </div>
+                  <div class="fr-act">
+                    <button class="btn btn-secondary btn-sm fr-ocr" type="button">Run text recognition</button>
+                    <button class="btn btn-ghost btn-sm btn-icon fr-del" type="button" aria-label="Remove scanned-notes.pdf">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 6l12 12M18 6 6 18"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="notice notice-danger gen-err" data-err="pdf" hidden style="margin-top: 14px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/></svg>
+                <p></p>
+              </div>
+              <p class="hint" style="margin-top: 12px;">A file with no readable text is never turned into an empty carousel. Fix it or remove it before generating.</p>
+            </div>
+
+            <!-- Slides -->
+            <div class="panel-body source-panel" data-panel="slides"
+                 id="panel-slides" role="tabpanel" aria-labelledby="tab-slides">
+              <button class="dropzone" type="button" id="slidesDrop">
+                <p style="margin: 0 0 4px; font-weight: 550;">Drop a .pptx or .key export, or browse</p>
+                <p class="meta" style="margin: 0;">Text and slide order are read; original layouts are not preserved</p>
+              </button>
+              <div class="notice notice-danger gen-err" data-err="slides" hidden style="margin-top: 14px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/></svg>
+                <p></p>
+              </div>
+              <div class="notice" style="margin-top: 14px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 16v-4M12 8h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                <p>Your deck is re-composed into the platform preset you picked above. Speaker notes are read only if you turn that on in the outline settings.</p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ─────────── settings column ─────────── -->
+        <div class="stack gen-side" style="gap: var(--gap-md);">
+          <section class="panel" data-od-id="outline-settings">
+            <div class="panel-head"><strong style="font-size: 14px;">Outline settings</strong></div>
+            <div class="panel-body stack" style="gap: 14px;">
+              <div class="field">
+                <label for="langSel">Language</label>
+                <select class="select" id="langSel">
+                  <option>English (US)</option>
+                  <option>English (UK)</option>
+                  <option>Spanish</option>
+                  <option>German</option>
+                  <option>French</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="fmtSel">Content format</label>
+                <select class="select" id="fmtSel">
+                  <option>Listicle</option>
+                  <option selected>Point of view</option>
+                  <option>How-to</option>
+                  <option>Story</option>
+                  <option>Myth vs. reality</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="countRange">Slides <span class="counter num" id="countVal">6</span></label>
+                <input class="range" id="countRange" type="range" min="4" max="12" value="6" />
+                <div class="row-between meta"><span>4</span><span>12</span></div>
+              </div>
+              <div class="field">
+                <label for="instrInput">Instruction to the writer</label>
+                <textarea class="textarea" id="instrInput" style="min-height: 72px;" placeholder="Write for operations leads. Direct, no hype, second person.">Write for operations leads. Direct, no hype, second person.</textarea>
+              </div>
+              <label class="switch">
+                <input type="checkbox" checked />
+                <span class="track"><span class="thumb"></span></span>
+                <span>Save as my default instruction</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel" data-od-id="template-pick">
+            <div class="panel-head">
+              <strong style="font-size: 14px;">Template</strong>
+              <a class="btn btn-ghost btn-sm" href="editor.html">Change</a>
+            </div>
+            <div class="panel-body">
+              <div class="tpl-shot" style="margin-bottom: 12px;">
+              <div class="slide-frame">
+                <div class="slide t-ink" id="tplPreview">
+                  <span class="slide-shape" aria-hidden="true"></span>
+                  <p class="slide-eyebrow">Operations</p>
+                  <div class="slide-main">
+                    <h2 class="slide-title">Your status meeting is <em>not</em> progress.</h2>
+                  </div>
+                  <div class="slide-foot">
+                    <img src="assets/img/avatar-elena.jpg" width="240" height="240" alt="" />
+                    <span class="who"><b>Elena Marsh</b><span>elenamarsh.co</span></span>
+                    <span class="slide-cta">Swipe</span>
+                  </div>
+                </div>
+              </div>
+              </div>
+              <div class="row-between">
+                <div>
+                  <p style="margin: 0; font-size: 13.5px; font-weight: 600;">Ink</p>
+                  <p class="meta" style="margin: 0;">Serif display · 3 layouts</p>
+                </div>
+                <div class="tpl-swatches" aria-hidden="true">
+                  <span class="sw" style="background: var(--tpl-ink-bg);"></span>
+                  <span class="sw" style="background: var(--tpl-ink-accent);"></span>
+                  <span class="sw" style="background: var(--tpl-ink-fg);"></span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="notice" data-od-id="anon-notice">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 16v-4M12 8h.01"/><circle cx="12" cy="12" r="9"/></svg>
+            <p>You can generate, edit and preview without an account. Saving to the cloud and full-resolution export need a sign-in — your draft moves across with you.</p>
+          </div>
+        </div>
+
+        <!-- ─────────── generate + job column ─────────── -->
+        <div class="stack gen-run" style="gap: var(--gap-lg);">
+          <div class="row wrap" data-od-id="generate-actions">
+            <button class="btn btn-primary" id="generateBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 4v4M12 16v4M4 12h4M16 12h4M6.5 6.5l2.5 2.5M15 15l2.5 2.5M17.5 6.5 15 9M9 15l-2.5 2.5"/></svg>
+              <span id="genLabel">Generate carousel</span>
+            </button>
+            <span class="meta">Uses 1 generation · you can regenerate without spending another until you edit a slide.</span>
+          </div>
+
+          <p class="visually-hidden" id="jobAnnounce" role="status" aria-live="polite"></p>
+
+          <!-- ─────────── job state ─────────── -->
+          <section class="panel job" id="jobPanel" data-od-id="generation-job">
+            <div class="panel-head">
+              <div class="row">
+                <strong style="font-size: 14px;" id="jobTitle">Generating your draft</strong>
+                <span class="badge badge-warn" id="jobBadge"><span class="dot"></span>Running</span>
+              </div>
+              <span class="meta">Job <span class="num" id="jobId">#GJ-4182</span></span>
+            </div>
+            <div class="panel-body job-run">
+              <span class="job-ori" id="jobOri" aria-hidden="true"></span>
+              <div style="flex: 1; min-width: 0;">
+                <div class="progress" style="margin-bottom: 14px;"><span id="jobBar" style="width: 4%;"></span></div>
+                <div class="steps" id="jobSteps">
+                  <div class="step" data-state="idle" data-step="fetch"><span class="step-mark"></span><span class="step-txt">Read the source</span></div>
+                  <div class="step" data-state="idle" data-step="outline"><span class="step-mark"></span><span class="step-txt">Build the outline — intro, content, outro</span></div>
+                  <div class="step" data-state="idle" data-step="draft"><span class="step-mark"></span><span class="step-txt" id="stepDraftTxt">Write 6 slides</span></div>
+                  <div class="step" data-state="idle" data-step="layout"><span class="step-mark"></span><span class="step-txt">Fit the text to the Ink template</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel-body" id="jobDone" hidden>
+              <div class="notice notice-ok">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 13 4 4L19 7"/></svg>
+                <p id="doneText"><strong>Draft ready — 6 slides.</strong> Slide 4 needs a look: the body text is longer than the Ink layout can hold at a readable size.</p>
+              </div>
+              <div class="row wrap" style="margin-top: 14px;">
+                <a class="btn btn-solid" href="editor.html">Open in editor</a>
+                <button class="btn btn-ghost" type="button" id="regenBtn">Regenerate</button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/ori.js"></script>
+<script>
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  /* Roving-tabindex driver shared by the radiogroup and the tab strip. Both are
+     single-selection widgets, so only the selected item stays in the tab order
+     and arrows move between the rest. */
+  function wireGroup(container, attr, onSelect) {
+    var items = $$('button', container);
+    function select(btn, focus) {
+      items.forEach(function (o) {
+        var on = o === btn;
+        o.setAttribute(attr, String(on));
+        o.tabIndex = on ? 0 : -1;
+      });
+      if (focus) btn.focus();
+      onSelect(btn);
+    }
+    items.forEach(function (b, i) {
+      b.tabIndex = b.getAttribute(attr) === 'true' ? 0 : -1;
+      b.addEventListener('click', function () { select(b, false); });
+      b.addEventListener('keydown', function (e) {
+        var next = null;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = items[(i + 1) % items.length];
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = items[(i - 1 + items.length) % items.length];
+        else if (e.key === 'Home') next = items[0];
+        else if (e.key === 'End') next = items[items.length - 1];
+        if (next) { e.preventDefault(); select(next, true); }
+      });
+    });
+    return { select: select, items: items };
+  }
+
+  /* platform preset */
+  var presetSize = $('#presetSize'), tplPreview = $('#tplPreview'), tplFrame = $('.tpl-shot .slide-frame');
+  wireGroup($('#presetSeg'), 'aria-checked', function (b) {
+    presetSize.textContent = b.dataset.size;
+    tplPreview.style.aspectRatio = b.dataset.ratio;
+    /* The frame caps its own height through the ratio, so it has to follow too. */
+    var r = b.dataset.ratio.split('/');
+    tplFrame.style.setProperty('--ar-w', r[0].trim());
+    tplFrame.style.setProperty('--ar-h', r[1].trim());
+  });
+
+  /* source tabs */
+  var activeSrc = 'topic';
+  wireGroup($('#sourceTabs'), 'aria-selected', function (t) {
+    activeSrc = t.dataset.src;
+    $$('.source-panel').forEach(function (p) { p.dataset.open = String(p.dataset.panel === activeSrc); });
+  });
+
+  /* character counters */
+  var LIMIT = { topic: 500, text: 30000 };
+  function bindCount(input, out, max) {
+    var el = $(input), o = $(out);
+    function sync() {
+      o.textContent = el.value.length.toLocaleString('en-US') + ' / ' + max.toLocaleString('en-US');
+      o.classList.toggle('counter-over', el.value.length > max);
+    }
+    el.addEventListener('input', sync); sync();
+  }
+  bindCount('#topicInput', '#topicCount', LIMIT.topic);
+  bindCount('#textInput', '#textCount', LIMIT.text);
+
+  $$('[data-example]').forEach(function (c) {
+    c.addEventListener('click', function () {
+      var t = $('#topicInput');
+      t.value = c.dataset.example;
+      t.dispatchEvent(new Event('input'));
+      clearError('topic');
+      t.focus();
+    });
+  });
+
+  /* slide count */
+  var range = $('#countRange'), stepDraftTxt = $('#stepDraftTxt');
+  function slideCount() { return parseInt(range.value, 10); }
+  range.addEventListener('input', function () {
+    $('#countVal').textContent = range.value;
+    stepDraftTxt.textContent = 'Write ' + slideCount() + ' slides';
+  });
+
+  /* ── refusal states ───────────────────────────────────────────────
+     One slot per source. Every guard returns a sentence or null; nothing
+     starts a job until the active source comes back clean. */
+  function errSlot(src) { return $('.gen-err[data-err="' + src + '"]'); }
+  function showError(src, msg, field) {
+    var slot = errSlot(src);
+    $('p', slot).textContent = msg;
+    slot.hidden = false;
+    if (field) { field.classList.add('input-invalid'); field.focus(); }
+    announce('Cannot generate. ' + msg);
+  }
+  function clearError(src) {
+    var slot = errSlot(src);
+    if (slot) slot.hidden = true;
+    $$('.input-invalid', $('.source-panel[data-panel="' + src + '"]')).forEach(function (f) {
+      f.classList.remove('input-invalid');
+    });
+  }
+
+  function urlProblem(value) {
+    var v = value.trim();
+    if (!v) return 'Paste a public article or page URL first.';
+    if (/^[a-z][a-z0-9+.-]*:\/\/[^/@]*@/i.test(v)) return 'That link carries credentials in the address, so it is refused.';
+    if (!/^https?:\/\//i.test(v)) return 'Only public HTTP and HTTPS pages can be read.';
+    if (/^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|\[?::1)/i.test(v)) return 'That address is private, so it is refused.';
+    if (/\.(zip|exe|dmg|pkg)(\?|$)/i.test(v)) return 'That file type is not supported.';
+    return null;
+  }
+
+  function over(len, max, noun) {
+    return 'That is ' + (len - max).toLocaleString('en-US') + ' characters over the ' +
+           max.toLocaleString('en-US') + '-character limit. Trim the ' + noun + ' before generating.';
+  }
+
+  var GUARD = {
+    topic: function () {
+      var v = $('#topicInput').value.trim(), n = $('#topicInput').value.length;
+      if (!v) return { msg: 'Describe the carousel, or pick one of the starters below.', field: $('#topicInput') };
+      if (n > LIMIT.topic) return { msg: over(n, LIMIT.topic, 'topic'), field: $('#topicInput') };
+      return null;
+    },
+    text: function () {
+      var v = $('#textInput').value.trim(), n = $('#textInput').value.length;
+      if (!v) return { msg: 'Paste the text you want turned into a carousel.', field: $('#textInput') };
+      if (n > LIMIT.text) return { msg: over(n, LIMIT.text, 'text'), field: $('#textInput') };
+      return null;
+    },
+    url: function () {
+      var p = urlProblem($('#urlInput').value);
+      return p ? { msg: p, field: $('#urlInput') } : null;
+    },
+    video: function () {
+      var el = $('#videoInput'), v = el.value.trim();
+      if (!v) return { msg: 'Paste a public video URL first.', field: el };
+      if (!/^https?:\/\//i.test(v)) return { msg: 'Only public HTTP and HTTPS video pages can be read.', field: el };
+      if (!$('#videoRights').checked) return { msg: 'Confirm you have the right to use this video before transcribing it.', field: $('#videoRights') };
+      return null;
+    },
+    pdf: function () {
+      var rows = $$('#pdfList .file-row');
+      if (!rows.length) return { msg: 'Add a PDF first.', field: $('#pdfDrop') };
+      var bad = rows.filter(function (r) { return r.dataset.state === 'error'; });
+      if (bad.length) return { msg: 'One file has no readable text. Run text recognition on it, or remove it.', field: $('.fr-ocr', bad[0]) };
+      return null;
+    },
+    slides: function () {
+      return { msg: 'Add a .pptx or .key export first.', field: $('#slidesDrop') };
+    }
+  };
+
+  /* Clearing on input, not only on the next submit, so a corrected field stops
+     shouting at the person who just corrected it. */
+  ['#topicInput', '#textInput', '#urlInput', '#videoInput'].forEach(function (sel) {
+    var el = $(sel), src = el.closest('.source-panel').dataset.panel;
+    el.addEventListener('input', function () {
+      if (!errSlot(src).hidden && !GUARD[src]()) clearError(src);
+    });
+  });
+  $('#videoRights').addEventListener('change', function () {
+    if (!errSlot('video').hidden && !GUARD.video()) clearError('video');
+  });
+
+  /* PDF rows */
+  $('#pdfList').addEventListener('click', function (e) {
+    var ocr = e.target.closest('.fr-ocr'), del = e.target.closest('.fr-del');
+    if (ocr) {
+      var row = ocr.closest('.file-row'), name = $('.nm', row).textContent;
+      ocr.setAttribute('aria-disabled', 'true');
+      ocr.textContent = 'Recognising…';
+      announce('Running text recognition on ' + name + '.');
+      setTimeout(function () {
+        row.dataset.state = 'ready';
+        $('.meta', row).textContent = '6 pages · 1,180 words recognised';
+        ocr.outerHTML = '<span class="badge badge-ok"><span class="dot"></span>Ready</span>';
+        clearError('pdf');
+        announce(name + ' is ready.');
+        $('.fr-del', row).focus();
+      }, 1500);
+    } else if (del) {
+      var r2 = del.closest('.file-row');
+      var n2 = $('.nm', r2).textContent;
+      r2.remove();
+      clearError('pdf');
+      announce(n2 + ' removed.');
+      $('#pdfDrop').focus();
+    }
+  });
+
+  /* Nothing is really uploaded in a prototype, so say so rather than pretend. */
+  [$('#pdfDrop'), $('#slidesDrop')].forEach(function (d) {
+    d.addEventListener('click', function () { announce('File picking is not wired up in this preview.'); });
+  });
+
+  /* ── generation job ─────────────────────────────────────────────── */
+  var jobPanel = $('#jobPanel'), jobBar = $('#jobBar'), jobDone = $('#jobDone'),
+      jobBadge = $('#jobBadge'), jobTitle = $('#jobTitle'), jobOri = $('#jobOri'),
+      jobIdEl = $('#jobId'), doneText = $('#doneText'), live = $('#jobAnnounce'),
+      genBtn = $('#generateBtn'), genLabel = $('#genLabel');
+  var stepEls = $$('#jobSteps .step'), timers = [], jobSeq = 4182, busy = false;
+
+  function announce(msg) { live.textContent = msg; }
+
+  function setBusy(on) {
+    busy = on;
+    genBtn.setAttribute('aria-disabled', String(on));
+    genLabel.textContent = on ? 'Generating…' : 'Generate carousel';
+    $('#regenBtn').setAttribute('aria-disabled', String(on));
+  }
+
+  function resetJob() {
+    timers.forEach(clearTimeout); timers = [];
+    stepEls.forEach(function (s) { s.dataset.state = 'idle'; });
+    /* Snap back to 4% instead of animating down from a finished bar. */
+    jobBar.style.transition = 'none';
+    jobBar.style.width = '4%';
+    requestAnimationFrame(function () { jobBar.style.transition = ''; });
+    jobDone.hidden = true;
+    jobBadge.className = 'badge badge-warn';
+    jobBadge.innerHTML = '<span class="dot"></span>Running';
+    jobTitle.textContent = 'Generating your draft';
+    jobIdEl.textContent = '#GJ-' + (++jobSeq);
+    jobOri.innerHTML = Ori.crane(84, 'folding');
+  }
+
+  function runJob() {
+    if (busy) return;
+    var problem = GUARD[activeSrc]();
+    if (problem) {
+      jobPanel.dataset.open = 'false';
+      showError(activeSrc, problem.msg, problem.field);
+      return;
+    }
+    clearError(activeSrc);
+
+    var n = slideCount();
+    stepDraftTxt.textContent = 'Write ' + n + ' slides';
+    jobPanel.dataset.open = 'true';
+    resetJob();
+    setBusy(true);
+    announce('Generating ' + n + ' slides.');
+
+    var marks = [[0, 22, 'Reading the source'], [1100, 48, 'Building the outline'],
+                 [2400, 78, 'Writing ' + n + ' slides'], [3600, 96, 'Fitting the text to the template']];
+    marks.forEach(function (m, i) {
+      timers.push(setTimeout(function () {
+        if (i > 0) stepEls[i - 1].dataset.state = 'done';
+        stepEls[i].dataset.state = 'active';
+        jobBar.style.width = m[1] + '%';
+        announce(m[2] + '.');
+      }, m[0]));
+    });
+    timers.push(setTimeout(function () {
+      stepEls[3].dataset.state = 'done';
+      jobBar.style.width = '100%';
+      jobTitle.textContent = 'Draft generated';
+      jobBadge.className = 'badge badge-ok';
+      jobBadge.innerHTML = '<span class="dot"></span>Done';
+      jobOri.innerHTML = Ori.crane(84);
+      /* The flagged slide is always an interior one, whatever the count. */
+      var flagged = Math.min(4, Math.max(2, n - 1));
+      doneText.innerHTML = '<strong>Draft ready — ' + n + ' slides.</strong> Slide ' + flagged +
+        ' needs a look: the body text is longer than the Ink layout can hold at a readable size.';
+      jobDone.hidden = false;
+      setBusy(false);
+      announce('Draft ready — ' + n + ' slides. Slide ' + flagged + ' needs a look.');
+    }, 4700));
+  }
+
+  genBtn.addEventListener('click', runJob);
+  $('#regenBtn').addEventListener('click', runJob);
+})();
+</script>
+</body>
+</html>

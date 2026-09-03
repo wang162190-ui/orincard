@@ -1,0 +1,33 @@
+# OS and tooling
+.DS_Store
+node_modules/
+.next/
+.vercel/
+.trigger/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+.cache/
+.tmp/
+tmp/
+*.tsbuildinfo
+*.log
+*.swp
+
+# Secrets (examples are deliberately blank)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# User data and local operational artifacts
+/uploads/
+/exports/
+/backups/
+supabase/.temp/
+supabase/.branches/
+*.dump
+*.sql.gz

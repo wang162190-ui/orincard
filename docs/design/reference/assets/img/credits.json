@@ -1,0 +1,56 @@
+[
+ {
+  "file": "assets/img/notebook-pen.jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/Close-up_of_a_woman_placing_a_pen_on_her_notebook._Laptop_and_a_cup_of_coffee_in_a_blurry_background.jpg/1920px-Close-up_of_a_woman_placing_a_pen_on_her_notebook._Laptop_and_a_cup_of_coffee_in_a_blurry_background.jpg",
+  "w": 1400,
+  "h": 935,
+  "artist": "Shixart1985",
+  "license": "CC BY 2.0",
+  "title": "Close-up of a woman placing a pen on her notebook. Laptop and a cup of coffee in a blurry background.jpg"
+ },
+ {
+  "file": "assets/img/desk-morning.jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b6/Coffee_and_workspace_setup_on_a_desk_during_a_productive_morning_session.jpg/1920px-Coffee_and_workspace_setup_on_a_desk_during_a_productive_morning_session.jpg",
+  "w": 1400,
+  "h": 2097,
+  "artist": "Shixart1985",
+  "license": "CC BY 2.0",
+  "title": "Coffee and workspace setup on a desk during a productive morning session.jpg"
+ },
+ {
+  "file": "assets/img/glasses-notebook.jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6a/Glasses_and_notebook_on_a_wooden_table_in_a_bright_room.jpg/1920px-Glasses_and_notebook_on_a_wooden_table_in_a_bright_room.jpg",
+  "w": 1400,
+  "h": 933,
+  "artist": "Shixart1985",
+  "license": "CC BY 2.0",
+  "title": "Glasses and notebook on a wooden table in a bright room.jpg"
+ },
+ {
+  "file": "assets/img/typing-office.jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Hands_typing_on_a_laptop_during_work_hours_in_a_modern_office_setting.jpg/1920px-Hands_typing_on_a_laptop_during_work_hours_in_a_modern_office_setting.jpg",
+  "w": 1400,
+  "h": 2100,
+  "artist": "Shixart1985",
+  "license": "CC BY 2.0",
+  "title": "Hands typing on a laptop during work hours in a modern office setting.jpg"
+ },
+ {
+  "file": "assets/img/workspace-writing.jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/Person_writing_in_notebook_while_using_laptop_at_a_modern_workspace.jpg/1920px-Person_writing_in_notebook_while_using_laptop_at_a_modern_workspace.jpg",
+  "w": 1400,
+  "h": 935,
+  "artist": "Shixart1985",
+  "license": "CC BY 2.0",
+  "title": "Person writing in notebook while using laptop at a modern workspace.jpg"
+ },
+ {
+  "file": "assets/img/portrait-smiling.jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/Woman_smiling_in_front_of_a_laptop_while_holding_glasses_in_one_hand_and_a_card_in_the_other_one.jpg/1920px-Woman_smiling_in_front_of_a_laptop_while_holding_glasses_in_one_hand_and_a_card_in_the_other_one.jpg",
+  "w": 1400,
+  "h": 934,
+  "artist": "Shixart1985",
+  "license": "CC BY 2.0",
+  "title": "Woman smiling in front of a laptop while holding glasses in one hand and a card in the other one.jpg"
+ }
+]

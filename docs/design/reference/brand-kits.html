@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Brand Kits · Orincard</title>
+<link rel="stylesheet" href="assets/orincard.css" />
+<style>
+  .kit-layout { display: grid; grid-template-columns: 258px minmax(0, 1fr); gap: var(--gap-lg); align-items: start; }
+  @media (max-width: 1000px) { .kit-layout { grid-template-columns: 1fr; } }
+
+  .kit-list { display: flex; flex-direction: column; gap: 6px; }
+  .kit-item {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    padding: 10px 11px; border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); cursor: pointer; font: inherit; color: inherit;
+  }
+  .kit-item:hover { background: var(--surface-2); border-color: var(--fg-line); }
+  .kit-item[aria-current="true"] { border-color: var(--fg); box-shadow: 0 0 0 1px var(--fg); }
+  .kit-swatches { display: flex; flex: none; }
+  .kit-swatches i { width: 13px; height: 26px; display: block; border: 1px solid var(--fg-line); }
+  .kit-swatches i:first-child { border-radius: 5px 0 0 5px; border-right: 0; }
+  .kit-swatches i:last-child { border-radius: 0 5px 5px 0; border-left: 0; }
+
+  .kit-detail { display: grid; grid-template-columns: minmax(0, 1fr) 292px; gap: var(--gap-lg); align-items: start; }
+  @media (max-width: 1320px) { .kit-detail { grid-template-columns: 1fr; } }
+
+  .preview-col { position: sticky; top: 20px; }
+  .preview-stage { background: var(--surface-2); border-radius: var(--radius); padding: 18px; display: grid; place-items: center; }
+  .preview-stage .slide { width: 100%; border-radius: 6px; border: 1px solid var(--fg-line); }
+
+  .pal-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .pal {
+    border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+    padding: 6px; cursor: pointer; font: inherit; color: inherit; display: block;
+  }
+  .pal:hover { border-color: var(--fg-line); }
+  .pal[aria-pressed="true"] { border-color: var(--fg); box-shadow: 0 0 0 1px var(--fg); }
+  .pal-chip { height: 40px; border-radius: 5px; display: grid; place-items: center; margin-bottom: 5px; }
+  .pal-chip b { font-family: var(--font-display); font-size: 17px; font-weight: 600; }
+  .pal-name { font-size: 11.5px; color: var(--muted); display: block; text-align: center; }
+
+  .acc-row { display: flex; gap: 7px; flex-wrap: wrap; }
+  .acc {
+    width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--fg-line);
+    cursor: pointer; padding: 0; position: relative;
+  }
+  .acc[aria-pressed="true"]::after {
+    content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--fg);
+  }
+
+  .id-row { display: flex; align-items: center; gap: 12px; }
+  .id-pick { display: flex; gap: 7px; }
+  .id-opt {
+    width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--border);
+    padding: 0; overflow: hidden; cursor: pointer; background: var(--surface-2);
+    display: grid; place-items: center;
+  }
+  .id-opt img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .id-opt span { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+  .id-opt[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--fg); border-color: var(--fg); }
+
+  .use-row {
+    display: flex; align-items: center; gap: 10px; padding: 9px 0;
+    border-bottom: 1px solid var(--border); font-size: 13.5px;
+  }
+  .use-row:last-child { border-bottom: 0; }
+
+  .del-row { padding: 13px 0; border-bottom: 1px solid var(--border); }
+  .del-row:last-child { border-bottom: 0; }
+  .del-row .nm { font-size: 13.5px; font-weight: 550; margin: 0 0 8px; }
+  .del-row .choices { display: flex; flex-direction: column; gap: 6px; }
+  .del-choice {
+    display: flex; align-items: flex-start; gap: 9px; padding: 8px 10px;
+    border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; font-size: 13px;
+  }
+  .del-choice:hover { background: var(--surface-2); }
+  .del-choice input { margin-top: 2px; flex: none; accent-color: var(--fg); }
+  .del-choice:has(input:checked) { border-color: var(--fg); background: var(--sig-mist); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail" data-od-id="rail">
+    <div class="rail-brand">
+      <span class="mark" aria-hidden="true">
+        <svg class="ori ori-mark" viewBox="0 0 24 24"><polygon points="8.8,13.4 6.4,20.4 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 16.6,12.8 14.6,16.2 8.8,13.4" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="16.6,12.8 22.8,15.6 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 21.2,3 16.6,12.8" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="5.4,4.8 11,11 8.8,13.4 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="1.8,8.6 5.4,4.8 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="word">Orincard</span>
+    </div>
+    <nav class="rail-nav" aria-label="Main">
+      <a class="nav-item" href="projects.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="10" rx="1.5"/></svg><span>Projects</span></a>
+      <a class="nav-item" href="generator.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg><span>New carousel</span></a>
+      <a class="nav-item" href="brand-kits.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg><span>Brand Kits</span></a>
+      <a class="nav-item" href="editor.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h16"/><path d="M14.5 4.5a2.1 2.1 0 0 1 3 3L9 16l-4 1 1-4Z"/></svg><span>Editor</span></a>
+      <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span>Prototype map</span></a>
+    </nav>
+    <div class="rail-foot">
+      <div class="plan-card">
+        <p class="label" style="margin-bottom: 6px;">Signed in</p>
+        <p style="margin: 0; font-size: 12.5px; line-height: 1.45;">Brand Kits belong to your account only. They are never shared or visible to other accounts.</p>
+      </div>
+      <a class="account" href="brand-kits.html">
+        <img class="avatar" src="assets/img/avatar-elena.jpg" alt="" width="28" height="28" />
+        <span class="who" style="min-width: 0;">
+          <span style="display: block; font-size: 13px; font-weight: 550;">Elena Marsh</span>
+          <span class="meta" style="display: block; font-size: 11.5px;">Creator plan</span>
+        </span>
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar" data-od-id="topbar">
+      <div class="crumbs"><a href="projects.html">Projects</a><span class="sep">/</span><strong>Brand Kits</strong></div>
+      <div class="row">
+        <span class="badge" id="saveState"><span class="dot"></span>All changes saved</span>
+        <button class="btn btn-primary btn-sm" id="newKit">New Brand Kit</button>
+      </div>
+    </header>
+
+    <div class="work" data-od-id="brand-kits">
+      <section style="margin-bottom: 20px;">
+        <h1 style="font-size: 32px;">Brand Kits</h1>
+        <p class="lead" style="margin-top: 8px; font-size: 15.5px;">A Brand Kit stores the identity a carousel is signed with. Applying one to a project copies its values in — editing the kit afterwards does not silently rewrite projects already exported.</p>
+      </section>
+
+      <div id="flash" style="display: none; margin-bottom: 16px;"></div>
+
+      <div class="kit-layout">
+        <div class="kit-list" id="kitList" data-od-id="kit-list" role="tablist" aria-label="Brand Kits"></div>
+
+        <div class="kit-detail" data-od-id="kit-detail">
+          <div class="stack" style="gap: var(--gap-md);">
+
+            <section class="panel">
+              <div class="panel-head">
+                <div style="min-width: 0;">
+                  <h2 class="h3" id="kitHeading">—</h2>
+                  <p class="meta" id="kitUsage" style="margin-top: 4px;"></p>
+                </div>
+                <div class="row">
+                  <button class="btn btn-secondary btn-sm" id="dupKit">Duplicate</button>
+                  <button class="btn btn-danger btn-sm" id="delKit">Delete</button>
+                </div>
+              </div>
+              <div class="panel-body stack" style="gap: var(--gap-md);">
+                <div class="field">
+                  <label class="label" for="fName">Kit name</label>
+                  <input class="input" id="fName" type="text" autocomplete="off" />
+                </div>
+
+                <div class="field">
+                  <span class="label">Signature</span>
+                  <div class="id-row">
+                    <div class="id-pick" id="idPick">
+                      <button class="id-opt" type="button" data-id="photo" aria-pressed="false" aria-label="Use headshot">
+                        <img src="assets/img/avatar-elena.jpg" alt="" width="46" height="46" />
+                      </button>
+                      <button class="id-opt" type="button" data-id="mark" aria-pressed="false" aria-label="Use monogram">
+                        <span id="markPreview">EM</span>
+                      </button>
+                      <button class="id-opt" type="button" data-id="none" aria-pressed="false" aria-label="No signature image">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px;color:var(--muted);"><path d="m5 5 14 14"/><circle cx="12" cy="12" r="8"/></svg>
+                      </button>
+                    </div>
+                    <p class="meta" style="line-height: 1.5;">Shown on the intro and outro slides. Upload replaces it for this kit only.</p>
+                  </div>
+                </div>
+
+                <div class="grid-2">
+                  <div class="field">
+                    <label class="label" for="fWho">Display name</label>
+                    <input class="input" id="fWho" type="text" autocomplete="off" />
+                  </div>
+                  <div class="field">
+                    <label class="label" for="fSite">Website or handle</label>
+                    <input class="input" id="fSite" type="text" autocomplete="off" />
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label class="label" for="fCta">Call to action</label>
+                  <input class="input" id="fCta" type="text" maxlength="18" autocomplete="off" />
+                  <p class="meta">Appears on the last slide. Keep it under 18 characters so it fits the pill at every ratio.</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head"><h2 class="h3">Colour and type</h2></div>
+              <div class="panel-body stack" style="gap: var(--gap-md);">
+                <div class="field">
+                  <span class="label">Palette</span>
+                  <div class="pal-grid" id="palGrid"></div>
+                </div>
+
+                <div class="field">
+                  <span class="label">Accent</span>
+                  <div class="acc-row" id="accRow"></div>
+                  <p class="meta">The accent carries highlighted words, the page counter rule and the CTA outline.</p>
+                </div>
+
+                <div class="grid-2">
+                  <div class="field">
+                    <label class="label" for="fDisplay">Headline face</label>
+                    <select class="select" id="fDisplay">
+                      <option value="serif">Editorial serif</option>
+                      <option value="sans">Grotesk sans</option>
+                      <option value="mono">Monospace</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label class="label" for="fBody">Body face</label>
+                    <select class="select" id="fBody">
+                      <option value="sans">Grotesk sans</option>
+                      <option value="serif">Editorial serif</option>
+                      <option value="mono">Monospace</option>
+                    </select>
+                  </div>
+                </div>
+                <p class="meta">Both faces ship with the export. A project restored on another machine keeps them.</p>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head"><h2 class="h3">Slide defaults</h2></div>
+              <div class="panel-body stack" style="gap: 14px;">
+                <label class="switch">
+                  <input type="checkbox" id="fCounters" /><span class="track"></span>
+                  <span>Show page numbers by default</span>
+                </label>
+                <div class="field" style="max-width: 220px;">
+                  <label class="label" for="fFmt">Page number format</label>
+                  <select class="select" id="fFmt">
+                    <option value="pad">01 / 06</option>
+                    <option value="plain">1 / 6</option>
+                    <option value="only">01</option>
+                  </select>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="fFooter" /><span class="track"></span>
+                  <span>Sign the intro and outro with name and website</span>
+                </label>
+                <p class="meta">New projects start with these. Any slide can override them in the editor.</p>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head"><h2 class="h3">Used by</h2></div>
+              <div class="panel-body" id="usageList"></div>
+            </section>
+          </div>
+
+          <div class="preview-col">
+            <div class="panel">
+              <div class="panel-head">
+                <h2 class="h3">Live preview</h2>
+                <div class="seg" role="group" aria-label="Preview slide" id="prevSeg">
+                  <button type="button" aria-pressed="true" data-prev="intro">Intro</button>
+                  <button type="button" aria-pressed="false" data-prev="outro">Outro</button>
+                </div>
+              </div>
+              <div class="panel-body">
+                <div class="preview-stage" id="prevStage"></div>
+                <p class="meta" style="margin-top: 11px; line-height: 1.5;">LinkedIn 1080 × 1350. The preview uses the same renderer as the editor canvas.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="dialog" id="dlgDelete" role="dialog" aria-modal="true" aria-labelledby="delTitle" hidden style="max-width: 600px;">
+    <div class="dialog-head">
+      <div>
+        <h2 class="h3" id="delTitle">Delete this Brand Kit</h2>
+        <p class="meta" id="delSub" style="margin-top: 5px;"></p>
+      </div>
+      <button class="btn btn-icon btn-ghost" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body" id="delBody"></div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary" data-close>Cancel</button>
+      <button class="btn btn-danger" id="delConfirm">Delete Brand Kit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var FONTS = {
+    serif: "var(--font-display)",
+    sans:  "var(--font-body)",
+    mono:  "var(--font-mono)"
+  };
+  var PALETTES = [
+    { id: 'ink',    name: 'Ink' },
+    { id: 'paper',  name: 'Paper' },
+    { id: 'signal', name: 'Signal' },
+    { id: 'blush',  name: 'Blush' },
+    { id: 'butter', name: 'Butter' },
+    { id: 'sky',    name: 'Sky' }
+  ];
+  var ACCENTS = ['ink', 'paper', 'signal', 'blush', 'butter', 'sky'];
+
+  var kits = [
+    {
+      id: 'k1', name: 'Elena Marsh — Personal', who: 'Elena Marsh', site: 'elenamarsh.co',
+      cta: 'Swipe', sig: 'photo', palette: 'ink', accent: 'ink',
+      display: 'serif', body: 'sans', counters: true, fmt: 'pad', footer: true,
+      used: ['Status meetings are not progress', 'Five questions to ask before you write a spec', 'Notes on writing in public']
+    },
+    {
+      id: 'k2', name: 'Quiet Work — Studio', who: 'Quiet Work', site: 'quietwork.studio',
+      cta: 'Read more', sig: 'mark', palette: 'signal', accent: 'signal',
+      display: 'sans', body: 'sans', counters: false, fmt: 'plain', footer: true,
+      used: ['A calmer way to plan your week', 'Three habits that survived my burnout']
+    },
+    {
+      id: 'k3', name: 'Conference talks', who: 'Elena Marsh', site: 'elenamarsh.co/talks',
+      cta: 'Full talk', sig: 'photo', palette: 'butter', accent: 'butter',
+      display: 'serif', body: 'sans', counters: true, fmt: 'only', footer: false,
+      used: []
+    }
+  ];
+
+  var currentId = 'k1';
+  var previewSlide = 'intro';
+
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var flash = $('#flash');
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function kit() {
+    for (var i = 0; i < kits.length; i++) if (kits[i].id === currentId) return kits[i];
+    return kits[0];
+  }
+  function initials(name) {
+    var parts = String(name).trim().split(/\s+/).slice(0, 2);
+    return parts.map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
+  }
+  function showFlash(html) { flash.innerHTML = html; flash.style.display = ''; }
+
+  /* ── kit list ────────────────────────────────────────── */
+  function renderList() {
+    $('#kitList').innerHTML = kits.map(function (k) {
+      return '<button class="kit-item" type="button" role="tab" data-kit="' + k.id + '" aria-current="' + (k.id === currentId) + '">' +
+        '<span class="kit-swatches" aria-hidden="true">' +
+          '<i style="background: var(--tpl-' + k.palette + '-bg);"></i>' +
+          '<i style="background: var(--tpl-' + k.accent + '-accent);"></i>' +
+        '</span>' +
+        '<span style="min-width: 0;">' +
+          '<span style="display:block; font-size:13.5px; font-weight:550; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + esc(k.name) + '</span>' +
+          '<span class="meta">' + (k.used.length ? k.used.length + (k.used.length === 1 ? ' project' : ' projects') : 'Not applied yet') + '</span>' +
+        '</span>' +
+      '</button>';
+    }).join('');
+  }
+
+  $('#kitList').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-kit]');
+    if (!b) return;
+    currentId = b.dataset.kit;
+    renderAll();
+  });
+
+  /* ── palette + accent controls ───────────────────────── */
+  function renderPalettes() {
+    var k = kit();
+    $('#palGrid').innerHTML = PALETTES.map(function (p) {
+      return '<button class="pal" type="button" data-pal="' + p.id + '" aria-pressed="' + (p.id === k.palette) + '">' +
+        '<span class="pal-chip" style="background: var(--tpl-' + p.id + '-bg); color: var(--tpl-' + p.id + '-fg);"><b>Aa</b></span>' +
+        '<span class="pal-name">' + p.name + '</span>' +
+      '</button>';
+    }).join('');
+    $('#accRow').innerHTML = ACCENTS.map(function (a) {
+      return '<button class="acc" type="button" data-acc="' + a + '" aria-pressed="' + (a === k.accent) + '" ' +
+        'style="background: var(--tpl-' + a + '-accent);" aria-label="Accent ' + a + '"></button>';
+    }).join('');
+  }
+
+  $('#palGrid').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pal]'); if (!b) return;
+    kit().palette = b.dataset.pal;
+    touch(); renderAll();
+  });
+  $('#accRow').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-acc]'); if (!b) return;
+    kit().accent = b.dataset.acc;
+    touch(); renderAll();
+  });
+  $('#idPick').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-id]'); if (!b) return;
+    kit().sig = b.dataset.id;
+    touch(); renderAll();
+  });
+  $('#prevSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-prev]'); if (!b) return;
+    previewSlide = b.dataset.prev;
+    Array.prototype.forEach.call(this.querySelectorAll('button'), function (o) {
+      o.setAttribute('aria-pressed', String(o.dataset.prev === previewSlide));
+    });
+    renderPreview();
+  });
+
+  /* ── field binding ───────────────────────────────────── */
+  function bind(sel, prop, isCheck) {
+    var el = $(sel);
+    el.addEventListener(isCheck ? 'change' : 'input', function () {
+      kit()[prop] = isCheck ? el.checked : el.value;
+      touch();
+      renderPreview();
+      if (prop === 'name' || prop === 'who') { renderList(); renderHeader(); }
+    });
+  }
+  bind('#fName', 'name'); bind('#fWho', 'who'); bind('#fSite', 'site'); bind('#fCta', 'cta');
+  bind('#fCounters', 'counters', true); bind('#fFooter', 'footer', true);
+  $('#fFmt').addEventListener('change', function () { kit().fmt = this.value; touch(); renderPreview(); });
+  $('#fDisplay').addEventListener('change', function () { kit().display = this.value; touch(); renderPreview(); });
+  $('#fBody').addEventListener('change', function () { kit().body = this.value; touch(); renderPreview(); });
+
+  var saveTimer = null;
+  function touch() {
+    var s = $('#saveState');
+    s.innerHTML = '<span class="dot"></span>Saving…';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () { s.innerHTML = '<span class="dot"></span>All changes saved'; }, 700);
+  }
+
+  function fillFields() {
+    var k = kit();
+    $('#fName').value = k.name; $('#fWho').value = k.who;
+    $('#fSite').value = k.site; $('#fCta').value = k.cta;
+    $('#fCounters').checked = k.counters; $('#fFooter').checked = k.footer;
+    $('#fFmt').value = k.fmt; $('#fDisplay').value = k.display; $('#fBody').value = k.body;
+    $('#markPreview').textContent = initials(k.who);
+    Array.prototype.forEach.call(document.querySelectorAll('#idPick [data-id]'), function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.id === k.sig));
+    });
+  }
+
+  function renderHeader() {
+    var k = kit();
+    $('#kitHeading').textContent = k.name;
+    $('#kitUsage').textContent = k.used.length
+      ? 'Applied to ' + k.used.length + (k.used.length === 1 ? ' project' : ' projects')
+      : 'Not applied to any project yet';
+    $('#delKit').disabled = kits.length === 1;
+  }
+
+  function renderUsage() {
+    var k = kit();
+    $('#usageList').innerHTML = k.used.length
+      ? k.used.map(function (p) {
+          return '<div class="use-row">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:15px;height:15px;color:var(--muted);flex:none;"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h5"/></svg>' +
+            '<a class="link" href="editor.html" style="flex:1;">' + esc(p) + '</a>' +
+            '<a class="btn btn-ghost btn-sm" href="editor.html">Open</a>' +
+          '</div>';
+        }).join('')
+      : '<p style="margin:0; font-size:13.5px; color:var(--muted);">No project uses this kit. Apply it from the Brand tab in the editor.</p>';
+  }
+
+  /* ── live preview ────────────────────────────────────── */
+  function counterText(k) {
+    if (k.fmt === 'plain') return '1 / 6';
+    if (k.fmt === 'only') return '01';
+    return '01 / 06';
+  }
+
+  function sigMarkup(k, size) {
+    if (k.sig === 'photo') return '<img src="assets/img/avatar-elena.jpg" alt="" />';
+    if (k.sig === 'mark') {
+      return '<span style="width:' + size + ';height:' + size + ';border-radius:50%;background:var(--s-accent);color:var(--s-bg);' +
+        'display:grid;place-items:center;font-size:3.4cqw;font-weight:600;flex:none;">' + esc(initials(k.who)) + '</span>';
+    }
+    return '';
+  }
+
+  function renderPreview() {
+    var k = kit();
+    var style = 'font-family:' + FONTS[k.body] + ';' +
+      '--s-accent: var(--tpl-' + k.accent + '-accent);';
+    var titleStyle = 'font-family:' + FONTS[k.display] + ';';
+
+    var body = previewSlide === 'intro'
+      ? '<span class="slide-shape" aria-hidden="true"></span>' +
+        '<p class="slide-eyebrow">Operations</p>' +
+        '<div class="slide-main"><h3 class="slide-title" style="' + titleStyle + '">Your status meeting is <em>not</em> progress.</h3></div>'
+      : '<span class="slide-shape bottom" aria-hidden="true"></span>' +
+        '<p class="slide-eyebrow">Last slide</p>' +
+        '<div class="slide-main"><h3 class="slide-title" style="' + titleStyle + 'font-size:9cqw;">Run the week you actually planned.</h3></div>';
+
+    var foot = '';
+    if (k.footer || k.cta) {
+      foot = '<div class="slide-foot">';
+      if (k.footer) {
+        foot += sigMarkup(k, '8cqw');
+        foot += '<span class="who"><b>' + esc(k.who) + '</b><span>' + esc(k.site) + '</span></span>';
+      }
+      if (k.cta) foot += '<span class="slide-cta">' + esc(k.cta) + '</span>';
+      foot += '</div>';
+    }
+
+    var counter = k.counters ? '<span class="slide-counter">' + counterText(k) + '</span>' : '';
+
+    $('#prevStage').innerHTML =
+      '<div class="slide t-' + k.palette + ' r-4-5" style="' + style + '">' + counter + body + foot + '</div>';
+  }
+
+  function renderAll() {
+    renderList(); renderHeader(); renderPalettes(); fillFields(); renderUsage(); renderPreview();
+  }
+
+  /* ── create / duplicate ──────────────────────────────── */
+  $('#newKit').addEventListener('click', function () {
+    var k = {
+      id: 'k' + (Date.now() % 100000), name: 'Untitled Brand Kit', who: 'Elena Marsh',
+      site: 'elenamarsh.co', cta: 'Swipe', sig: 'none', palette: 'paper', accent: 'paper',
+      display: 'serif', body: 'sans', counters: true, fmt: 'pad', footer: true, used: []
+    };
+    kits.push(k);
+    currentId = k.id;
+    renderAll();
+    $('#fName').focus();
+    $('#fName').select();
+  });
+
+  $('#dupKit').addEventListener('click', function () {
+    var src = kit();
+    var copy = JSON.parse(JSON.stringify(src));
+    copy.id = 'k' + (Date.now() % 100000);
+    copy.name = src.name + ' (copy)';
+    copy.used = [];
+    kits.push(copy);
+    currentId = copy.id;
+    renderAll();
+    showFlash('<div class="notice notice-ok"><p style="margin:0;">Duplicated as <strong>' + esc(copy.name) +
+      '</strong>. The copy is not applied to any project — projects using the original are untouched.</p></div>');
+  });
+
+  /* ── delete with per-project decision (AC-008) ───────── */
+  var scrim = $('#scrim');
+  var dlgDelete = $('#dlgDelete');
+  var delBody = $('#delBody');
+  var delTargetId = null;
+
+  function closeDialog() {
+    dlgDelete.hidden = true;
+    scrim.hidden = true;
+  }
+  scrim.addEventListener('click', function (e) { if (e.target === scrim) closeDialog(); });
+  document.addEventListener('click', function (e) { if (e.target.closest('[data-close]')) closeDialog(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDialog(); });
+
+  $('#delKit').addEventListener('click', function () {
+    var k = kit();
+    delTargetId = k.id;
+    $('#delSub').textContent = k.name;
+    var others = kits.filter(function (o) { return o.id !== k.id; });
+
+    if (k.used.length === 0) {
+      delBody.innerHTML = '<p style="margin: 0 0 12px; font-size: 14px; line-height: 1.55;">' +
+        '<strong>' + esc(k.name) + '</strong> is not applied to any project, so nothing else changes.</p>' +
+        '<div class="notice"><p style="margin:0;">Deleting a kit never touches slides that were already exported.</p></div>';
+      $('#delConfirm').disabled = false;
+    } else {
+      delBody.innerHTML =
+        '<div class="notice notice-warn" style="margin-bottom: 16px;">' +
+          '<p style="margin:0;">' + k.used.length + ' projects use this kit. Choose what each one should do — Orincard will not change a project\'s branding on its own. ' +
+          'Replacing copies the other kit\'s colours, fonts, signature and CTA into the project; keeping freezes today\'s look as the project\'s own inline styles.</p>' +
+        '</div>' +
+        '<div class="row" style="margin-bottom: 10px;">' +
+          '<span class="label" style="flex:1;">Decision for each project</span>' +
+          '<label class="label" for="applyAll" style="text-transform:none; letter-spacing:0;">Set all to</label>' +
+          '<select class="select" id="applyAll" style="max-width: 210px; min-height: 32px; font-size: 13px;">' +
+            '<option value="">Choose…</option>' +
+            others.map(function (o) { return '<option value="r:' + o.id + '">Replace with ' + esc(o.name) + '</option>'; }).join('') +
+            '<option value="keep">Keep current styles</option>' +
+          '</select>' +
+        '</div>' +
+        k.used.map(function (p, i) {
+          return '<div class="del-row">' +
+            '<p class="nm">' + esc(p) + '</p>' +
+            '<div class="choices">' +
+              others.map(function (o) {
+                return '<label class="del-choice"><input type="radio" name="dec' + i + '" value="r:' + o.id + '" />' +
+                  '<span>Replace with <strong>' + esc(o.name) + '</strong></span></label>';
+              }).join('') +
+              '<label class="del-choice"><input type="radio" name="dec' + i + '" value="keep" />' +
+                '<span>Keep current styles as the project\'s own</span></label>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      $('#delConfirm').disabled = true;
+    }
+
+    scrim.hidden = false;
+    dlgDelete.hidden = false;
+    $('#delConfirm').focus();
+  });
+
+  delBody.addEventListener('change', function (e) {
+    if (e.target.id === 'applyAll') {
+      var v = e.target.value;
+      if (v) {
+        Array.prototype.forEach.call(delBody.querySelectorAll('input[type="radio"][value="' + v + '"]'), function (r) {
+          r.checked = true;
+        });
+      }
+    }
+    var groups = {};
+    Array.prototype.forEach.call(delBody.querySelectorAll('input[type="radio"]'), function (r) {
+      groups[r.name] = groups[r.name] || false;
+      if (r.checked) groups[r.name] = true;
+    });
+    var allDecided = Object.keys(groups).every(function (g) { return groups[g]; });
+    $('#delConfirm').disabled = !allDecided;
+  });
+
+  $('#delConfirm').addEventListener('click', function () {
+    var k = null;
+    for (var i = 0; i < kits.length; i++) if (kits[i].id === delTargetId) k = kits[i];
+    if (!k) return;
+
+    var moved = {};
+    var kept = 0;
+    Array.prototype.forEach.call(delBody.querySelectorAll('input[type="radio"]:checked'), function (r, idx) {
+      var name = k.used[Number(r.name.replace('dec', ''))];
+      if (r.value === 'keep') { kept++; return; }
+      var target = r.value.slice(2);
+      for (var j = 0; j < kits.length; j++) {
+        if (kits[j].id === target) { kits[j].used.push(name); moved[kits[j].name] = (moved[kits[j].name] || 0) + 1; }
+      }
+    });
+
+    kits.splice(kits.indexOf(k), 1);
+    currentId = kits[0].id;
+    closeDialog();
+
+    var parts = Object.keys(moved).map(function (n) { return moved[n] + ' moved to ' + n; });
+    if (kept) parts.push(kept + ' kept their own styles');
+    showFlash('<div class="notice notice-ok"><p style="margin:0;">Deleted <strong>' + esc(k.name) + '</strong>. ' +
+      (parts.length ? esc(parts.join(' · ')) + '.' : 'No project was affected.') + '</p></div>');
+    renderAll();
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

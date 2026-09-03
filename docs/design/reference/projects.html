@@ -1,0 +1,1173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Projects · Orincard</title>
+<link rel="stylesheet" href="assets/orincard.css" />
+<style>
+  .lib-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gap-lg); margin-bottom: 22px; }
+  .lib-head .voice { flex: 0 1 400px; }
+
+  /* Counts are computed from the project array on every render — never typed in. */
+  .tally-wrap { margin-bottom: 24px; }
+  .tally { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .tally-block {
+    border: 1px solid var(--fg); border-radius: var(--radius-lg);
+    padding: 14px 18px 12px; text-align: left; color: var(--fg);
+    display: flex; flex-direction: column; gap: 1px;
+    transition: background 0.14s ease;
+  }
+  .tally-n { font-family: var(--font-display); font-size: clamp(40px, 5vw, 62px); font-weight: 600; line-height: 1.02; font-variant-numeric: tabular-nums; }
+  .tally-k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase; }
+  .tally-fix { background: var(--sig-pink); }
+  .tally-prog { background: var(--sig-yellow); }
+  .tally-rdy { background: var(--sig-blue); }
+  /* Hover lifts the fill toward paper: mixing toward ink would darken the
+     ground under ink type and drop its contrast — the wrong direction.
+     Mixed in sRGB on purpose. OKLch interpolates hue, and paper carries a
+     real hue (116), so an OKLch mix swings pink to peach and blue to teal. */
+  .tally-fix:hover  { background: color-mix(in srgb, var(--sig-pink) 62%, var(--bg)); }
+  .tally-prog:hover { background: color-mix(in srgb, var(--sig-yellow) 62%, var(--bg)); }
+  .tally-rdy:hover  { background: color-mix(in srgb, var(--sig-blue) 62%, var(--bg)); }
+  .tally-block[aria-pressed="true"] { box-shadow: inset 0 0 0 3px var(--fg); }
+  .tally-cap { margin: 10px 0 0; }
+
+  .toolbar {
+    display: flex; align-items: flex-end; gap: var(--gap-md); flex-wrap: wrap;
+    padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .search { position: relative; flex: 1 1 260px; min-width: 200px; }
+  .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--muted); stroke-width: 1.7; pointer-events: none; }
+  .search .input { padding-left: 33px; }
+  .search-clear {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 24px; height: 24px; border: 0; background: transparent; border-radius: 6px;
+    color: var(--muted); cursor: pointer; display: none; align-items: center; justify-content: center;
+  }
+  .search-clear:hover { background: var(--fg-soft); color: var(--fg); }
+  .search[data-filled="true"] .search-clear { display: flex; }
+
+  .proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: var(--gap-md); }
+  .proj-card {
+    position: relative; display: flex; flex-direction: column;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .proj-card:hover { border-color: var(--fg); }
+  .proj-card[data-archived="true"] { background: var(--surface-2); }
+  .proj-cover {
+    height: 176px; display: grid; place-items: center; background: var(--surface-2);
+    border-bottom: 1px solid var(--border); position: relative; padding: 16px 0; overflow: hidden;
+  }
+  .proj-cover .slide { width: 115px; pointer-events: none; border: 1px solid var(--fg-line); border-radius: 6px; }
+  .proj-cover .slide.r-9-16 { width: 81px; }
+  .proj-cover .slide.r-1-1 { width: 144px; }
+  .proj-card[data-archived="true"] .proj-cover .slide { opacity: 0.55; }
+  .cover-count {
+    position: absolute; right: 10px; bottom: 10px;
+    font-family: var(--font-mono); font-size: 11px; padding: 3px 7px; border-radius: 6px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+  }
+  .proj-body { padding: 13px 14px 14px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+  .proj-title {
+    font-family: var(--font-display); font-size: 16px; line-height: 1.28; font-weight: 600; margin: 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .proj-title a { color: inherit; }
+  .proj-title a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  /* line-clamp needs overflow:hidden, which eats an outset ring — draw inside */
+  .proj-title a:focus-visible { outline-offset: -2px; }
+  .proj-meta { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 3px 7px; }
+  /* The separator rides on the item that follows it, so a wrap can never
+     leave a lone "·" sitting on its own line. */
+  .proj-meta span + span::before { content: '·'; margin-right: 7px; }
+  .proj-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 4px; }
+
+  /* list view */
+  .proj-grid[data-view="list"] { grid-template-columns: 1fr; gap: 8px; }
+  .proj-grid[data-view="list"] .proj-card { flex-direction: row; align-items: stretch; border-radius: var(--radius); }
+  .proj-grid[data-view="list"] .proj-cover { height: auto; width: 66px; flex: none; border-bottom: 0; border-right: 1px solid var(--border); padding: 10px; }
+  .proj-grid[data-view="list"] .proj-cover .slide { width: 46px; }
+  .proj-grid[data-view="list"] .cover-count { display: none; }
+  .proj-grid[data-view="list"] .proj-body { flex-direction: row; align-items: center; gap: var(--gap-md); padding: 11px 14px; }
+  .proj-grid[data-view="list"] .proj-title { flex: 1 1 240px; -webkit-line-clamp: 1; font-size: 15px; }
+  .proj-grid[data-view="list"] .proj-meta { flex: 0 0 auto; }
+  .proj-grid[data-view="list"] .proj-foot { margin-top: 0; flex: 0 0 auto; }
+  @media (max-width: 760px) {
+    .proj-grid[data-view="list"] .proj-body { flex-wrap: wrap; }
+  }
+
+  .ver-row {
+    display: flex; align-items: center; gap: var(--gap-md); padding: 11px 2px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ver-row:last-child { border-bottom: 0; }
+  .ver-tag {
+    font-family: var(--font-mono); font-size: 11.5px; width: 34px; flex: none;
+    color: var(--fg); font-weight: 600;
+  }
+  .imp-file {
+    display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+    padding: 11px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); cursor: pointer; font: inherit; color: inherit;
+  }
+  .imp-file:hover { border-color: var(--fg-line); background: var(--surface-2); }
+  .imp-file[aria-pressed="true"] { border-color: var(--fg); box-shadow: 0 0 0 2px color-mix(in oklch, var(--fg) 14%, transparent); }
+  .imp-file .fi { width: 30px; height: 30px; border-radius: 7px; background: var(--surface-2); display: grid; place-items: center; flex: none; }
+  .imp-file .fi svg { width: 15px; height: 15px; color: var(--muted); stroke-width: 1.6; }
+  .imp-step { display: none; }
+  .imp-step[data-open="true"] { display: block; }
+
+  /* first-load skeleton — same card geometry, so nothing jumps when real
+     cards replace it */
+  .sk-card { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface); }
+  .sk-card .sk-cover { height: 176px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+  .sk-card .sk-body { padding: 15px 14px 16px; display: flex; flex-direction: column; gap: 9px; }
+  .sk-line { height: 11px; border-radius: 5px; background: var(--fg-soft); }
+  .sk-line.t { height: 15px; width: 88%; }
+  .sk-line.t2 { height: 15px; width: 54%; }
+  .sk-line.s { width: 68%; }
+  .sk-line.p { width: 40%; height: 21px; border-radius: var(--radius-pill); margin-top: 5px; }
+  .sk-pulse { animation: skPulse 1.1s ease-in-out infinite; }
+  @keyframes skPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  .rst-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+  .rst-list li { display: flex; gap: 9px; font-size: 13.5px; line-height: 1.5; }
+  .rst-list .ico { flex: none; width: 15px; height: 15px; margin-top: 3px; stroke-width: 1.9; }
+  .ico-ok { color: var(--fg); }
+  .ico-no { color: var(--danger); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail" data-od-id="rail">
+    <div class="rail-brand">
+      <span class="mark" aria-hidden="true">
+        <svg class="ori ori-mark" viewBox="0 0 24 24"><polygon points="8.8,13.4 6.4,20.4 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 16.6,12.8 14.6,16.2 8.8,13.4" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="16.6,12.8 22.8,15.6 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 21.2,3 16.6,12.8" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="5.4,4.8 11,11 8.8,13.4 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="1.8,8.6 5.4,4.8 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="word">Orincard</span>
+    </div>
+    <nav class="rail-nav" aria-label="Main">
+      <a class="nav-item" href="projects.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="10" rx="1.5"/></svg><span>Projects</span></a>
+      <a class="nav-item" href="generator.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg><span>New carousel</span></a>
+      <a class="nav-item" href="brand-kits.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg><span>Brand Kits</span></a>
+      <a class="nav-item" href="editor.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h16"/><path d="M14.5 4.5a2.1 2.1 0 0 1 3 3L9 16l-4 1 1-4Z"/></svg><span>Editor</span></a>
+      <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span>Prototype map</span></a>
+    </nav>
+    <div class="rail-foot">
+      <div class="plan-card">
+        <p class="label" style="margin-bottom: 6px;">Signed in</p>
+        <p style="margin: 0 0 10px; font-size: 12.5px; line-height: 1.45;">Projects are private to your account. Nobody else can open or export them.</p>
+        <a class="btn btn-secondary btn-sm" href="brand-kits.html" style="width: 100%;">Manage Brand Kits</a>
+      </div>
+      <a class="account" href="brand-kits.html">
+        <img class="avatar" src="assets/img/avatar-elena.jpg" alt="" width="28" height="28" />
+        <span class="who" style="min-width: 0;">
+          <span style="display: block; font-size: 13px; font-weight: 550;">Elena Marsh</span>
+          <span class="meta" style="display: block; font-size: 11.5px;">Creator plan</span>
+        </span>
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar" data-od-id="topbar">
+      <div class="crumbs"><strong>Projects</strong></div>
+      <div class="row">
+        <button class="btn btn-secondary btn-sm" id="importBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;"><path d="M12 15V3m0 12-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          Import project
+        </button>
+        <a class="btn btn-primary btn-sm" href="generator.html">New carousel</a>
+      </div>
+    </header>
+
+    <div class="work" data-od-id="library">
+
+      <section class="lib-head">
+        <div>
+          <h1 style="font-size: 32px;">Projects</h1>
+          <p class="lead" style="margin-top: 8px; font-size: 15.5px;">Every carousel you have generated, with its version history and export record. Archived projects stay restorable.</p>
+        </div>
+        <div class="voice">
+          <span id="voiceOri" aria-hidden="true"></span>
+          <p>Imports tell you what cannot be restored before anything is created.</p>
+        </div>
+      </section>
+
+      <section class="tally-wrap" data-od-id="tally">
+        <div class="tally" role="group" aria-label="Filter by pipeline stage">
+          <button class="tally-block tally-fix" type="button" data-tally="needs-fix" aria-pressed="false">
+            <span class="tally-n" id="tallyFix">0</span>
+            <span class="tally-k">Needs fixes</span>
+          </button>
+          <button class="tally-block tally-prog" type="button" data-tally="draft" aria-pressed="false">
+            <span class="tally-n" id="tallyDraft">0</span>
+            <span class="tally-k">In progress</span>
+          </button>
+          <button class="tally-block tally-rdy" type="button" data-tally="ready" aria-pressed="false">
+            <span class="tally-n" id="tallyReady">0</span>
+            <span class="tally-k">Ready to export</span>
+          </button>
+        </div>
+        <p class="meta tally-cap" id="tallyCap"></p>
+      </section>
+
+      <div id="flash" role="status" aria-live="polite" style="display: none; margin-bottom: 16px;"></div>
+
+      <section class="toolbar" data-od-id="filters">
+        <div class="search" id="searchWrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+          <label class="visually-hidden" for="q">Search projects</label>
+          <input class="input" id="q" type="search" placeholder="Search by title or Brand Kit" autocomplete="off" />
+          <button class="search-clear" id="qClear" type="button" aria-label="Clear search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="width:14px;height:14px;"><path d="m6 6 12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+
+        <div class="field" style="flex: 0 0 auto;">
+          <span class="label">Platform</span>
+          <div class="seg" role="group" aria-label="Filter by platform" id="platSeg">
+            <button type="button" aria-pressed="true" data-plat="all">All</button>
+            <button type="button" aria-pressed="false" data-plat="linkedin">LinkedIn</button>
+            <button type="button" aria-pressed="false" data-plat="instagram">Instagram</button>
+            <button type="button" aria-pressed="false" data-plat="tiktok">TikTok</button>
+          </div>
+        </div>
+
+        <div class="field" style="flex: 0 0 auto; min-width: 156px;">
+          <label class="label" for="statusSel">Status</label>
+          <select class="select" id="statusSel">
+            <option value="active">Active projects</option>
+            <option value="draft">Draft</option>
+            <option value="needs-fix">Needs fixes</option>
+            <option value="ready">Ready to export</option>
+            <option value="exported">Exported</option>
+            <option value="archived">Archived</option>
+            <option value="all">All statuses</option>
+          </select>
+        </div>
+
+        <div class="field" style="flex: 0 0 auto; min-width: 156px;">
+          <label class="label" for="sortSel">Sort</label>
+          <select class="select" id="sortSel">
+            <option value="updated">Last updated</option>
+            <option value="created">Recently created</option>
+            <option value="title">Title A–Z</option>
+            <option value="slides">Most slides</option>
+          </select>
+        </div>
+
+        <div class="field" style="flex: 0 0 auto;">
+          <span class="label">View</span>
+          <div class="seg" role="group" aria-label="Layout" id="viewSeg">
+            <button type="button" aria-pressed="true" data-view="grid" aria-label="Grid view" title="Grid">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+            </button>
+            <button type="button" aria-pressed="false" data-view="list" aria-label="List view" title="List">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section data-od-id="results">
+        <div class="row-between" style="padding: 14px 0 16px;">
+          <p class="meta" id="countLine">—</p>
+          <button class="btn btn-ghost btn-sm" id="resetBtn" style="display: none;">Clear filters</button>
+        </div>
+        <div class="proj-grid" data-view="grid" id="grid"></div>
+        <div id="emptyState"></div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- kebab menu -->
+<div class="popover" id="menu" role="menu" hidden style="position: fixed;">
+  <div class="menu" id="menuItems"></div>
+</div>
+
+<!-- dialogs -->
+<div class="scrim" id="scrim" hidden>
+
+<div class="dialog" id="dlgVersions" role="dialog" aria-modal="true" aria-labelledby="verTitle" hidden style="max-width: 520px;">
+  <div class="dialog-head">
+    <div>
+      <h2 class="h3" id="verTitle">Version history</h2>
+      <p class="meta" id="verSub" style="margin-top: 5px;"></p>
+    </div>
+    <button class="btn btn-icon btn-ghost" data-close aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div class="dialog-body">
+    <div id="verList"></div>
+    <p class="meta" style="margin-top: 14px;">Restoring writes a new version. Nothing in the history is deleted.</p>
+  </div>
+  <div class="dialog-foot">
+    <button class="btn btn-secondary" data-close>Close</button>
+  </div>
+</div>
+
+<div class="dialog" id="dlgExport" role="dialog" aria-modal="true" aria-labelledby="expTitle" hidden style="max-width: 540px;">
+  <div class="dialog-head">
+    <div>
+      <h2 class="h3" id="expTitle">Export record</h2>
+      <p class="meta" id="expSub" style="margin-top: 5px;"></p>
+    </div>
+    <button class="btn btn-icon btn-ghost" data-close aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div class="dialog-body" id="expBody"></div>
+  <div class="dialog-foot">
+    <button class="btn btn-secondary" data-close>Close</button>
+    <button class="btn btn-primary" id="expGo">Re-export</button>
+  </div>
+</div>
+
+<div class="dialog" id="dlgDelete" role="dialog" aria-modal="true" aria-labelledby="delTitle" hidden style="max-width: 460px;">
+  <div class="dialog-head">
+    <h2 class="h3" id="delTitle">Delete this project?</h2>
+    <button class="btn btn-icon btn-ghost" data-close aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div class="dialog-body">
+    <p id="delName" style="margin: 0 0 12px; font-weight: 550;"></p>
+    <div class="notice notice-danger">
+      <p style="margin: 0;">This removes the slides, every saved version and the export files. Download links already shared for this project stop working immediately.</p>
+    </div>
+    <p class="meta" style="margin-top: 12px;">Archiving instead keeps everything and hides the project from this list.</p>
+  </div>
+  <div class="dialog-foot">
+    <button class="btn btn-secondary" data-close>Cancel</button>
+    <button class="btn btn-secondary" id="delArchive">Archive instead</button>
+    <button class="btn btn-danger" id="delConfirm">Delete permanently</button>
+  </div>
+</div>
+
+<div class="dialog" id="dlgImport" role="dialog" aria-modal="true" aria-labelledby="impTitle" hidden style="max-width: 560px;">
+  <div class="dialog-head">
+    <div>
+      <h2 class="h3" id="impTitle">Import an Orincard project</h2>
+      <p class="meta" style="margin-top: 5px;">ZIP or PDF exported from Orincard</p>
+    </div>
+    <button class="btn btn-icon btn-ghost" data-close aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><path d="m6 6 12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div class="dialog-body">
+    <div class="imp-step" data-open="true" id="impPick">
+      <div class="dropzone" style="margin-bottom: 14px;">
+        <p style="margin: 0 0 4px; font-weight: 550; font-size: 14px;">Drop a package here</p>
+        <p class="meta" style="margin: 0;">Up to 200 MB · .zip or .pdf</p>
+      </div>
+      <p class="label" style="margin-bottom: 8px;">Recent downloads</p>
+      <div class="stack" style="gap: 8px;">
+        <button class="imp-file" type="button" aria-pressed="false" data-pkg="good">
+          <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3v5h5"/><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/></svg></span>
+          <span style="min-width: 0;">
+            <span style="display: block; font-size: 13.5px; font-weight: 550;">orincard-calmer-week-v6.zip</span>
+            <span class="meta">18.4 MB · downloaded Aug 24, 2026</span>
+          </span>
+        </button>
+        <button class="imp-file" type="button" aria-pressed="false" data-pkg="broken">
+          <span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 3v5h5"/><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/></svg></span>
+          <span style="min-width: 0;">
+            <span style="display: block; font-size: 13.5px; font-weight: 550;">writing-in-public (1).zip</span>
+            <span class="meta">6.1 MB · re-compressed copy</span>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <div class="imp-step" id="impScan">
+      <p class="label" style="margin-bottom: 10px;">Reading package</p>
+      <div class="progress" style="margin-bottom: 12px;"><span id="impBar" style="width: 8%;"></span></div>
+      <p class="meta" id="impScanNote">Checking manifest…</p>
+    </div>
+
+    <div class="imp-step" id="impResult"></div>
+  </div>
+  <div class="dialog-foot" id="impFoot">
+    <button class="btn btn-secondary" data-close>Cancel</button>
+    <button class="btn btn-primary" id="impGo" disabled>Continue</button>
+  </div>
+</div>
+
+</div><!-- /scrim -->
+
+<script src="assets/ori.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var TODAY = 'Sep 2, 2026';
+
+  var projects = [
+    {
+      id: 'p1', title: 'Status meetings are not progress', platform: 'linkedin', ratio: 'r-4-5',
+      theme: 't-ink', status: 'needs-fix', slides: 6, version: 4, kit: 'Elena Marsh — Personal',
+      updated: 'Sep 1, 2026 · 14:20', updatedTs: 20260901, createdTs: 20260830,
+      eyebrow: 'Team habits', cover: 'Status meetings are not *progress*',
+      note: '1 slide over capacity', exp: null,
+      versions: [
+        { v: 'v4', label: 'Autosave after slide 4 edit', when: 'Sep 1, 2026 · 14:20', current: true },
+        { v: 'v3', label: 'Manual save before AI rewrite', when: 'Sep 1, 2026 · 11:02' },
+        { v: 'v2', label: 'Applied Brand Kit “Elena Marsh — Personal”', when: 'Aug 31, 2026 · 18:44' },
+        { v: 'v1', label: 'Generated from Topic', when: 'Aug 30, 2026 · 09:15' }
+      ]
+    },
+    {
+      id: 'p2', title: 'Five questions to ask before you write a spec', platform: 'linkedin', ratio: 'r-4-5',
+      theme: 't-paper', status: 'ready', slides: 8, version: 2, kit: 'Elena Marsh — Personal',
+      updated: 'Aug 28, 2026 · 09:40', updatedTs: 20260828, createdTs: 20260827,
+      eyebrow: 'Writing specs', cover: 'Five questions before you write a *spec*',
+      note: 'Preflight passed', exp: null,
+      versions: [
+        { v: 'v2', label: 'Rewrote outro CTA', when: 'Aug 28, 2026 · 09:40', current: true },
+        { v: 'v1', label: 'Generated from PDF', when: 'Aug 27, 2026 · 16:12' }
+      ]
+    },
+    {
+      id: 'p3', title: 'A calmer way to plan your week', platform: 'instagram', ratio: 'r-4-5',
+      theme: 't-signal', status: 'exported', slides: 5, version: 6, kit: 'Quiet Work — Studio',
+      updated: 'Aug 24, 2026 · 20:05', updatedTs: 20260824, createdTs: 20260819,
+      eyebrow: 'Planning', cover: 'A calmer way to plan your *week*',
+      note: 'PNG ZIP + PDF',
+      exp: {
+        when: 'Aug 24, 2026 · 20:11', version: 'v6', preset: 'Instagram · 1080 × 1350',
+        files: ['01.png – 05.png (ZIP, 12.8 MB)', 'calmer-week.pdf (5 pages, 4.1 MB)', 'caption.txt (1 KB)'],
+        expires: 'Sep 23, 2026'
+      },
+      versions: [
+        { v: 'v6', label: 'Exported PNG ZIP + PDF', when: 'Aug 24, 2026 · 20:05', current: true },
+        { v: 'v5', label: 'Swapped cover photo', when: 'Aug 24, 2026 · 15:31' },
+        { v: 'v4', label: 'Shortened slides 2 and 3', when: 'Aug 22, 2026 · 10:20' },
+        { v: 'v3', label: 'Switched template to Signal', when: 'Aug 21, 2026 · 17:58' },
+        { v: 'v2', label: 'Applied Brand Kit “Quiet Work — Studio”', when: 'Aug 20, 2026 · 12:03' },
+        { v: 'v1', label: 'Generated from Text', when: 'Aug 19, 2026 · 08:47' }
+      ]
+    },
+    {
+      id: 'p4', title: 'What I learned running solo for a year', platform: 'instagram', ratio: 'r-4-5',
+      theme: 't-paper', status: 'draft', slides: 4, version: 1, kit: 'No Brand Kit',
+      updated: 'Aug 21, 2026 · 13:12', updatedTs: 20260821, createdTs: 20260821,
+      eyebrow: 'Solo work', cover: 'What I learned running *solo* for a year',
+      note: 'Outro not written', exp: null,
+      versions: [{ v: 'v1', label: 'Generated from Topic', when: 'Aug 21, 2026 · 13:12', current: true }]
+    },
+    {
+      id: 'p5', title: 'Three habits that survived my burnout', platform: 'tiktok', ratio: 'r-9-16',
+      theme: 't-ink', status: 'ready', slides: 7, version: 3, kit: 'Quiet Work — Studio',
+      updated: 'Aug 16, 2026 · 07:55', updatedTs: 20260816, createdTs: 20260812,
+      eyebrow: 'Recovery', cover: 'Three habits that survived my *burnout*',
+      note: 'Preflight passed', exp: null,
+      versions: [
+        { v: 'v3', label: 'Relayout for TikTok 9:16', when: 'Aug 16, 2026 · 07:55', current: true },
+        { v: 'v2', label: 'Edited slides 5 – 7', when: 'Aug 14, 2026 · 21:30' },
+        { v: 'v1', label: 'Generated from URL', when: 'Aug 12, 2026 · 19:04' }
+      ]
+    },
+    {
+      id: 'p6', title: 'Notes on writing in public', platform: 'linkedin', ratio: 'r-4-5',
+      theme: 't-paper', status: 'archived', slides: 6, version: 5, kit: 'Elena Marsh — Personal',
+      updated: 'Jul 30, 2026 · 16:40', updatedTs: 20260730, createdTs: 20260722,
+      eyebrow: 'Publishing', cover: 'Notes on writing *in public*',
+      note: 'Archived Aug 2, 2026',
+      exp: {
+        when: 'Jul 30, 2026 · 16:52', version: 'v5', preset: 'LinkedIn · 1080 × 1350',
+        files: ['01.png – 06.png (ZIP, 15.2 MB)'],
+        expires: 'Expired Aug 29, 2026'
+      },
+      versions: [
+        { v: 'v5', label: 'Exported PNG ZIP', when: 'Jul 30, 2026 · 16:40', current: true },
+        { v: 'v4', label: 'Rewrote intro', when: 'Jul 28, 2026 · 09:26' },
+        { v: 'v3', label: 'Added closing CTA', when: 'Jul 25, 2026 · 14:10' },
+        { v: 'v2', label: 'Applied Brand Kit “Elena Marsh — Personal”', when: 'Jul 23, 2026 · 11:35' },
+        { v: 'v1', label: 'Generated from Slides', when: 'Jul 22, 2026 · 10:02' }
+      ]
+    }
+  ];
+
+  var STATUS = {
+    draft:       { label: 'Draft',       cls: '' },
+    'needs-fix': { label: 'Needs fixes', cls: 'badge-danger' },
+    ready:       { label: 'Ready',       cls: 'badge-ok' },
+    exported:    { label: 'Exported',    cls: 'badge-solid' },
+    archived:    { label: 'Archived',    cls: 'badge-quiet' }
+  };
+  var PLATFORM = { linkedin: 'LinkedIn', instagram: 'Instagram', tiktok: 'TikTok' };
+
+  var state = { q: '', plat: 'all', status: 'active', sort: 'updated', view: 'grid' };
+  var lastArchived = null;
+  var booted = false;
+
+  var grid = document.getElementById('grid');
+  var emptyState = document.getElementById('emptyState');
+  var countLine = document.getElementById('countLine');
+  var resetBtn = document.getElementById('resetBtn');
+  var flash = document.getElementById('flash');
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function mark(s) {
+    return esc(s).replace(/\*([^*]+)\*/g, '<em style="font-style: normal; color: var(--s-accent);">$1</em>');
+  }
+
+  function coverMarkup(p) {
+    return '<div class="slide ' + p.theme + ' ' + p.ratio + '" aria-hidden="true">' +
+      '<span class="slide-shape"></span>' +
+      '<p class="slide-eyebrow">' + esc(p.eyebrow) + '</p>' +
+      '<div class="slide-main"><h3 class="slide-title">' + mark(p.cover) + '</h3></div>' +
+      '<div class="slide-foot"><span class="slide-counter">01 / ' + String(p.slides).padStart(2, '0') + '</span></div>' +
+      '</div>';
+  }
+
+  function cardMarkup(p) {
+    var st = STATUS[p.status];
+    return '<article class="proj-card" data-id="' + p.id + '" data-archived="' + (p.status === 'archived') + '">' +
+      '<div class="proj-cover">' + coverMarkup(p) + '<span class="cover-count">' + p.slides + ' slides</span></div>' +
+      '<div class="proj-body">' +
+        '<h2 class="proj-title"><a href="editor.html">' + esc(p.title) + '</a></h2>' +
+        '<p class="proj-meta"><span>' + PLATFORM[p.platform] + '</span><span>v' + p.version + '</span>' +
+          '<span>' + esc(p.updated) + '</span></p>' +
+        '<p class="proj-meta" style="font-family: var(--font-body); font-size: 12.5px;">' + esc(p.kit) + ' · ' + esc(p.note) + '</p>' +
+        '<div class="proj-foot">' +
+          '<span class="badge ' + st.cls + '">' + st.label + '</span>' +
+          '<button class="btn btn-icon btn-ghost" data-kebab="' + p.id + '" aria-label="More actions for ' + esc(p.title) + '" aria-haspopup="menu">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function visible() {
+    var q = state.q.trim().toLowerCase();
+    var list = projects.filter(function (p) {
+      if (state.plat !== 'all' && p.platform !== state.plat) return false;
+      if (state.status === 'active') { if (p.status === 'archived') return false; }
+      else if (state.status !== 'all' && p.status !== state.status) return false;
+      if (q && (p.title + ' ' + p.kit).toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+    list.sort(function (a, b) {
+      if (state.sort === 'title') return a.title.localeCompare(b.title);
+      if (state.sort === 'slides') return b.slides - a.slides;
+      if (state.sort === 'created') return b.createdTs - a.createdTs;
+      return b.updatedTs - a.updatedTs;
+    });
+    return list;
+  }
+
+  function filtersActive() {
+    return state.q !== '' || state.plat !== 'all' || state.status !== 'active';
+  }
+
+  function renderTally() {
+    var live = projects.filter(function (p) { return p.status !== 'archived'; });
+    function n(s) { return live.filter(function (p) { return p.status === s; }).length; }
+    var fix = n('needs-fix'), draft = n('draft'), ready = n('ready');
+    document.getElementById('tallyFix').textContent = fix;
+    document.getElementById('tallyDraft').textContent = draft;
+    document.getElementById('tallyReady').textContent = ready;
+
+    /* The three blocks only cover the pipeline, so the caption states where
+       the rest of the library sits. The four numbers must add up to the
+       library total or the strip is lying. */
+    var moving = fix + draft + ready;
+    var parts = [moving + ' of ' + live.length + ' active ' +
+      (live.length === 1 ? 'project is' : 'projects are') + ' still moving'];
+    if (n('exported')) parts.push(n('exported') + ' exported');
+    var archived = projects.length - live.length;
+    if (archived) parts.push(archived + ' archived');
+    document.getElementById('tallyCap').textContent = parts.join(' · ');
+
+    Array.prototype.forEach.call(document.querySelectorAll('.tally-block'), function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.tally === state.status));
+    });
+  }
+
+  function activeFilterLabels() {
+    var out = [];
+    if (state.q.trim()) out.push('“' + state.q.trim() + '”');
+    if (state.plat !== 'all') out.push(PLATFORM[state.plat]);
+    if (state.status !== 'active') {
+      out.push(STATUS[state.status] ? STATUS[state.status].label : 'All statuses');
+    }
+    return out;
+  }
+
+  function render() {
+    if (!booted) { renderLoading(); return; }
+    var list = visible();
+    grid.setAttribute('data-view', state.view);
+    grid.setAttribute('aria-busy', 'false');
+    grid.innerHTML = list.map(cardMarkup).join('');
+    renderTally();
+
+    /* Unfiltered, the list is the active set — saying "5 of 5" would read as
+       a filter that is not on. Filtered, the denominator is the whole
+       library, archived included, because that is what was searched. */
+    if (!filtersActive()) {
+      countLine.textContent = list.length + (list.length === 1 ? ' active project' : ' active projects');
+    } else if (list.length === projects.length) {
+      countLine.textContent = 'All ' + list.length + ' projects';
+    } else {
+      countLine.textContent = list.length + ' of ' + projects.length + ' projects match';
+    }
+    resetBtn.style.display = filtersActive() ? '' : 'none';
+
+    if (list.length === 0) {
+      var labels = activeFilterLabels();
+      emptyState.innerHTML = '<div class="empty">' +
+        '<h3>No project matches ' + esc(labels.join(' + ')) + '</h3>' +
+        '<p>The library holds ' + projects.length + ' ' +
+          (projects.length === 1 ? 'project' : 'projects') +
+          ' in total, archived ones included. Drop one filter and the rest stay as they are.</p>' +
+        '<button class="btn btn-secondary" id="emptyReset">Clear filters</button></div>';
+      document.getElementById('emptyReset').addEventListener('click', resetFilters);
+    } else {
+      emptyState.innerHTML = '';
+    }
+  }
+
+  /* First paint only. The library is remote in the real product, so the card
+     geometry is reserved up front and nothing jumps when the data lands. */
+  function renderLoading() {
+    grid.setAttribute('data-view', 'grid');
+    grid.setAttribute('aria-busy', 'true');
+    var s = '';
+    for (var i = 0; i < 6; i++) {
+      s += '<div class="sk-card sk-pulse" aria-hidden="true">' +
+        '<div class="sk-cover"></div>' +
+        '<div class="sk-body">' +
+          '<span class="sk-line t"></span><span class="sk-line t2"></span>' +
+          '<span class="sk-line s"></span><span class="sk-line p"></span>' +
+        '</div></div>';
+    }
+    grid.innerHTML = s;
+    emptyState.innerHTML = '';
+    countLine.textContent = 'Loading projects…';
+    document.getElementById('tallyCap').textContent = 'Counting…';
+    ['tallyFix', 'tallyDraft', 'tallyReady'].forEach(function (id) {
+      document.getElementById(id).textContent = '—';
+    });
+    resetBtn.style.display = 'none';
+  }
+
+  function resetFilters() {
+    state.q = ''; state.plat = 'all'; state.status = 'active';
+    document.getElementById('q').value = '';
+    document.getElementById('searchWrap').setAttribute('data-filled', 'false');
+    document.getElementById('statusSel').value = 'active';
+    segSet(document.getElementById('platSeg'), 'plat', 'all');
+    render();
+  }
+
+  function segSet(seg, attr, value) {
+    Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset[attr] === value));
+    });
+  }
+
+  function showFlash(html) {
+    flash.innerHTML = html;
+    flash.style.display = '';
+  }
+  function hideFlash() { flash.style.display = 'none'; flash.innerHTML = ''; }
+
+  /* ── filters ─────────────────────────────────────────── */
+  var qInput = document.getElementById('q');
+  var searchWrap = document.getElementById('searchWrap');
+  qInput.addEventListener('input', function () {
+    state.q = qInput.value;
+    searchWrap.setAttribute('data-filled', String(qInput.value !== ''));
+    render();
+  });
+  document.getElementById('qClear').addEventListener('click', function () {
+    qInput.value = ''; state.q = '';
+    searchWrap.setAttribute('data-filled', 'false');
+    qInput.focus();
+    render();
+  });
+  document.getElementById('platSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    state.plat = b.dataset.plat;
+    segSet(this, 'plat', state.plat);
+    render();
+  });
+  document.getElementById('viewSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    state.view = b.dataset.view;
+    segSet(this, 'view', state.view);
+    render();
+  });
+  document.getElementById('statusSel').addEventListener('change', function () {
+    state.status = this.value; render();
+  });
+  document.getElementById('sortSel').addEventListener('change', function () {
+    state.sort = this.value; render();
+  });
+  resetBtn.addEventListener('click', resetFilters);
+
+  /* ── kebab menu ──────────────────────────────────────── */
+  var menu = document.getElementById('menu');
+  var menuItems = document.getElementById('menuItems');
+  var menuFor = null;
+
+  function byId(id) {
+    for (var i = 0; i < projects.length; i++) if (projects[i].id === id) return projects[i];
+    return null;
+  }
+
+  function openMenu(btn, id) {
+    var p = byId(id); if (!p) return;
+    menuFor = id;
+    var archived = p.status === 'archived';
+    var items = [
+      { act: 'open', label: 'Open in editor' },
+      { act: 'versions', label: 'Version history (' + p.versions.length + ')' },
+      { act: 'export', label: p.exp ? 'Export record' : 'Export record — none yet', disabled: !p.exp },
+      { act: 'duplicate', label: 'Duplicate' },
+      { act: 'archive', label: archived ? 'Restore from archive' : 'Archive' },
+      { act: 'delete', label: 'Delete', danger: true }
+    ];
+    menuItems.innerHTML = items.map(function (it) {
+      return '<button role="menuitem" data-act="' + it.act + '"' +
+        (it.disabled ? ' disabled' : '') +
+        (it.danger ? ' class="danger"' : '') + '>' + esc(it.label) + '</button>';
+    }).join('');
+    menu.hidden = false;
+    var r = btn.getBoundingClientRect();
+    var w = menu.offsetWidth, h = menu.offsetHeight;
+    var left = Math.min(r.right - w, window.innerWidth - w - 12);
+    var top = r.bottom + 6;
+    if (top + h > window.innerHeight - 12) top = Math.max(12, r.top - h - 6);
+    menu.style.left = Math.max(12, left) + 'px';
+    menu.style.top = top + 'px';
+    btn.setAttribute('aria-expanded', 'true');
+    var firstItem = menuItems.querySelector('button:not([disabled])');
+    if (firstItem) firstItem.focus();
+  }
+
+  function closeMenu(restoreFocus) {
+    var owner = menuFor ? document.querySelector('[data-kebab="' + menuFor + '"]') : null;
+    menu.hidden = true;
+    menuFor = null;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-kebab][aria-expanded="true"]'), function (b) {
+      b.setAttribute('aria-expanded', 'false');
+    });
+    if (restoreFocus && owner) owner.focus();
+  }
+
+  /* role="menu" promises arrow-key navigation, so it has to actually work. */
+  menuItems.addEventListener('keydown', function (e) {
+    var items = Array.prototype.slice.call(menuItems.querySelectorAll('button:not([disabled])'));
+    if (!items.length) return;
+    var i = items.indexOf(document.activeElement);
+    var next = null;
+    if (e.key === 'ArrowDown') next = items[(i + 1) % items.length];
+    else if (e.key === 'ArrowUp') next = items[(i - 1 + items.length) % items.length];
+    else if (e.key === 'Home') next = items[0];
+    else if (e.key === 'End') next = items[items.length - 1];
+    if (next) { e.preventDefault(); next.focus(); }
+  });
+
+  grid.addEventListener('click', function (e) {
+    var k = e.target.closest('[data-kebab]');
+    if (!k) return;
+    e.preventDefault();
+    if (menuFor === k.dataset.kebab) { closeMenu(true); return; }
+    closeMenu(false);
+    openMenu(k, k.dataset.kebab);
+  });
+
+  document.addEventListener('click', function (e) {
+    if (menu.hidden) return;
+    if (e.target.closest('#menu') || e.target.closest('[data-kebab]')) return;
+    closeMenu(false);
+  });
+
+  menuItems.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-act]');
+    if (!b || b.disabled) return;
+    var p = byId(menuFor);
+    closeMenu(false);
+    if (!p) return;
+    runAction(b.dataset.act, p);
+  });
+
+  function runAction(act, p) {
+    if (act === 'open') { window.location.href = 'editor.html'; return; }
+    if (act === 'versions') { openVersions(p); return; }
+    if (act === 'export') { openExport(p); return; }
+    if (act === 'duplicate') { duplicate(p); return; }
+    if (act === 'archive') { toggleArchive(p); return; }
+    if (act === 'delete') { openDelete(p); return; }
+  }
+
+  function duplicate(p) {
+    var copy = JSON.parse(JSON.stringify(p));
+    copy.id = 'p' + (Date.now() % 100000);
+    copy.title = p.title + ' (copy)';
+    copy.status = 'draft';
+    copy.version = 1;
+    copy.updated = TODAY + ' · just now';
+    copy.updatedTs = 20260902;
+    copy.createdTs = 20260902;
+    copy.note = 'Duplicated from v' + p.version;
+    copy.exp = null;
+    copy.versions = [{ v: 'v1', label: 'Duplicated from “' + p.title + '” v' + p.version, when: TODAY, current: true }];
+    projects.unshift(copy);
+    if (state.status !== 'active' && state.status !== 'all' && state.status !== 'draft') {
+      state.status = 'active';
+      document.getElementById('statusSel').value = 'active';
+    }
+    showFlash('<div class="notice notice-ok"><p style="margin:0;">Duplicated as <strong>' + esc(copy.title) +
+      '</strong>. The copy has its own version history and no export files.</p></div>');
+    render();
+  }
+
+  function toggleArchive(p) {
+    if (p.status === 'archived') {
+      p.status = p.exp ? 'exported' : 'ready';
+      p.note = 'Restored ' + TODAY;
+      showFlash('<div class="notice notice-ok"><p style="margin:0;"><strong>' + esc(p.title) +
+        '</strong> is back in the active list.</p></div>');
+      render();
+      return;
+    }
+    lastArchived = { id: p.id, status: p.status, note: p.note };
+    p.status = 'archived';
+    p.note = 'Archived ' + TODAY;
+    showFlash('<div class="notice"><p style="margin:0;">Archived <strong>' + esc(p.title) +
+      '</strong>. Its versions and exports are kept.</p>' +
+      '<button class="btn btn-secondary btn-sm" id="undoArchive" style="margin-left:auto;">Undo</button></div>');
+    var undo = document.getElementById('undoArchive');
+    undo.addEventListener('click', function () {
+      var t = byId(lastArchived.id);
+      if (t) { t.status = lastArchived.status; t.note = lastArchived.note; }
+      hideFlash();
+      render();
+    });
+    render();
+  }
+
+  /* ── dialogs ─────────────────────────────────────────── */
+  var scrim = document.getElementById('scrim');
+  var openDialog = null;
+
+  var returnFocus = null;
+  var FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), ' +
+    'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+  function focusables(el) {
+    return Array.prototype.filter.call(el.querySelectorAll(FOCUSABLE), function (n) {
+      return n.getClientRects().length > 0;
+    });
+  }
+
+  /* Returning by selector, not by node: the card that opened the dialog is
+     rebuilt by render(), so the original button object is gone by then. */
+  function showDialog(el, returnSel) {
+    returnFocus = returnSel || null;
+    closeMenu(false);
+    scrim.hidden = false;
+    el.hidden = false;
+    openDialog = el;
+    var f = focusables(el);
+    if (f.length) f[0].focus();
+  }
+
+  function closeDialog() {
+    if (!openDialog) return;
+    openDialog.hidden = true;
+    openDialog = null;
+    scrim.hidden = true;
+    var back = returnFocus ? document.querySelector(returnFocus) : null;
+    returnFocus = null;
+    (back || document.getElementById('importBtn')).focus();
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab' || !openDialog) return;
+    var f = focusables(openDialog);
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if (!openDialog.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+  scrim.addEventListener('click', function (e) {
+    if (e.target === scrim) closeDialog();
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-close]')) closeDialog();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (!menu.hidden) { closeMenu(true); return; }
+    closeDialog();
+  });
+
+  var dlgVersions = document.getElementById('dlgVersions');
+  var verList = document.getElementById('verList');
+  var verTarget = null;
+
+  function openVersions(p) {
+    verTarget = p.id;
+    document.getElementById('verSub').textContent = p.title + ' · ' + p.versions.length + ' versions kept';
+    verList.innerHTML = p.versions.map(function (v) {
+      return '<div class="ver-row">' +
+        '<span class="ver-tag">' + v.v + '</span>' +
+        '<span style="flex:1; min-width:0;">' +
+          '<span style="display:block; font-size:13.5px;">' + esc(v.label) + '</span>' +
+          '<span class="meta">' + esc(v.when) + '</span>' +
+        '</span>' +
+        (v.current
+          ? '<span class="badge badge-ok">Current</span>'
+          : '<button class="btn btn-secondary btn-sm" data-restore="' + v.v + '">Restore</button>') +
+      '</div>';
+    }).join('');
+    showDialog(dlgVersions, '[data-kebab="' + p.id + '"]');
+  }
+
+  verList.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-restore]');
+    if (!b) return;
+    var p = byId(verTarget); if (!p) return;
+    var from = b.dataset.restore;
+    p.version = p.version + 1;
+    p.updated = TODAY + ' · just now';
+    p.updatedTs = 20260902;
+    p.note = 'Restored from ' + from;
+    p.versions.forEach(function (v) { v.current = false; });
+    p.versions.unshift({ v: 'v' + p.version, label: 'Restored content of ' + from, when: TODAY, current: true });
+    closeDialog();
+    showFlash('<div class="notice notice-ok"><p style="margin:0;">Restored <strong>' + esc(p.title) +
+      '</strong> from ' + from + '. The restore was saved as v' + p.version + ' — earlier versions are untouched.</p></div>');
+    render();
+  });
+
+  var dlgExport = document.getElementById('dlgExport');
+  var expGo = document.getElementById('expGo');
+
+  function openExport(p) {
+    if (!p.exp) return;
+    document.getElementById('expSub').textContent = p.title;
+    var expired = p.exp.expires.indexOf('Expired') === 0;
+    document.getElementById('expBody').innerHTML =
+      '<table class="ds-table" style="margin-bottom: 16px;"><tbody>' +
+        '<tr><th style="width: 40%;">Exported</th><td>' + esc(p.exp.when) + '</td></tr>' +
+        '<tr><th>Project version</th><td>' + esc(p.exp.version) + '</td></tr>' +
+        '<tr><th>Preset</th><td>' + esc(p.exp.preset) + '</td></tr>' +
+        '<tr><th>Download link</th><td>' + esc(p.exp.expires) + (expired ? '' : ' (expires)') + '</td></tr>' +
+      '</tbody></table>' +
+      '<p class="label" style="margin-bottom: 8px;">Files in this export</p>' +
+      '<ul class="rst-list" style="margin-bottom: 14px;">' + p.exp.files.map(function (f) {
+        return '<li><svg class="ico ico-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 13 4 4L19 7"/></svg><span>' + esc(f) + '</span></li>';
+      }).join('') + '</ul>' +
+      (expired
+        ? '<div class="notice notice-warn"><p style="margin:0;">This download link has expired. Re-exporting produces the same slides at the same size and issues a new link.</p></div>'
+        : '<div class="notice"><p style="margin:0;">Re-exporting keeps the file order and numbering. The old link stays valid until it expires.</p></div>');
+    expGo.textContent = 'Re-export ' + p.exp.preset.split(' · ')[0];
+    showDialog(dlgExport, '[data-kebab="' + p.id + '"]');
+  }
+
+  expGo.addEventListener('click', function () {
+    closeDialog();
+    showFlash('<div class="notice"><p style="margin:0;">The export center is not part of this prototype round — re-export would open there with the preset and version pre-filled.</p></div>');
+  });
+
+  var dlgDelete = document.getElementById('dlgDelete');
+  var delTarget = null;
+
+  function openDelete(p) {
+    delTarget = p.id;
+    document.getElementById('delName').textContent = p.title;
+    showDialog(dlgDelete, '[data-kebab="' + p.id + '"]');
+  }
+  document.getElementById('delConfirm').addEventListener('click', function () {
+    var p = byId(delTarget);
+    if (p) projects.splice(projects.indexOf(p), 1);
+    closeDialog();
+    showFlash('<div class="notice notice-danger"><p style="margin:0;">Deleted <strong>' + esc(p ? p.title : '') +
+      '</strong> with all versions and export files. This cannot be undone.</p></div>');
+    render();
+  });
+  document.getElementById('delArchive').addEventListener('click', function () {
+    var p = byId(delTarget);
+    closeDialog();
+    if (p) toggleArchive(p);
+  });
+
+  /* ── import & restore (AC-007) ───────────────────────── */
+  var dlgImport = document.getElementById('dlgImport');
+  var impPick = document.getElementById('impPick');
+  var impScan = document.getElementById('impScan');
+  var impResult = document.getElementById('impResult');
+  var impGo = document.getElementById('impGo');
+  var impBar = document.getElementById('impBar');
+  var impScanNote = document.getElementById('impScanNote');
+  var impPkg = null;
+  var impTimers = [];
+
+  function impStep(which) {
+    impPick.setAttribute('data-open', String(which === 'pick'));
+    impScan.setAttribute('data-open', String(which === 'scan'));
+    impResult.setAttribute('data-open', String(which === 'result'));
+  }
+
+  document.getElementById('importBtn').addEventListener('click', function () {
+    impTimers.forEach(clearTimeout); impTimers = [];
+    impPkg = null;
+    impGo.disabled = true;
+    impGo.textContent = 'Continue';
+    impGo.className = 'btn btn-primary';
+    Array.prototype.forEach.call(dlgImport.querySelectorAll('.imp-file'), function (b) {
+      b.setAttribute('aria-pressed', 'false');
+    });
+    impStep('pick');
+    showDialog(dlgImport, '#importBtn');
+  });
+
+  Array.prototype.forEach.call(dlgImport.querySelectorAll('.imp-file'), function (btn) {
+    btn.addEventListener('click', function () {
+      impPkg = btn.dataset.pkg;
+      Array.prototype.forEach.call(dlgImport.querySelectorAll('.imp-file'), function (b) {
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
+      startScan();
+    });
+  });
+
+  function startScan() {
+    impStep('scan');
+    /* The file button that was just clicked is now display:none, so focus
+       would fall out of the dialog onto <body>. Park it on Cancel. */
+    var f = focusables(dlgImport);
+    if (f.length) f[0].focus();
+    impGo.disabled = true;
+    impBar.style.width = '8%';
+    impScanNote.textContent = 'Checking manifest…';
+    impTimers.forEach(clearTimeout); impTimers = [];
+    impTimers.push(setTimeout(function () {
+      impBar.style.width = '46%';
+      impScanNote.textContent = impPkg === 'good' ? 'Reading slide structure…' : 'Looking for manifest.json…';
+    }, 420));
+    impTimers.push(setTimeout(function () {
+      impBar.style.width = '82%';
+      impScanNote.textContent = impPkg === 'good' ? 'Matching assets to licences…' : 'Scanning archive index…';
+    }, 900));
+    impTimers.push(setTimeout(showScanResult, 1400));
+  }
+
+  function showScanResult() {
+    if (impPkg === 'broken') {
+      impResult.innerHTML =
+        '<div class="notice notice-danger" style="margin-bottom: 14px; align-items: center;">' +
+          '<span style="flex: none;">' + Ori.unfolded(56) + '</span>' +
+          '<p style="margin:0;"><strong>This package cannot be restored.</strong> The archive has no <code>manifest.json</code>, so there is no slide order, theme or asset list to read.</p>' +
+        '</div>' +
+        '<p class="label" style="margin-bottom: 8px;">What the file does contain</p>' +
+        '<ul class="rst-list" style="margin-bottom: 14px;">' +
+          '<li><svg class="ico ico-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 13 4 4L19 7"/></svg><span>6 PNG images (01.png – 06.png)</span></li>' +
+          '<li><svg class="ico ico-no" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 6 12 12M18 6 6 18"/></svg><span>No manifest — the file was re-compressed after download</span></li>' +
+          '<li><svg class="ico ico-no" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 6 12 12M18 6 6 18"/></svg><span>No theme, fonts or editable text</span></li>' +
+        '</ul>' +
+        '<p style="margin: 0; font-size: 13.5px; line-height: 1.55;">Use the original ZIP exactly as Orincard produced it. If you only have the images, start a new project and add them as assets instead.</p>';
+      impGo.textContent = 'Choose another file';
+      impGo.className = 'btn btn-secondary';
+      impGo.disabled = false;
+      impStep('result');
+      return;
+    }
+
+    impResult.innerHTML =
+      '<table class="ds-table" style="margin-bottom: 16px;"><tbody>' +
+        '<tr><th style="width: 40%;">Package</th><td>orincard-calmer-week-v6.zip</td></tr>' +
+        '<tr><th>Format version</th><td>Orincard package 1.0 — supported</td></tr>' +
+        '<tr><th>Original project</th><td>A calmer way to plan your week · v6</td></tr>' +
+        '<tr><th>Preset</th><td>Instagram · 1080 × 1350</td></tr>' +
+      '</tbody></table>' +
+      '<p class="label" style="margin-bottom: 8px;">Will be restored</p>' +
+      '<ul class="rst-list" style="margin-bottom: 16px;">' +
+        '<li><svg class="ico ico-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 13 4 4L19 7"/></svg><span>5 slides with editable text, order and page modes</span></li>' +
+        '<li><svg class="ico ico-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 13 4 4L19 7"/></svg><span>Signal template, colours and alignment</span></li>' +
+        '<li><svg class="ico ico-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 13 4 4L19 7"/></svg><span>2 fonts referenced by the theme</span></li>' +
+        '<li><svg class="ico ico-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 13 4 4L19 7"/></svg><span>3 of 5 images, with their licence and attribution</span></li>' +
+      '</ul>' +
+      '<p class="label" style="margin-bottom: 8px;">Cannot be restored</p>' +
+      '<ul class="rst-list" style="margin-bottom: 16px;">' +
+        '<li><svg class="ico ico-no" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 6 12 12M18 6 6 18"/></svg><span><strong>Stock photo on slide 2</strong> — the package stores the licence reference, not the file. Slide 2 keeps its layout with an empty image frame.</span></li>' +
+        '<li><svg class="ico ico-no" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 6 12 12M18 6 6 18"/></svg><span><strong>URL screenshot on slide 4</strong> — the source page is no longer reachable, so it cannot be recaptured.</span></li>' +
+      '</ul>' +
+      '<div class="notice notice-warn">' +
+        '<p style="margin:0;">2 assets could not be restored. Continue with placeholders? You can replace them in the editor at any time.</p>' +
+      '</div>';
+    impGo.textContent = 'Restore with placeholders';
+    impGo.className = 'btn btn-primary';
+    impGo.disabled = false;
+    impStep('result');
+  }
+
+  impGo.addEventListener('click', function () {
+    if (impPkg === 'broken') {
+      impPkg = null;
+      impGo.disabled = true;
+      impGo.textContent = 'Continue';
+      impGo.className = 'btn btn-primary';
+      Array.prototype.forEach.call(dlgImport.querySelectorAll('.imp-file'), function (b) {
+        b.setAttribute('aria-pressed', 'false');
+      });
+      impStep('pick');
+      /* This button is about to be disabled — hand focus to the file list. */
+      var back = dlgImport.querySelector('.imp-file');
+      if (back) back.focus();
+      return;
+    }
+    projects.unshift({
+      id: 'p' + (Date.now() % 100000),
+      title: 'A calmer way to plan your week (restored)',
+      platform: 'instagram', ratio: 'r-4-5', theme: 't-signal',
+      status: 'needs-fix', slides: 5, version: 1, kit: 'No Brand Kit',
+      updated: TODAY + ' · just now', updatedTs: 20260902, createdTs: 20260902,
+      eyebrow: 'Planning', cover: 'A calmer way to plan your *week*',
+      note: '2 image placeholders to replace', exp: null,
+      versions: [{ v: 'v1', label: 'Restored from orincard-calmer-week-v6.zip', when: TODAY, current: true }]
+    });
+    closeDialog();
+    state.status = 'active';
+    document.getElementById('statusSel').value = 'active';
+    showFlash('<div class="notice notice-ok"><p style="margin:0;">Restored as a new project with 5 slides. ' +
+      'Two image frames are empty — open slides 2 and 4 to replace them before exporting.</p>' +
+      '<a class="btn btn-secondary btn-sm" href="editor.html" style="margin-left:auto;">Open editor</a></div>');
+    render();
+  });
+
+  document.getElementById('voiceOri').innerHTML = Ori.crane(44);
+
+  Array.prototype.forEach.call(document.querySelectorAll('.tally-block'), function (b) {
+    b.addEventListener('click', function () {
+      state.status = (state.status === b.dataset.tally) ? 'active' : b.dataset.tally;
+      document.getElementById('statusSel').value = state.status;
+      render();
+    });
+  });
+
+  render();
+  setTimeout(function () { booted = true; render(); }, 620);
+})();
+</script>
+</body>
+</html>

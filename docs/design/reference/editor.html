@@ -1,0 +1,1545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Status meeting illusion · Orincard editor</title>
+<link rel="stylesheet" href="assets/orincard.css" />
+<style>
+  /* ─── page head ─────────────────────────────────────────────────── */
+  .ed-head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: var(--gap-md); flex-wrap: wrap;
+    padding: 26px var(--gutter) 18px;
+  }
+  .ed-head h1 { font-size: clamp(28px, 3.4vw, 40px); }
+  .ed-head .lead { margin-top: 6px; }
+  .ed-head .row { flex: none; }
+
+  .ai-banner {
+    margin: 0 var(--gutter);
+    background: var(--sig-mist); border-color: transparent;
+    align-items: center; gap: 13px; padding: 14px 16px;
+  }
+  .ai-banner svg { margin-top: 0; width: 18px; height: 18px; color: var(--fg); }
+  .ai-banner .ab-txt { min-width: 0; }
+  .ai-banner .ab-txt strong { display: block; }
+  .ai-banner .ab-txt p + p { color: var(--fg-lift); margin-top: 1px; }
+  .ai-banner .btn { margin-left: auto; flex: none; }
+
+  /* ─── workbench ─────────────────────────────────────────────────── */
+  .workbench {
+    display: grid; align-items: start;
+    grid-template-columns: 320px minmax(0, 1fr) 320px;
+    gap: var(--gap-md);
+    padding: 20px var(--gutter) 40px;
+  }
+  .pane {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+    position: sticky; top: 76px;
+    max-height: calc(100vh - 100px); display: flex; flex-direction: column;
+  }
+  .pane .tabs { flex: none; }
+  .pane-body { padding: 16px; overflow-y: auto; min-height: 0; }
+  /* the pane clips its children, so an outset ring on the scrolling panel
+     itself loses three sides. Draw this one inside. */
+  .pane-body:focus-visible { outline-offset: -3px; }
+  .pane-body[role="tabpanel"] { display: none; }
+  .pane-body[role="tabpanel"][data-open="true"] { display: block; }
+  .insp-group + .insp-group { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .insp-group > .label { margin-bottom: 10px; }
+  .field-tools { display: flex; align-items: center; gap: 6px; }
+  .act-stack { display: flex; flex-direction: column; gap: 8px; }
+  .act-stack .btn { width: 100%; }
+
+  #modeGrid .opt { border-radius: var(--radius-pill); align-items: center; padding: 8px 14px; }
+  #modeGrid .opt svg { margin-top: 0; }
+  #modeGrid .opt[aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: var(--bg); box-shadow: none; }
+  #modeGrid .opt[aria-pressed="true"] svg { color: var(--bg); }
+
+  /* ─── stage ─────────────────────────────────────────────────────── */
+  .stage { display: flex; flex-direction: column; gap: var(--gap-sm); min-width: 0; }
+  .stage-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pager {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 5px 14px; border-radius: var(--radius-pill);
+    border: 1px solid var(--border); background: var(--surface);
+    font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums;
+  }
+  .stage-canvas { display: grid; place-items: center; padding: 4px 0 0; }
+  .canvas-wrap { width: min(100%, 400px); }
+  .canvas-wrap .slide { border: 1px solid var(--fg); border-radius: 4px; }
+  .canvas-cap { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; gap: 12px; }
+
+  /* ─── filmstrip, now under the canvas ───────────────────────────── */
+  .film {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 12px 14px 14px; margin-top: 6px;
+  }
+  .film-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  #filmList { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+  /* the role label plus three tools measure 136px side by side, so a narrower
+     track spills them onto the thumbnail below */
+  .film-item { position: relative; width: 140px; flex: none; }
+  .film-item .film-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  .film-item .role { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .film-tools { display: flex; gap: 2px; opacity: 0; transition: opacity 0.14s ease; }
+  .film-item:hover .film-tools, .film-item:focus-within .film-tools { opacity: 1; }
+  .film-flag {
+    position: absolute; top: 22px; right: 6px; width: 17px; height: 17px; border-radius: 50%;
+    background: var(--sig-pink); border: 1px solid var(--fg); color: var(--fg);
+    display: grid; place-items: center; font-size: 10px; font-weight: 700;
+  }
+  .film-lock {
+    position: absolute; top: 22px; left: 6px; width: 17px; height: 17px; border-radius: 50%;
+    background: var(--bg); border: 1px solid var(--fg); color: var(--fg);
+    display: grid; place-items: center;
+  }
+  .film-lock svg { width: 10px; height: 10px; }
+
+  /* ─── regenerate decision list ──────────────────────────────────── */
+  .regen-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .regen-row {
+    display: grid; grid-template-columns: 26px minmax(0, 1fr) auto;
+    align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px;
+  }
+  .regen-row + .regen-row { border-top: 1px solid var(--border); }
+  .regen-row .n { font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .regen-row .t { min-width: 0; }
+  .regen-row .t b { display: block; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .regen-row .t span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .regen-row.is-kept { background: var(--fg-soft); }
+  .regen-row.is-kept .t span { color: var(--fg); }
+
+  /* ─── template + asset pickers ──────────────────────────────────── */
+  .tpl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tpl-pick { border: 0; background: transparent; padding: 0; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 1px var(--border); }
+  .tpl-pick:hover { box-shadow: 0 0 0 1px var(--fg-line); }
+  .tpl-pick[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--fg); }
+  .tpl-pick .name { display: block; font-size: 11px; padding: 5px 0; color: var(--muted); }
+  .tpl-pick[aria-pressed="true"] .name { color: var(--fg); font-weight: 600; }
+
+  .asset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .asset { position: relative; border: 0; padding: 0; background: transparent; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 1px var(--border); aspect-ratio: 1; }
+  .asset img { width: 100%; height: 100%; object-fit: cover; }
+  .asset:hover { box-shadow: 0 0 0 1px var(--fg-line); }
+  .asset[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--fg); }
+  .asset .used {
+    position: absolute; left: 4px; bottom: 4px; padding: 2px 5px; border-radius: 4px;
+    background: color-mix(in oklch, var(--fg) 76%, transparent); color: var(--surface);
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.04em;
+  }
+  .rights-row { display: flex; align-items: flex-start; gap: 8px; font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+
+  .ai-panel { border: 1px solid var(--fg-line); border-radius: var(--radius); padding: 12px; background: var(--surface); margin-top: 10px; }
+  .ai-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ai-proposal { border-top: 1px solid var(--border); margin-top: 11px; padding-top: 11px; }
+  .ai-proposal p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.5; }
+
+  /* ─── dialogs ───────────────────────────────────────────────────── */
+  .fmt-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .fmt-row:last-child { border-bottom: 0; }
+  .fmt-row .fmt-name { font-size: 14px; font-weight: 550; }
+  .fmt-row .fmt-desc { font-size: 12.5px; color: var(--muted); margin: 1px 0 0; }
+
+  /* the dialog takes focus on open; keep its ring inside the rounded border */
+  .dialog:focus-visible { outline-offset: -4px; }
+  .feed-row { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; }
+  .feed-row > * { flex: none; width: 190px; scroll-snap-align: start; }
+  .feed-row .slide { border: 1px solid var(--fg-line); border-radius: 4px; }
+  .cap-box {
+    border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2);
+    padding: 12px 14px; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap;
+  }
+
+  .slide.align-center { text-align: center; }
+  .slide.align-center .slide-foot { justify-content: center; }
+  .slide.align-center .slide-cta { margin-left: 0; }
+
+  @media (max-width: 1200px) {
+    .workbench { grid-template-columns: 268px minmax(0, 1fr) 268px; }
+  }
+  @media (max-width: 1000px) {
+    /* one column: the canvas leads, then what you write, then what you tune */
+    .workbench { grid-template-columns: 1fr; }
+    .stage { order: 1; }
+    .pane-left { order: 2; }
+    .pane-right { order: 3; }
+    .pane { position: static; max-height: none; }
+    .pane-body { overflow-y: visible; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail" data-od-id="rail">
+    <div class="rail-brand">
+      <span class="mark" aria-hidden="true">
+        <svg class="ori ori-mark" viewBox="0 0 24 24"><polygon points="8.8,13.4 6.4,20.4 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 16.6,12.8 14.6,16.2 8.8,13.4" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="16.6,12.8 22.8,15.6 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 21.2,3 16.6,12.8" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="5.4,4.8 11,11 8.8,13.4 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="1.8,8.6 5.4,4.8 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="word">Orincard</span>
+    </div>
+    <nav class="rail-nav" aria-label="Main">
+      <a class="nav-item" href="projects.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="10" rx="1.5"/></svg><span>Projects</span></a>
+      <a class="nav-item" href="generator.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg><span>New carousel</span></a>
+      <a class="nav-item" href="brand-kits.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg><span>Brand Kits</span></a>
+      <a class="nav-item" href="editor.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h16"/><path d="M14.5 4.5a2.1 2.1 0 0 1 3 3L9 16l-4 1 1-4Z"/></svg><span>Editor</span></a>
+      <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span>Prototype map</span></a>
+    </nav>
+    <div class="rail-foot">
+      <a class="account" href="brand-kits.html">
+        <img class="avatar" src="assets/img/avatar-elena.jpg" width="240" height="240" alt="" />
+        <span class="who"><span style="display: block; font-size: 13px; font-weight: 550;">Elena Marsh</span><span class="meta">Pro plan</span></span>
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar" data-od-id="topbar">
+      <div class="crumbs">
+        <a href="projects.html">Projects</a><span class="sep">/</span><strong id="projTitle">Status meeting illusion</strong>
+        <span class="badge" style="margin-left: 4px;"><span class="dot"></span>LinkedIn</span>
+      </div>
+      <div class="row">
+        <span class="meta" id="saveState" role="status" aria-live="polite">Saved · v4</span>
+        <button class="btn btn-ghost btn-sm" type="button" id="undoBtn" aria-disabled="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>
+          Undo
+        </button>
+      </div>
+    </header>
+
+    <div class="ed-head" data-od-id="page-head">
+      <div>
+        <h1 class="h1">Edit your carousel.</h1>
+        <p class="lead">Refine each slide before export.</p>
+      </div>
+      <div class="row">
+        <button class="btn btn-ghost" type="button" id="previewBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/></svg>
+          Preview
+        </button>
+        <button class="btn btn-solid" type="button" id="exportBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 4v10m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg>
+          Export
+        </button>
+      </div>
+    </div>
+
+    <div class="notice ai-banner" data-od-id="ai-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 3.2 13.7 9l5.8 1.7-5.8 1.7L12 18.2 10.3 12.4 4.5 10.7 10.3 9Z"/><path d="M18.6 3.4 19.2 5l1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6Z"/></svg>
+      <div class="ab-txt">
+        <p><strong>AI draft ready</strong></p>
+        <p id="bannerSub">6 slides generated from your article. Review, refine, and make it yours.</p>
+      </div>
+      <button class="btn btn-secondary btn-sm" type="button" id="regenBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 11a8 8 0 1 0-.7 4.3"/><path d="M20 5v6h-6"/></svg>
+        Regenerate
+      </button>
+    </div>
+
+    <div class="workbench">
+
+      <!-- ─────────── left: what you write ─────────── -->
+      <aside class="pane pane-left" data-od-id="content-pane">
+        <div class="tabs" role="tablist" aria-label="Editing panels">
+          <button class="tab" role="tab" id="tabContent" aria-controls="panContent" aria-selected="true" type="button">Content</button>
+          <button class="tab" role="tab" id="tabDesign" aria-controls="panDesign" aria-selected="false" type="button">Design</button>
+          <button class="tab" role="tab" id="tabBrand" aria-controls="panBrand" aria-selected="false" type="button">Brand</button>
+        </div>
+
+        <!-- Content -->
+        <div class="pane-body" role="tabpanel" id="panContent" aria-labelledby="tabContent" data-open="true" tabindex="0">
+          <div class="insp-group">
+            <p class="label">Content</p>
+            <div class="field">
+              <label for="fEyebrow">Eyebrow</label>
+              <input class="input" id="fEyebrow" type="text" placeholder="Leave empty to hide" />
+            </div>
+            <div class="field" style="margin-top: 14px;">
+              <label for="fTitle">
+                Headline
+                <span class="field-tools">
+                  <button class="btn btn-ghost btn-sm" type="button" data-ai="title">Rewrite</button>
+                </span>
+              </label>
+              <textarea class="textarea" id="fTitle" style="min-height: 66px; font-size: 15px;"></textarea>
+              <p class="hint">Wrap a word in *asterisks* to highlight it in the template accent.</p>
+            </div>
+            <div class="ai-panel" id="aiTitle" hidden></div>
+
+            <div class="field" style="margin-top: 14px;">
+              <label for="fBody">
+                Supporting line
+                <span class="field-tools">
+                  <span class="counter" id="bodyCount"></span>
+                  <button class="btn btn-ghost btn-sm" type="button" data-ai="body">Rewrite</button>
+                </span>
+              </label>
+              <textarea class="textarea" id="fBody" style="min-height: 96px;"></textarea>
+            </div>
+            <div class="ai-panel" id="aiBody" hidden></div>
+
+            <div class="field" style="margin-top: 14px;">
+              <label for="fCta">Call to action</label>
+              <input class="input" id="fCta" type="text" placeholder="Leave empty to hide" />
+            </div>
+          </div>
+
+          <div class="insp-group" id="imageGroup" hidden>
+            <p class="label">Image</p>
+            <div id="imageSlot"></div>
+            <div class="field" style="margin-top: 12px;">
+              <label for="fAlt">Alt text</label>
+              <input class="input" id="fAlt" type="text" />
+              <p class="hint">Travels into the export manifest and the caption for screen readers.</p>
+            </div>
+            <div class="field" style="margin-top: 12px;">
+              <label for="fOpacity">Image opacity <span class="counter num" id="opacityVal">100%</span></label>
+              <input class="range" id="fOpacity" type="range" min="30" max="100" value="100" />
+            </div>
+
+            <div class="field" style="margin-top: 16px;">
+              <label for="assetSearch">Licensed library</label>
+              <input class="input" id="assetSearch" type="search" placeholder="Search by what is in the picture" />
+            </div>
+            <div class="asset-grid" id="assetGrid" style="margin-top: 10px;"></div>
+            <p class="hint" id="assetEmpty" hidden style="margin-top: 10px;">No library image matches that. Try another word, or upload your own.</p>
+            <div class="row" style="margin-top: 10px;">
+              <button class="btn btn-secondary btn-sm" type="button" id="uploadBtn">Upload an image</button>
+              <input type="file" id="uploadInput" accept="image/*" class="visually-hidden" />
+            </div>
+            <div class="rights-row" style="margin-top: 12px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width: 14px; height: 14px; flex: none; margin-top: 2px;"><path d="M12 3 4 6v6c0 4.4 3.4 7.6 8 9 4.6-1.4 8-4.6 8-9V6Z"/></svg>
+              <p style="margin: 0;">Every library result carries its licence and creator. These six are CC BY 2.0 by Shixart1985 via Wikimedia Commons — attribution travels with the asset into the export manifest.</p>
+            </div>
+            <div id="assetState" style="margin-top: 12px;"></div>
+          </div>
+
+          <div class="insp-group" id="sourceGroup">
+            <p class="label">Source</p>
+            <p class="meta" id="sourceLine" style="margin: 0 0 10px;"></p>
+            <a class="btn btn-secondary btn-sm" id="sourceBtn" href="#" target="_blank" rel="noopener">View source article</a>
+          </div>
+        </div>
+
+        <!-- Design -->
+        <div class="pane-body" role="tabpanel" id="panDesign" aria-labelledby="tabDesign" tabindex="0">
+          <div class="insp-group">
+            <p class="label">Template</p>
+            <div class="tpl-grid" id="tplGrid"></div>
+            <p class="hint" style="margin-top: 10px;">Switching a template keeps every text, image and slide order. Anything that no longer fits is reported before export.</p>
+          </div>
+
+          <div class="insp-group">
+            <p class="label">Typography</p>
+            <div class="field">
+              <label for="fontSel">Font pairing</label>
+              <select class="select" id="fontSel">
+                <option value="iowan">Iowan Old Style + system sans</option>
+                <option value="charter">Charter + system sans</option>
+                <option value="sans">System sans only</option>
+              </select>
+            </div>
+            <div class="field" style="margin-top: 12px;">
+              <label id="alignLabel">Alignment</label>
+              <div class="seg" role="radiogroup" aria-labelledby="alignLabel" id="alignSeg">
+                <button type="button" role="radio" aria-checked="true" data-align="left">Left</button>
+                <button type="button" role="radio" aria-checked="false" data-align="center">Center</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="insp-group">
+            <p class="label">Background decoration</p>
+            <div class="opt-grid" style="grid-template-columns: 1fr 1fr;" id="decorGrid">
+              <button class="opt" type="button" data-decor="none" aria-pressed="false"><span class="opt-title">None</span></button>
+              <button class="opt" type="button" data-decor="shape" aria-pressed="true"><span class="opt-title">Shape</span></button>
+              <button class="opt" type="button" data-decor="corner" aria-pressed="false"><span class="opt-title">Corner arc</span></button>
+            </div>
+          </div>
+
+          <div class="insp-group">
+            <p class="label">Page numbers</p>
+            <label class="switch">
+              <input type="checkbox" id="projCounters" checked />
+              <span class="track"><span class="thumb"></span></span>
+              <span>Number the slides across the project</span>
+            </label>
+            <p class="hint" style="margin-top: 8px;">Individual slides can still opt out under Layout.</p>
+          </div>
+        </div>
+
+        <!-- Brand -->
+        <div class="pane-body" role="tabpanel" id="panBrand" aria-labelledby="tabBrand" tabindex="0">
+          <div class="insp-group">
+            <div class="field">
+              <label for="kitSel">Active Brand Kit</label>
+              <select class="select" id="kitSel">
+                <option>Personal Brand</option>
+                <option>Consulting Brand</option>
+              </select>
+            </div>
+            <div class="row" style="margin-top: 14px; gap: 11px;">
+              <img class="avatar" style="width: 40px; height: 40px;" src="assets/img/avatar-elena.jpg" width="240" height="240" alt="Headshot saved in the Personal Brand kit" />
+              <div>
+                <p style="margin: 0; font-size: 13.5px; font-weight: 600;">Elena Marsh</p>
+                <p class="meta" style="margin: 0;">elenamarsh.co</p>
+              </div>
+              <a class="btn btn-ghost btn-sm" href="brand-kits.html" style="margin-left: auto;">Edit</a>
+            </div>
+          </div>
+          <div class="insp-group">
+            <p class="label">Applied to this project</p>
+            <label class="switch">
+              <input type="checkbox" id="brandFoot" checked />
+              <span class="track"><span class="thumb"></span></span>
+              <span>Show headshot and handle on cover and closing</span>
+            </label>
+            <p class="hint" style="margin-top: 10px;">Content slides stay clean so the reader keeps swiping.</p>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ─────────── centre: what you see ─────────── -->
+      <section class="stage" data-od-id="canvas">
+        <div class="stage-bar">
+          <button class="btn btn-ghost btn-sm btn-icon" type="button" id="prevSlide" aria-label="Previous slide">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m14 6-6 6 6 6"/></svg>
+          </button>
+          <span class="pager" id="pager">1 / 6</span>
+          <button class="btn btn-ghost btn-sm btn-icon" type="button" id="nextSlide" aria-label="Next slide">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m10 6 6 6-6 6"/></svg>
+          </button>
+          <span class="meta" style="margin-left: auto;">LinkedIn · 1080 × 1350</span>
+        </div>
+
+        <div class="stage-canvas">
+          <div class="canvas-wrap">
+            <div id="canvasSlide"></div>
+            <div class="canvas-cap">
+              <span class="meta" id="capacityNote">Text fits this layout.</span>
+              <span class="meta num" id="capacityCount"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="film" data-od-id="filmstrip">
+          <div class="film-head">
+            <span class="label" id="filmCount">6 slides</span>
+            <button class="btn btn-ghost btn-sm" type="button" id="addSlide">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+              Add slide
+            </button>
+          </div>
+          <div id="filmList"></div>
+        </div>
+      </section>
+
+      <!-- ─────────── right: what you tune ─────────── -->
+      <aside class="pane pane-right" data-od-id="slide-controls" aria-label="Slide controls">
+        <div class="pane-body">
+          <div class="insp-group">
+            <p class="label">Slide role</p>
+            <div class="field">
+              <label class="visually-hidden" for="roleSel">Slide role</label>
+              <select class="select" id="roleSel">
+                <option value="intro">Cover</option>
+                <option value="content">Content</option>
+                <option value="outro">Closing</option>
+              </select>
+              <p class="hint">Cover and closing carry your headshot and handle, and set a larger headline.</p>
+            </div>
+          </div>
+
+          <div class="insp-group">
+            <p class="label">Layout</p>
+            <div class="opt-grid" style="grid-template-columns: 1fr 1fr;" id="modeGrid">
+              <button class="opt" type="button" data-mode="text" aria-pressed="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 7h14M5 12h14M5 17h9"/></svg>
+                <span class="opt-title">Text</span>
+              </button>
+              <button class="opt" type="button" data-mode="text_image" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="4" width="16" height="8" rx="1.5"/><path d="M5 17h14M5 20h9"/></svg>
+                <span class="opt-title">Text + image</span>
+              </button>
+              <button class="opt" type="button" data-mode="image" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="m5 16 4-4 4 4 2-2 4 4"/><circle cx="9.5" cy="9.5" r="1.2"/></svg>
+                <span class="opt-title">Image</span>
+              </button>
+              <button class="opt" type="button" data-mode="screenshot" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M3 9h18"/></svg>
+                <span class="opt-title">Screenshot</span>
+              </button>
+            </div>
+            <label class="switch" style="margin-top: 12px;">
+              <input type="checkbox" id="fCounter" checked />
+              <span class="track"><span class="thumb"></span></span>
+              <span>Show page number on this slide</span>
+            </label>
+          </div>
+
+          <div class="insp-group">
+            <p class="label">Text fit</p>
+            <div class="field">
+              <label id="fitLabel">Size</label>
+              <div class="seg" role="radiogroup" aria-labelledby="fitLabel" id="fitSeg">
+                <button type="button" role="radio" aria-checked="false" data-fit="tight">Tight</button>
+                <button type="button" role="radio" aria-checked="true" data-fit="balanced">Balanced</button>
+                <button type="button" role="radio" aria-checked="false" data-fit="roomy">Roomy</button>
+              </div>
+              <p class="hint" id="fitHint"></p>
+            </div>
+            <div class="field" style="margin-top: 14px;">
+              <label for="fSpacing">Vertical spacing <span class="counter num" id="spacingVal">3.0</span></label>
+              <input class="range" id="fSpacing" type="range" min="10" max="70" value="30" />
+            </div>
+            <div class="field" style="margin-top: 12px;">
+              <label for="fScale">Text scale <span class="counter num" id="scaleVal">100%</span></label>
+              <input class="range" id="fScale" type="range" min="80" max="130" value="100" />
+            </div>
+          </div>
+
+          <div class="insp-group">
+            <p class="label">Actions</p>
+            <div class="act-stack">
+              <button class="btn btn-secondary" type="button" id="actRewrite">Rewrite with AI</button>
+              <button class="btn btn-secondary" type="button" id="actShorten">Shorten text</button>
+              <button class="btn btn-secondary" type="button" id="actAdd">Add talking point</button>
+              <button class="btn btn-secondary" type="button" id="actLock" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                Lock against regenerate
+              </button>
+              <button class="btn btn-danger" type="button" id="actDelete">Delete slide</button>
+            </div>
+            <p class="hint" style="margin-top: 10px;" id="lockHint"></p>
+            <p class="hint" style="margin-top: 10px;" id="actHint">Every AI suggestion is shown for review before it replaces your words.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────── preview dialog ─────────── -->
+<div class="scrim" id="previewScrim" hidden>
+  <div tabindex="-1" class="dialog" role="dialog" aria-modal="true" aria-labelledby="previewTitle" data-od-id="preview-dialog">
+    <div class="dialog-head">
+      <div>
+        <h2 id="previewTitle" style="font-size: 22px;">Preview</h2>
+        <p class="meta" style="margin-top: 4px;">Swipe order as a reader sees it · LinkedIn 1080 × 1350</p>
+      </div>
+      <button class="btn btn-ghost btn-sm btn-icon" type="button" data-close aria-label="Close preview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <div class="feed-row" id="feedRow" tabindex="0" role="group" aria-label="All slides in order"></div>
+      <p class="label" style="margin: 18px 0 8px;">Caption draft</p>
+      <div class="cap-box" id="capBox"></div>
+      <p class="hint" style="margin-top: 10px;">Built from your headlines and supporting lines. Copy it into the post yourself — Orincard never publishes for you.</p>
+    </div>
+    <div class="dialog-foot">
+      <span class="meta spread" id="previewFoot"></span>
+      <button class="btn btn-secondary" type="button" data-close>Close</button>
+      <button class="btn btn-primary" type="button" id="toExport">Go to export</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────── regenerate confirm ─────────── -->
+<div class="scrim" id="regenScrim" hidden>
+  <div tabindex="-1" class="dialog" style="width: min(520px, 100%);" role="dialog" aria-modal="true" aria-labelledby="regenTitle" data-od-id="regen-dialog">
+    <div class="dialog-head">
+      <div>
+        <h2 id="regenTitle" style="font-size: 20px;">Regenerate</h2>
+        <p class="meta" style="margin-top: 4px;" id="regenSource"></p>
+      </div>
+      <button class="btn btn-ghost btn-sm btn-icon" type="button" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <p style="margin: 0 0 12px; font-size: 14px; line-height: 1.6;" id="regenBody"></p>
+      <ul class="regen-list" id="regenList"></ul>
+      <p class="hint" style="margin: 14px 0 0;">Changing the source, the platform or the number of slides means a new draft
+        — <a href="generator.html">start over in the generator</a>.</p>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary" type="button" data-close>Keep this draft</button>
+      <button class="btn btn-primary" type="button" id="regenGo">Redraft</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────── export dialog ─────────── -->
+<div class="scrim" id="exportScrim" hidden>
+  <div tabindex="-1" class="dialog" role="dialog" aria-modal="true" aria-labelledby="exportTitle" data-od-id="export-dialog">
+    <div class="dialog-head">
+      <div>
+        <h2 id="exportTitle" style="font-size: 22px;">Export</h2>
+        <p class="meta" style="margin-top: 4px;">Status meeting illusion · <span id="exportVer">v4</span> · LinkedIn 1080 × 1350</p>
+      </div>
+      <button class="btn btn-ghost btn-sm btn-icon" type="button" data-close aria-label="Close export dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <div class="notice notice-danger" id="preflightFail">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/></svg>
+        <div>
+          <p id="preflightFailText"></p>
+          <button class="btn btn-secondary btn-sm" type="button" id="fixSlide" style="margin-top: 10px;">Go to slide</button>
+        </div>
+      </div>
+      <div class="notice notice-ok" id="preflightPass" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 13 4 4L19 7"/></svg>
+        <p id="preflightPassText"></p>
+      </div>
+
+      <div style="margin-top: 18px;">
+        <div class="fmt-row">
+          <div style="flex: 1;">
+            <p class="fmt-name" style="margin: 0;">PNG · numbered ZIP</p>
+            <p class="fmt-desc" id="pngDesc"></p>
+          </div>
+          <span class="badge badge-ok"><span class="dot"></span>Ready</span>
+        </div>
+        <div class="fmt-row">
+          <div style="flex: 1;">
+            <p class="fmt-name" style="margin: 0;">PDF · one page per slide</p>
+            <p class="fmt-desc" id="pdfDesc"></p>
+          </div>
+          <span class="badge badge-danger" data-gate="hard"><span class="dot"></span>Blocked</span>
+        </div>
+        <div class="fmt-row">
+          <div style="flex: 1;">
+            <p class="fmt-name" style="margin: 0;">PPTX · editable text</p>
+            <p class="fmt-desc">Text and images stay editable; exact layout parity is not promised</p>
+          </div>
+          <span class="badge badge-danger" data-gate="hard"><span class="dot"></span>Blocked</span>
+        </div>
+        <div class="fmt-row">
+          <div style="flex: 1;">
+            <p class="fmt-name" style="margin: 0;">MP4 · carousel to video</p>
+            <p class="fmt-desc">Needs audio you have the right to use</p>
+          </div>
+          <span class="badge badge-danger" data-gate="hard"><span class="dot"></span>Blocked</span>
+        </div>
+        <div class="fmt-row">
+          <div style="flex: 1;">
+            <p class="fmt-name" style="margin: 0;">Caption · plain text</p>
+            <p class="fmt-desc">Copy for the post body — never marked as published for you</p>
+          </div>
+          <span class="badge badge-ok"><span class="dot"></span>Ready</span>
+        </div>
+      </div>
+      <p class="hint" style="margin-top: 14px; font-size: 12.5px; color: var(--muted);">A blocked format can be retried on its own once the slide is fixed. Nothing is deducted for a failed export.</p>
+    </div>
+    <div class="dialog-foot">
+      <span class="meta spread" id="exportFootNote"></span>
+      <button class="btn btn-secondary" type="button" data-close>Cancel</button>
+      <button class="btn btn-primary" type="button" id="runExport">Export</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); };
+  var mark = function (s) { return esc(s).replace(/\*([^*]+)\*/g, '<em>$1</em>'); };
+  var listOf = function (a) {
+    return a.length < 2 ? String(a[0]) : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+  };
+  var pad2 = function (n) { return (n < 10 ? '0' : '') + n; };
+
+  var ASSETS = [
+    { id: 'notebook-pen', file: 'assets/img/notebook-pen.jpg', w: 900, h: 601, alt: 'A hand resting a pen on an open notebook beside a laptop', rights: 'CC BY 2.0 · Shixart1985 · Wikimedia Commons' },
+    { id: 'workspace-writing', file: 'assets/img/workspace-writing.jpg', w: 640, h: 427, alt: 'A person writing in a notebook next to a laptop at a desk', rights: 'CC BY 2.0 · Shixart1985 · Wikimedia Commons' },
+    { id: 'glasses-notebook', file: 'assets/img/glasses-notebook.jpg', w: 640, h: 426, alt: 'Glasses resting on a notebook on a wooden table', rights: 'CC BY 2.0 · Shixart1985 · Wikimedia Commons' },
+    { id: 'typing-office', file: 'assets/img/typing-office.jpg', w: 426, h: 640, alt: 'Hands typing on a laptop keyboard in an office', rights: 'CC BY 2.0 · Shixart1985 · Wikimedia Commons' },
+    { id: 'desk-morning', file: 'assets/img/desk-morning.jpg', w: 427, h: 640, alt: 'A cup of coffee and a laptop on a desk in morning light', rights: 'CC BY 2.0 · Shixart1985 · Wikimedia Commons' },
+    { id: 'portrait-smiling', file: 'assets/img/portrait-smiling.jpg', w: 640, h: 427, alt: 'A woman smiling while holding her glasses in front of a laptop', rights: 'CC BY 2.0 · Shixart1985 · Wikimedia Commons' }
+  ];
+  var assetById = {};
+  ASSETS.forEach(function (a) { assetById[a.id] = a; });
+
+  var TEMPLATES = [
+    { id: 'ink', name: 'Ink' }, { id: 'paper', name: 'Paper' }, { id: 'signal', name: 'Signal' },
+    { id: 'blush', name: 'Blush' }, { id: 'butter', name: 'Butter' }, { id: 'sky', name: 'Sky' }
+  ];
+  var FONTS = {
+    iowan: '',
+    charter: "'Charter', 'Bitstream Charter', Georgia, serif",
+    sans: "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
+  };
+
+  /* Each layout declares how much body text it holds at a readable size.
+     Text fit trades type size against that budget in both directions. */
+  var CAPACITY = { text: 190, text_image: 120, image: 90, screenshot: 110 };
+  var FIT = {
+    tight:    { cap: 1.35, body: 3.9, hint: 'Smaller body type. More words fit before the layout breaks.' },
+    balanced: { cap: 1.00, body: 4.4, hint: 'The size the template was drawn for.' },
+    roomy:    { cap: 0.75, body: 5.1, hint: 'Larger body type, easier on a phone. Less text fits.' }
+  };
+  var TITLE_BASE = { intro: 11, content: 7.4, outro: 9 };
+
+  function newSlide(over) {
+    var s = {
+      role: 'content', mode: 'text', eyebrow: '', title: 'New slide', body: '', cta: '',
+      counter: true, image: null, alt: '', opacity: 100, fit: 'balanced', spacing: 3, scale: 100,
+      origin: 'you', locked: false, drafts: null, draft: 0
+    };
+    for (var k in (over || {})) s[k] = over[k];
+    return s;
+  }
+
+  /* A slide the AI drafted from the source keeps every draft it produced for that
+     page, so Regenerate can move to another one instead of inventing a new pass. */
+  function aiSlide(base, drafts) {
+    var s = newSlide(base);
+    s.origin = 'ai';
+    s.drafts = drafts;
+    return applyDraft(s, 0);
+  }
+  function applyDraft(s, i) {
+    var d = s.drafts[i];
+    s.draft = i;
+    s.eyebrow = d.eyebrow;
+    s.title = d.title;
+    s.body = d.body;
+    if (d.cta !== undefined) s.cta = d.cta;
+    return s;
+  }
+
+  var project = {
+    theme: 'paper', align: 'left', decor: 'shape', counters: true, brandFoot: true,
+    font: 'iowan', version: 4,
+    source: { kind: 'url', label: 'hbr.org/the-meeting-audit', href: 'https://example.com/the-meeting-audit' },
+    slides: [
+      aiSlide({ role: 'intro', cta: 'Swipe', counter: false }, [
+        { eyebrow: 'Operations', title: 'Why busy teams confuse *activity* with progress.', body: "Clarity isn't the problem. Signals are." },
+        { eyebrow: 'Operations', title: 'Your calendar is *full*. The work is not moving.', body: 'Those two facts are related.' },
+        { eyebrow: 'Operations', title: 'A status meeting is a *receipt*, not a result.', body: 'You are paying for proof of work.' }
+      ]),
+      aiSlide({}, [
+        { eyebrow: 'The confusion', title: 'Activity is easy to see. Progress is not.', body: 'A meeting produces updates, slides and a shared feeling of momentum. None of those three things move the work forward.' },
+        { eyebrow: 'The confusion', title: 'We measure whatever is visible in a room.', body: 'Attendance and updates are easy to count. The decision that unblocks somebody is not, so it quietly stops being the point.' },
+        { eyebrow: 'Why it survives', title: 'Nobody is ever blamed for a meeting.', body: 'Cancelling one is a decision with your name on it. Keeping it costs nothing. That asymmetry is why the invite outlives its reason.' }
+      ]),
+      aiSlide({ mode: 'text_image', image: 'workspace-writing', alt: 'A person writing in a notebook next to a laptop at a desk' }, [
+        { eyebrow: 'Three signs', title: 'You are probably in one right now.', body: 'Nobody has decided anything in three weeks. The agenda is a list of names.' },
+        { eyebrow: 'How to spot it', title: 'Three tells, and you only need one.', body: 'The agenda is a list of names. The notes are a list of updates. The last real decision is older than the sprint.' },
+        { eyebrow: 'The tell', title: 'Read the notes, not the invite.', body: 'Four sets of notes with no decision and no owner means the room is a broadcast with extra steps.' }
+      ]),
+      aiSlide({}, [
+        { eyebrow: 'The swap', title: 'Replace the meeting, not the reporting.', body: 'Keep the written update and delete the room. Ask every owner to post one blocker, one decision they need from someone else, and one date they are willing to be held to — then only meet with the people whose answers actually collide this week.' },
+        { eyebrow: 'The swap', title: 'Keep the update. Delete the room.', body: 'Then meet only where two answers actually collide this week.' },
+        { eyebrow: 'What to do instead', title: 'Ask for three lines, not thirty minutes.', body: 'One blocker. One decision you need from someone else. One date you will stand behind.' }
+      ]),
+      aiSlide({ mode: 'image', image: 'notebook-pen', alt: 'A hand resting a pen on an open notebook beside a laptop', opacity: 72 }, [
+        { eyebrow: 'The test', title: 'Cancel it once and watch.', body: 'If nothing breaks in two weeks, it was never a meeting.' },
+        { eyebrow: 'The test', title: 'Run the two-week audit.', body: 'Cancel it, tell nobody why, and see who comes looking.' },
+        { eyebrow: 'Proof', title: 'Silence is the result.', body: 'If nobody notices it is gone, you have just found an hour a week.' }
+      ]),
+      aiSlide({ role: 'outro', cta: 'Get the template', counter: false }, [
+        { eyebrow: 'Your turn', title: 'Take the one-page update.', body: 'It is the same page I hand to operations teams in week one.' },
+        { eyebrow: 'Your turn', title: 'Steal the one-page update.', body: 'Same template I open with on every operations team, week one.' },
+        { eyebrow: 'Next', title: 'Start with one recurring invite.', body: 'Pick the one you dread most. That is where the audit pays.' }
+      ])
+    ]
+  };
+  var current = 0;
+
+  /* ── history ───────────────────────────────────────────────────── */
+  var history = [], lastTag = '', lastAt = 0;
+  function snapshot(tag) {
+    var now = Date.now();
+    /* typing fires per keystroke — collapse a run of the same edit into one step */
+    if (tag && tag === lastTag && now - lastAt < 900) { lastAt = now; return; }
+    lastTag = tag || ''; lastAt = now;
+    history.push(JSON.stringify({ p: project, c: current }));
+    if (history.length > 40) history.shift();
+    syncUndo();
+  }
+  function syncUndo() { $('#undoBtn').setAttribute('aria-disabled', String(history.length === 0)); }
+
+  /* ── slide rendering ───────────────────────────────────────────── */
+  function capacityOf(s) { return Math.round(CAPACITY[s.mode] * FIT[s.fit].cap); }
+  function overflow(s) { return (s.body || '').length > capacityOf(s); }
+  function altOf(s) { return s.alt || (s.image && assetById[s.image] ? assetById[s.image].alt : ''); }
+
+  function slideMarkup(s, index, opts) {
+    opts = opts || {};
+    var cls = ['slide', 't-' + project.theme, 'm-' + s.mode.replace('_', '-'), 'is-' + s.role];
+    if (project.align === 'center') cls.push('align-center');
+    var img = s.image ? assetById[s.image] : null;
+    var showFoot = project.brandFoot && (s.role === 'intro' || s.role === 'outro');
+    var rootStyle = FONTS[project.font] ? ' style="--font-display:' + FONTS[project.font] + '"' : '';
+    var titleStyle = ' style="font-size:' + (TITLE_BASE[s.role] * s.scale / 100).toFixed(2) + 'cqw"';
+    var bodyStyle = ' style="font-size:' + FIT[s.fit].body + 'cqw"';
+    var dims = function (a) { return a.w ? ' width="' + a.w + '" height="' + a.h + '"' : ''; };
+    var h = '';
+
+    if (s.mode === 'image' && img) {
+      h += '<span class="slide-bleed" aria-hidden="true"><img src="' + img.file + '" alt="" style="opacity:' + (s.opacity / 100) + '"></span><span class="slide-veil" aria-hidden="true"></span>';
+    } else if (project.decor === 'shape') {
+      h += '<span class="slide-shape" aria-hidden="true"></span>';
+    } else if (project.decor === 'corner') {
+      h += '<span class="slide-shape bottom" aria-hidden="true"></span>';
+    }
+    if (s.counter && project.counters) {
+      h += '<span class="slide-counter">' + (index + 1) + ' / ' + project.slides.length + '</span>';
+    }
+    if (s.eyebrow) h += '<p class="slide-eyebrow">' + esc(s.eyebrow) + '</p>';
+
+    h += '<div class="slide-main" style="gap:' + s.spacing + 'cqw">';
+    if (s.mode === 'text_image' && img) {
+      h += '<div class="slide-figure"><img src="' + img.file + '"' + dims(img) + ' alt="' + esc(altOf(s)) + '" style="opacity:' + (s.opacity / 100) + '"></div>';
+    }
+    if (s.mode === 'screenshot') {
+      h += img
+        ? '<div class="slide-shot"><div class="slide-shot-bar"><i></i><i></i><i></i></div><img src="' + img.file + '" alt="' + esc(altOf(s)) + '"></div>'
+        : '<div class="slide-figure" style="display:grid;place-items:center;aspect-ratio:16/10"><span style="font-family:var(--font-mono);font-size:3cqw;opacity:.7">No screenshot captured</span></div>';
+    }
+    h += '<h2 class="slide-title"' + titleStyle + '>' + mark(s.title) + '</h2>';
+    if (s.body) h += '<p class="slide-body"' + bodyStyle + '>' + esc(s.body) + '</p>';
+    h += '</div>';
+
+    if (showFoot || s.cta) {
+      h += '<div class="slide-foot">';
+      if (showFoot) {
+        h += '<img src="assets/img/avatar-elena.jpg" width="240" height="240" alt="">' +
+             '<span class="who"><b>Elena Marsh</b><span>elenamarsh.co</span></span>';
+      }
+      if (s.cta) h += '<span class="slide-cta">' + esc(s.cta) + '</span>';
+      h += '</div>';
+    }
+    if (opts.flagOverflow && overflow(s)) {
+      h += '<span class="slide-overflow-flag">Text over capacity</span>';
+    }
+    return '<div class="' + cls.join(' ') + ' r-4-5"' + rootStyle + '>' + h + '</div>';
+  }
+
+  /* ── filmstrip ─────────────────────────────────────────────────── */
+  var ROLE_NAME = { intro: 'Cover', content: 'Content', outro: 'Closing' };
+  var LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+  function renderFilm() {
+    $('#filmList').innerHTML = project.slides.map(function (s, i) {
+      var over = overflow(s);
+      return '' +
+        '<div class="film-item">' +
+          '<div class="film-meta">' +
+            '<span class="role">' + ROLE_NAME[s.role] + '</span>' +
+            '<span class="film-tools">' +
+              '<button class="btn btn-ghost btn-sm btn-icon" type="button" data-act="up" data-i="' + i + '" aria-label="Move slide ' + (i + 1) + ' earlier"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 14 6-6 6 6"/></svg></button>' +
+              '<button class="btn btn-ghost btn-sm btn-icon" type="button" data-act="dup" data-i="' + i + '" aria-label="Duplicate slide ' + (i + 1) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>' +
+              '<button class="btn btn-ghost btn-sm btn-icon" type="button" data-act="del" data-i="' + i + '" aria-label="Delete slide ' + (i + 1) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7h14M10 7V5h4v2M8 7l1 12h6l1-12"/></svg></button>' +
+            '</span>' +
+          '</div>' +
+          '<button class="thumb-btn" type="button" data-go="' + i + '" aria-current="' + (i === current) + '" aria-label="Slide ' + (i + 1) + ', ' + ROLE_NAME[s.role] + (over ? ', text over capacity' : '') + (s.locked ? ', locked against regenerate' : '') + '">' +
+            slideMarkup(s, i, {}) +
+          '</button>' +
+          (over ? '<span class="film-flag" aria-hidden="true">!</span>' : '') +
+          (s.locked ? '<span class="film-lock" aria-hidden="true">' + LOCK_SVG + '</span>' : '') +
+        '</div>';
+    }).join('');
+    $('#filmCount').textContent = project.slides.length + ' slides';
+  }
+
+  /* ── canvas ────────────────────────────────────────────────────── */
+  function renderCanvas() {
+    var s = project.slides[current], n = project.slides.length;
+    $('#canvasSlide').innerHTML = slideMarkup(s, current, { flagOverflow: true });
+    $('#pager').textContent = (current + 1) + ' / ' + n;
+    $('#prevSlide').setAttribute('aria-disabled', String(current === 0));
+    $('#nextSlide').setAttribute('aria-disabled', String(current === n - 1));
+
+    var cap = capacityOf(s), len = (s.body || '').length;
+    var layout = s.mode.replace('_', ' + ');
+    $('#capacityCount').textContent = len + ' / ' + cap;
+    $('#capacityCount').className = 'meta num' + (len > cap ? ' counter-over' : '');
+    $('#capacityNote').textContent = len > cap
+      ? 'Supporting line is longer than the ' + layout + ' layout holds at this size.'
+      : 'Text fits the ' + layout + ' layout at this size.';
+    $('#bannerSub').textContent = n + (n === 1 ? ' slide' : ' slides') +
+      ' generated from your ' + (project.source.kind === 'url' ? 'article' : 'notes') +
+      '. Review, refine, and make it yours.';
+  }
+
+  /* ── left pane ─────────────────────────────────────────────────── */
+  function renderContent() {
+    var s = project.slides[current];
+    $('#fEyebrow').value = s.eyebrow;
+    $('#fTitle').value = s.title;
+    $('#fBody').value = s.body;
+    $('#fCta').value = s.cta;
+
+    var len = (s.body || '').length, cap = capacityOf(s);
+    $('#bodyCount').textContent = len + ' / ' + cap;
+    $('#bodyCount').className = 'counter' + (len > cap ? ' counter-over' : '');
+
+    var needsImage = s.mode !== 'text';
+    $('#imageGroup').hidden = !needsImage;
+    if (needsImage) {
+      var img = s.image ? assetById[s.image] : null;
+      $('#imageSlot').innerHTML = img
+        ? '<div class="row" style="gap:11px"><img src="' + img.file + '" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px">' +
+          '<div style="min-width:0"><p style="margin:0;font-size:13px;font-weight:550">' + esc(img.id) + '</p><p class="meta" style="margin:0">' + esc(img.rights) + '</p></div>' +
+          '<button class="btn btn-ghost btn-sm" type="button" id="clearImage" style="margin-left:auto">Remove</button></div>'
+        : '<div class="dropzone" style="padding:18px"><p style="margin:0 0 8px;font-size:13px">No image on this slide yet</p><button class="btn btn-secondary btn-sm" type="button" data-pick-asset>Choose from the library</button></div>';
+      $('#fAlt').value = altOf(s);
+      $('#fOpacity').value = s.opacity;
+      $('#opacityVal').textContent = s.opacity + '%';
+      renderAssets();
+    }
+
+    var isUrl = project.source.kind === 'url';
+    $('#sourceLine').textContent = isUrl
+      ? 'Drafted from ' + project.source.label
+      : 'Drafted from the text you pasted.';
+    $('#sourceBtn').hidden = !isUrl;
+    $('#sourceBtn').href = project.source.href;
+  }
+
+  function renderAssets() {
+    var s = project.slides[current];
+    var q = ($('#assetSearch').value || '').trim().toLowerCase();
+    var hits = ASSETS.filter(function (a) {
+      return !q || (a.alt + ' ' + a.id).toLowerCase().indexOf(q) > -1;
+    });
+    $('#assetGrid').innerHTML = hits.map(function (a) {
+      var usedOn = project.slides.reduce(function (acc, sl, i) { return sl.image === a.id ? acc.concat(i + 1) : acc; }, []);
+      return '<button class="asset" type="button" data-asset="' + a.id + '" aria-pressed="' + (s.image === a.id) + '" aria-label="Use ' + esc(a.alt) + '">' +
+        '<img src="' + a.file + '"' + (a.w ? ' width="' + a.w + '" height="' + a.h + '"' : '') + ' alt="">' +
+        (usedOn.length ? '<span class="used">Slide ' + usedOn.join(', ') + '</span>' : '') +
+      '</button>';
+    }).join('');
+    $('#assetEmpty').hidden = hits.length > 0;
+
+    var img = s.image ? assetById[s.image] : null;
+    $('#assetState').innerHTML = img
+      ? '<div class="rights-row"><p style="margin:0"><strong style="color:var(--fg)">' + esc(img.id) + '</strong><br>' + esc(img.rights) + '</p></div>'
+      : '<p class="meta" style="margin:0">This slide has no image. Pick one above, or switch the layout to Text.</p>';
+  }
+
+  function renderDesign() {
+    $$('#tplGrid .tpl-pick').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.tpl === project.theme));
+    });
+    $('#fontSel').value = project.font;
+    $('#projCounters').checked = project.counters;
+    $('#brandFoot').checked = project.brandFoot;
+    $$('#alignSeg button').forEach(function (b) { b.setAttribute('aria-checked', String(b.dataset.align === project.align)); });
+    $$('#decorGrid .opt').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.decor === project.decor)); });
+  }
+
+  /* ── right pane ────────────────────────────────────────────────── */
+  function renderControls() {
+    var s = project.slides[current];
+    $('#roleSel').value = s.role;
+    $$('#modeGrid .opt').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.mode === s.mode)); });
+    $('#fCounter').checked = s.counter;
+    $$('#fitSeg button').forEach(function (b) {
+      var on = b.dataset.fit === s.fit;
+      b.setAttribute('aria-checked', String(on));
+      b.tabIndex = on ? 0 : -1;
+    });
+    $('#fitHint').textContent = FIT[s.fit].hint + ' Holds about ' + capacityOf(s) + ' characters.';
+    $('#fSpacing').value = s.spacing * 10;
+    $('#spacingVal').textContent = s.spacing.toFixed(1);
+    $('#fScale').value = s.scale;
+    $('#scaleVal').textContent = s.scale + '%';
+    $('#actLock').hidden = s.origin !== 'ai';
+    $('#actLock').setAttribute('aria-pressed', String(!!s.locked));
+    $('#lockHint').textContent = s.origin !== 'ai'
+      ? 'You wrote this slide, so Regenerate leaves it alone.'
+      : s.locked
+        ? 'Regenerate will skip this slide and keep your wording.'
+        : 'Regenerate will replace this wording with another draft of the same page.';
+    $('#actDelete').setAttribute('aria-disabled', String(project.slides.length < 2));
+    $('#actHint').textContent = project.slides.length < 2
+      ? 'A carousel needs at least one slide, so this one cannot be deleted.'
+      : 'Every AI suggestion is shown for review before it replaces your words.';
+  }
+
+  function renderAll() { renderFilm(); renderCanvas(); renderContent(); renderDesign(); renderControls(); }
+
+  function say(msg) {
+    $('#saveState').textContent = msg;
+    clearTimeout(say._t);
+    say._t = setTimeout(function () { $('#saveState').textContent = 'Saved · v' + project.version; }, 1400);
+  }
+  function touch() {
+    project.version += 1;
+    $('#exportVer').textContent = 'v' + project.version;
+    say('Saving…');
+  }
+
+  /* ── tabs ──────────────────────────────────────────────────────── */
+  var tabs = $$('.pane-left > .tabs .tab');
+  function selectTab(t, focus) {
+    tabs.forEach(function (o) {
+      var on = o === t;
+      o.setAttribute('aria-selected', String(on));
+      o.tabIndex = on ? 0 : -1;
+      $('#' + o.getAttribute('aria-controls')).dataset.open = String(on);
+    });
+    if (focus) t.focus();
+  }
+  tabs.forEach(function (t, i) {
+    t.tabIndex = t.getAttribute('aria-selected') === 'true' ? 0 : -1;
+    t.addEventListener('click', function () { selectTab(t, false); });
+    t.addEventListener('keydown', function (e) {
+      var next = null;
+      if (e.key === 'ArrowRight') next = tabs[(i + 1) % tabs.length];
+      else if (e.key === 'ArrowLeft') next = tabs[(i - 1 + tabs.length) % tabs.length];
+      else if (e.key === 'Home') next = tabs[0];
+      else if (e.key === 'End') next = tabs[tabs.length - 1];
+      if (next) { e.preventDefault(); selectTab(next, true); }
+    });
+  });
+
+  /* ── radio groups ──────────────────────────────────────────────── */
+  function wireRadios(sel, onPick) {
+    var items = $$(sel + ' button');
+    function pick(b, focus) {
+      items.forEach(function (o) {
+        var on = o === b;
+        o.setAttribute('aria-checked', String(on));
+        o.tabIndex = on ? 0 : -1;
+      });
+      if (focus) b.focus();
+      onPick(b);
+    }
+    items.forEach(function (b, i) {
+      b.tabIndex = b.getAttribute('aria-checked') === 'true' ? 0 : -1;
+      b.addEventListener('click', function () { pick(b, false); });
+      b.addEventListener('keydown', function (e) {
+        var next = null;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = items[(i + 1) % items.length];
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = items[(i - 1 + items.length) % items.length];
+        else if (e.key === 'Home') next = items[0];
+        else if (e.key === 'End') next = items[items.length - 1];
+        if (next) { e.preventDefault(); pick(next, true); }
+      });
+    });
+  }
+
+  /* ── filmstrip + paging ────────────────────────────────────────── */
+  $('#filmList').addEventListener('click', function (e) {
+    var go = e.target.closest('[data-go]'), act = e.target.closest('[data-act]');
+    if (act) {
+      var i = Number(act.dataset.i), kind = act.dataset.act;
+      if (kind === 'up' && i > 0) {
+        snapshot('move');
+        project.slides.splice(i - 1, 0, project.slides.splice(i, 1)[0]);
+        current = i - 1;
+        touch(); renderAll();
+      } else if (kind === 'dup') {
+        snapshot('dup');
+        /* the copy is yours, not something the AI drafted from the source, so it
+           carries no alternate drafts and Regenerate leaves it alone */
+        var copy = JSON.parse(JSON.stringify(project.slides[i]));
+        copy.origin = 'you'; copy.locked = false; copy.drafts = null; copy.draft = 0;
+        project.slides.splice(i + 1, 0, copy);
+        current = i + 1;
+        touch(); renderAll();
+      } else if (kind === 'del') {
+        deleteSlide(i);
+      }
+      return;
+    }
+    if (go) { current = Number(go.dataset.go); renderAll(); }
+  });
+
+  function deleteSlide(i) {
+    if (project.slides.length < 2) { say('A carousel needs at least one slide'); return; }
+    snapshot('del');
+    project.slides.splice(i, 1);
+    current = Math.min(current, project.slides.length - 1);
+    touch(); renderAll();
+    say('Slide ' + (i + 1) + ' deleted · undo to restore');
+  }
+
+  $('#prevSlide').addEventListener('click', function () {
+    if (current > 0) { current -= 1; renderAll(); }
+  });
+  $('#nextSlide').addEventListener('click', function () {
+    if (current < project.slides.length - 1) { current += 1; renderAll(); }
+  });
+
+  $('#addSlide').addEventListener('click', function () {
+    snapshot('add');
+    project.slides.splice(current + 1, 0, newSlide({ eyebrow: project.slides[current].eyebrow }));
+    current += 1; touch(); renderAll();
+    $('#fTitle').focus(); $('#fTitle').select();
+  });
+
+  /* ── content fields ────────────────────────────────────────────── */
+  function bindField(sel, key) {
+    $(sel).addEventListener('input', function () {
+      snapshot('field:' + key);
+      project.slides[current][key] = this.value;
+      touch(); renderCanvas(); renderFilm(); renderControls();
+      if (key === 'body') {
+        var len = this.value.length, cap = capacityOf(project.slides[current]);
+        $('#bodyCount').textContent = len + ' / ' + cap;
+        $('#bodyCount').className = 'counter' + (len > cap ? ' counter-over' : '');
+      }
+    });
+  }
+  bindField('#fEyebrow', 'eyebrow');
+  bindField('#fTitle', 'title');
+  bindField('#fBody', 'body');
+  bindField('#fCta', 'cta');
+
+  $('#fAlt').addEventListener('input', function () {
+    snapshot('alt');
+    project.slides[current].alt = this.value;
+    touch(); renderCanvas();
+  });
+  $('#fOpacity').addEventListener('input', function () {
+    snapshot('opacity');
+    project.slides[current].opacity = Number(this.value);
+    $('#opacityVal').textContent = this.value + '%';
+    renderCanvas(); renderFilm();
+  });
+  $('#assetSearch').addEventListener('input', renderAssets);
+
+  $('#uploadBtn').addEventListener('click', function () { $('#uploadInput').click(); });
+  $('#uploadInput').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    this.value = '';
+    if (!f) return;
+    var a = {
+      id: f.name.replace(/\.[^.]+$/, '').slice(0, 40) || 'upload',
+      file: URL.createObjectURL(f), w: 0, h: 0, alt: '',
+      rights: 'Your upload · you confirm you hold the rights'
+    };
+    while (assetById[a.id]) a.id += '-1';
+    ASSETS.unshift(a); assetById[a.id] = a;
+    snapshot('upload');
+    var s = project.slides[current];
+    if (s.mode === 'text') s.mode = 'text_image';
+    s.image = a.id; s.alt = '';
+    touch(); renderAll();
+    $('#fAlt').focus();
+    say('Image added · describe it in Alt text');
+  });
+
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-pick-asset]')) {
+      var first = $('#assetGrid .asset');
+      if (first) first.focus();
+      return;
+    }
+    if (e.target.closest('#clearImage')) {
+      snapshot('clear-image');
+      var sc = project.slides[current];
+      sc.image = null; sc.alt = '';
+      if (sc.mode === 'text_image') sc.mode = 'text';
+      touch(); renderAll();
+      return;
+    }
+    var asset = e.target.closest('[data-asset]');
+    if (asset) {
+      snapshot('asset');
+      var s = project.slides[current];
+      if (s.mode === 'text') s.mode = 'text_image';
+      s.image = asset.dataset.asset;
+      s.alt = assetById[s.image].alt;
+      touch(); renderAll();
+    }
+  });
+
+  /* ── design ────────────────────────────────────────────────────── */
+  $('#tplGrid').innerHTML = TEMPLATES.map(function (t) {
+    return '<button class="tpl-pick" type="button" data-tpl="' + t.id + '" aria-pressed="false">' +
+      '<span class="slide t-' + t.id + ' r-4-5" style="padding:10cqw" aria-hidden="true">' +
+        '<span class="slide-main"><span class="slide-title" style="font-size:14cqw">Aa</span></span>' +
+      '</span><span class="name">' + t.name + '</span></button>';
+  }).join('');
+  $('#tplGrid').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-tpl]');
+    if (!b) return;
+    snapshot('theme');
+    project.theme = b.dataset.tpl;
+    touch(); renderFilm(); renderCanvas(); renderDesign();
+  });
+  $('#fontSel').addEventListener('change', function () {
+    snapshot('font'); project.font = this.value; touch(); renderFilm(); renderCanvas();
+  });
+  wireRadios('#alignSeg', function (b) {
+    snapshot('align'); project.align = b.dataset.align; touch(); renderFilm(); renderCanvas();
+  });
+  $$('#decorGrid .opt').forEach(function (b) {
+    b.addEventListener('click', function () {
+      snapshot('decor');
+      project.decor = b.dataset.decor;
+      touch(); renderFilm(); renderCanvas(); renderDesign();
+    });
+  });
+  $('#projCounters').addEventListener('change', function () {
+    snapshot('counters'); project.counters = this.checked; touch(); renderFilm(); renderCanvas();
+  });
+  $('#brandFoot').addEventListener('change', function () {
+    snapshot('brandfoot'); project.brandFoot = this.checked; touch(); renderFilm(); renderCanvas();
+  });
+
+  /* ── slide controls ────────────────────────────────────────────── */
+  $('#roleSel').addEventListener('change', function () {
+    snapshot('role'); project.slides[current].role = this.value; touch(); renderAll();
+  });
+  $$('#modeGrid .opt').forEach(function (b) {
+    b.addEventListener('click', function () {
+      snapshot('mode');
+      var s = project.slides[current];
+      s.mode = b.dataset.mode;
+      if ((s.mode === 'text_image' || s.mode === 'image') && !s.image) {
+        s.image = 'glasses-notebook';
+        s.alt = assetById['glasses-notebook'].alt;
+      }
+      if (s.mode === 'text') { s.image = null; s.alt = ''; }
+      touch(); renderAll();
+    });
+  });
+  $('#fCounter').addEventListener('change', function () {
+    snapshot('slide-counter');
+    project.slides[current].counter = this.checked;
+    touch(); renderCanvas(); renderFilm();
+  });
+  wireRadios('#fitSeg', function (b) {
+    snapshot('fit');
+    project.slides[current].fit = b.dataset.fit;
+    touch(); renderAll();
+  });
+  $('#fSpacing').addEventListener('input', function () {
+    snapshot('spacing');
+    project.slides[current].spacing = Number(this.value) / 10;
+    $('#spacingVal').textContent = project.slides[current].spacing.toFixed(1);
+    touch(); renderCanvas(); renderFilm();
+  });
+  $('#fScale').addEventListener('input', function () {
+    snapshot('scale');
+    project.slides[current].scale = Number(this.value);
+    $('#scaleVal').textContent = this.value + '%';
+    touch(); renderCanvas(); renderFilm();
+  });
+
+  $('#actRewrite').addEventListener('click', function () {
+    selectTab($('#tabContent'), false);
+    openAI('body');
+    var first = $('#aiBody [data-ai-act]');
+    if (first) first.focus();
+  });
+  $('#actShorten').addEventListener('click', function () {
+    selectTab($('#tabContent'), false);
+    openAI('body');
+    propose('Make shorter', $('#aiBody'));
+  });
+  $('#actAdd').addEventListener('click', function () {
+    snapshot('add');
+    project.slides.splice(current + 1, 0, newSlide({
+      eyebrow: project.slides[current].eyebrow,
+      title: 'New talking point',
+      fit: project.slides[current].fit,
+      spacing: project.slides[current].spacing,
+      scale: project.slides[current].scale
+    }));
+    current += 1; touch(); renderAll();
+    selectTab($('#tabContent'), false);
+    $('#fTitle').focus(); $('#fTitle').select();
+  });
+  $('#actDelete').addEventListener('click', function () {
+    if (this.getAttribute('aria-disabled') === 'true') return;
+    deleteSlide(current);
+  });
+
+  $('#undoBtn').addEventListener('click', function () {
+    if (history.length === 0) { say('Nothing to undo'); return; }
+    var prev = JSON.parse(history.pop());
+    var version = project.version;
+    project = prev.p;
+    project.version = version + 1;
+    current = Math.min(prev.c, project.slides.length - 1);
+    lastTag = '';
+    syncUndo();
+    $('#exportVer').textContent = 'v' + project.version;
+    renderAll();
+    say('Change undone');
+  });
+
+  /* ── AI writing assistant ──────────────────────────────────────── */
+  var AI_ACTIONS = ['Improve', 'Rephrase', 'Make shorter', 'Simplify', 'Fix grammar'];
+  function proposalFor(action, field, text) {
+    if (action === 'Make shorter') {
+      var parts = String(text).split(/(?<=[.!?])\s+/).filter(Boolean);
+      if (parts.length > 1) return parts.slice(0, Math.max(1, parts.length - 1)).join(' ');
+      return String(text).replace(/,[^,]*$/, '').replace(/\s+\S+$/, '') + '.';
+    }
+    if (action === 'Simplify') return String(text).replace(/\*/g, '').replace(/ — /g, '. ');
+    if (action === 'Fix grammar') return String(text).replace(/ — /g, ', and ');
+    if (action === 'Rephrase') {
+      return field === 'title'
+        ? String(text).replace(/\.$/, '') + ' — and what to do instead.'
+        : 'Delete the room, keep the reporting. Every owner posts a blocker, a decision they need, and a date they will stand behind.';
+    }
+    return String(text).trim();
+  }
+
+  function openAI(field) {
+    var box = $(field === 'title' ? '#aiTitle' : '#aiBody');
+    var other = $(field === 'title' ? '#aiBody' : '#aiTitle');
+    other.hidden = true;
+    box.hidden = false;
+    box.innerHTML =
+      '<p class="label" style="margin-bottom:9px">AI writing assistant · ' + field + ' only</p>' +
+      '<div class="ai-actions">' +
+        AI_ACTIONS.map(function (a) { return '<button class="chip" type="button" data-ai-act="' + a + '">' + a + '</button>'; }).join('') +
+      '</div>' +
+      '<div class="field" style="margin-top:10px"><label class="visually-hidden" for="aiCustom-' + field + '">Your own instruction</label>' +
+      '<input class="input" type="text" id="aiCustom-' + field + '" placeholder="Or write your own instruction" data-ai-custom></div>' +
+      '<div data-ai-out></div>';
+    box.dataset.field = field;
+    return box;
+  }
+
+  function propose(action, box) {
+    var field = box.dataset.field;
+    var next = proposalFor(action, field, project.slides[current][field]);
+    $$('[data-ai-act]', box).forEach(function (o) { o.setAttribute('aria-pressed', String(o.dataset.aiAct === action)); });
+    var out = $('[data-ai-out]', box);
+    out.innerHTML =
+      '<div class="ai-proposal">' +
+        '<p class="label" style="margin-bottom:6px">Proposed ' + field + '</p>' +
+        '<p>' + esc(next) + '</p>' +
+        '<div class="row" style="gap:8px">' +
+          '<button class="btn btn-solid btn-sm" type="button" data-ai-accept>Accept</button>' +
+          '<button class="btn btn-secondary btn-sm" type="button" data-ai-reject>Reject</button>' +
+          '<span class="meta" style="margin-left:4px">Only this field changes.</span>' +
+        '</div>' +
+      '</div>';
+    out.dataset.next = next;
+    $('[data-ai-accept]', out).focus();
+  }
+
+  document.addEventListener('click', function (e) {
+    var trigger = e.target.closest('[data-ai]');
+    if (trigger) { openAI(trigger.dataset.ai); return; }
+
+    var act = e.target.closest('[data-ai-act]');
+    if (act) { propose(act.dataset.aiAct, act.closest('.ai-panel')); return; }
+
+    var accept = e.target.closest('[data-ai-accept]');
+    if (accept) {
+      var b = accept.closest('.ai-panel');
+      snapshot('ai-accept');
+      project.slides[current][b.dataset.field] = $('[data-ai-out]', b).dataset.next;
+      b.hidden = true;
+      touch(); renderAll();
+      say('Suggestion applied · undo to revert');
+      return;
+    }
+    var reject = e.target.closest('[data-ai-reject]');
+    if (reject) { reject.closest('.ai-panel').hidden = true; }
+  });
+
+  /* ── dialogs ───────────────────────────────────────────────────── */
+  var openScrim = null, lastFocus = null;
+  function openDialog(scrim, onOpen) {
+    if (openScrim) closeDialog();
+    lastFocus = document.activeElement;
+    if (onOpen) onOpen();
+    scrim.hidden = false;
+    openScrim = scrim;
+    /* land on the dialog itself so its label is read before any control */
+    $('.dialog', scrim).focus();
+  }
+  function trapItems() {
+    return $$('button, a[href], input, select, textarea, [tabindex="0"]', openScrim)
+      .filter(function (n) { return !n.disabled && n.offsetParent !== null; });
+  }
+  function closeDialog() {
+    if (!openScrim) return;
+    openScrim.hidden = true;
+    openScrim = null;
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  $$('[data-close]').forEach(function (b) { b.addEventListener('click', closeDialog); });
+  $$('.scrim').forEach(function (s) {
+    s.addEventListener('click', function (e) { if (e.target === s) closeDialog(); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && openScrim) { closeDialog(); return; }
+    if (e.key !== 'Tab' || !openScrim) return;
+    var items = trapItems();
+    if (!items.length) return;
+    var first = items[0], last = items[items.length - 1];
+    var at = items.indexOf(document.activeElement);
+    /* focus starts on the dialog wrapper, which is not in the list */
+    if (e.shiftKey && (at === 0 || at === -1)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && at === items.length - 1) { e.preventDefault(); first.focus(); }
+  });
+
+  /* ── preview ───────────────────────────────────────────────────── */
+  function captionText() {
+    var lines = project.slides.map(function (s) {
+      var t = s.title.replace(/\*/g, '');
+      return s.body ? t + '\n' + s.body : t;
+    });
+    var cta = project.slides[project.slides.length - 1].cta;
+    return lines.join('\n\n') + (cta ? '\n\n' + cta + ' →' : '');
+  }
+  $('#previewBtn').addEventListener('click', function () {
+    openDialog($('#previewScrim'), function () {
+      $('#feedRow').innerHTML = project.slides.map(function (s, i) { return slideMarkup(s, i, {}); }).join('');
+      $('#capBox').textContent = captionText();
+      var n = project.slides.length, chars = captionText().length;
+      $('#previewFoot').textContent = n + ' slides · caption ' + chars + ' characters';
+    });
+  });
+  $('#toExport').addEventListener('click', function () {
+    closeDialog();
+    openDialog($('#exportScrim'), syncPreflight);
+  });
+
+  /* ── regenerate ────────────────────────────────────────────────── */
+  function redraftable(s) { return s.origin === 'ai' && !s.locked; }
+
+  function setLock(i, on) {
+    snapshot('lock:' + i);
+    project.slides[i].locked = on;
+    touch();
+    renderFilm();
+    renderControls();
+    if (openScrim === $('#regenScrim')) renderRegen();
+    say('Slide ' + (i + 1) + (on ? ' locked' : ' unlocked'));
+  }
+
+  $('#actLock').addEventListener('click', function () {
+    setLock(current, this.getAttribute('aria-pressed') !== 'true');
+  });
+
+  function renderRegen() {
+    var n = project.slides.filter(redraftable).length;
+    $('#regenSource').textContent = project.source.kind === 'url'
+      ? 'Same source · ' + project.source.label
+      : 'Same source · your notes';
+    $('#regenBody').textContent = n === 0
+      ? 'Every slide is either locked or written by you, so there is nothing to redraft. Unlock a slide below to include it.'
+      : n + (n === 1 ? ' slide' : ' slides') + ' will be rewritten from the same source. Locked slides and slides you wrote keep their wording exactly.';
+
+    /* the list is rebuilt on every lock toggle, which would drop the keyboard
+       focus sitting on the button that was just pressed */
+    var focused = document.activeElement;
+    var refocus = focused && focused.dataset ? focused.dataset.lock : null;
+
+    $('#regenList').innerHTML = project.slides.map(function (s, i) {
+      var kept = !redraftable(s);
+      var why = s.origin !== 'ai' ? 'Yours — never redrafted' : s.locked ? 'Locked — kept as is' : 'Will be rewritten';
+      return '' +
+        '<li class="regen-row' + (kept ? ' is-kept' : '') + '">' +
+          '<span class="n">' + pad2(i + 1) + '</span>' +
+          '<span class="t"><b>' + esc(s.title) + '</b><span>' + why + '</span></span>' +
+          (s.origin === 'ai'
+            ? '<button class="btn btn-ghost btn-sm" type="button" data-lock="' + i + '" aria-pressed="' + !!s.locked +
+              '" aria-label="Lock slide ' + (i + 1) + ' against regenerate">Lock</button>'
+            : '<span class="meta">—</span>') +
+        '</li>';
+    }).join('');
+
+    $('#regenGo').textContent = n === 0 ? 'Redraft' : 'Redraft ' + n + (n === 1 ? ' slide' : ' slides');
+    $('#regenGo').setAttribute('aria-disabled', String(n === 0));
+
+    if (refocus !== null && refocus !== undefined) {
+      var back = $('#regenList [data-lock="' + refocus + '"]');
+      if (back) back.focus();
+    }
+  }
+
+  $('#regenList').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-lock]');
+    if (!b) return;
+    setLock(+b.dataset.lock, b.getAttribute('aria-pressed') !== 'true');
+  });
+
+  $('#regenBtn').addEventListener('click', function () {
+    openDialog($('#regenScrim'), renderRegen);
+  });
+
+  $('#regenGo').addEventListener('click', function () {
+    if (this.getAttribute('aria-disabled') === 'true') return;
+    var targets = project.slides.filter(redraftable);
+    snapshot('regen');
+    targets.forEach(function (s) { applyDraft(s, (s.draft + 1) % s.drafts.length); });
+    touch();
+    closeDialog();
+    renderAll();
+    say(targets.length + (targets.length === 1 ? ' slide redrafted' : ' slides redrafted') + ' · Undo restores the last one');
+  });
+
+  /* ── export ────────────────────────────────────────────────────── */
+  function syncPreflight() {
+    var bad = project.slides.reduce(function (acc, s, i) { return overflow(s) ? acc.concat(i + 1) : acc; }, []);
+    var blocked = bad.length > 0;
+    var n = project.slides.length;
+    var hard = $$('[data-gate="hard"]').length;
+    var total = $$('.fmt-row').length;
+    var withRights = project.slides.filter(function (s) { return s.image; }).length;
+
+    $('#pngDesc').textContent = (n === 1 ? '01.png' : '01.png – ' + pad2(n) + '.png') +
+      ' at 1080 × 1350, in slide order';
+    $('#pdfDesc').textContent = n + (n === 1 ? ' page' : ' pages') + ', same order as the preview';
+    $('#preflightFail').hidden = !blocked;
+    $('#preflightPass').hidden = blocked;
+
+    if (blocked) {
+      $('#preflightFailText').innerHTML =
+        '<strong>Preflight stopped ' + hard + ' of ' + total + ' formats.</strong> ' +
+        (bad.length === 1 ? 'Slide ' : 'Slides ') + listOf(bad) +
+        (bad.length === 1 ? ' holds' : ' hold') +
+        ' more text than the ' + project.theme + ' layout fits at a readable size. ' +
+        'Image and caption exports are unaffected.';
+      $('#fixSlide').textContent = 'Go to slide ' + bad[0];
+      $('#fixSlide').dataset.target = bad[0] - 1;
+    } else {
+      $('#preflightPassText').innerHTML =
+        '<strong>Preflight passed.</strong> ' + n + (n === 1 ? ' slide' : ' slides') + ', all text within capacity, ' +
+        (withRights === 0 ? 'no images to clear' : withRights + (withRights === 1 ? ' image' : ' images') + ' with rights recorded') + '.';
+    }
+    $$('[data-gate="hard"]').forEach(function (b) {
+      b.className = blocked ? 'badge badge-danger' : 'badge badge-ok';
+      b.innerHTML = '<span class="dot"></span>' + (blocked ? 'Blocked' : 'Ready');
+    });
+    var ready = blocked ? total - hard : total;
+    $('#exportFootNote').textContent = blocked
+      ? ready + ' of ' + total + ' formats can run now'
+      : 'All ' + total + ' formats can run';
+    $('#runExport').textContent = 'Export ' + ready + (ready === 1 ? ' format' : ' formats');
+  }
+  $('#exportBtn').addEventListener('click', function () {
+    openDialog($('#exportScrim'), syncPreflight);
+  });
+  $('#fixSlide').addEventListener('click', function () {
+    current = Number(this.dataset.target || 0);
+    closeDialog();
+    selectTab($('#tabContent'), false);
+    renderAll();
+    $('#fBody').focus();
+  });
+  $('#runExport').addEventListener('click', function () {
+    closeDialog();
+    say('Export queued · you will get the files here');
+  });
+
+  syncUndo();
+  renderAll();
+})();
+</script>
+</body>
+</html>

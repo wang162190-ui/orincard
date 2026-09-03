@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "sourceProject": "9d82ca96-7422-48e2-a3e5-f2c9a7300f6e",
+  "capturedOn": "2026-09-04",
+  "files": [
+    {
+      "path": "assets/img/avatar-elena.jpg",
+      "bytes": 27503,
+      "sha256": "a3af609520d7cfbae26f845bf4d29ed57535c3c125de57ec10a4fa077b2b6a67"
+    },
+    {
+      "path": "assets/img/credits.json",
+      "bytes": 2775,
+      "sha256": "9c4e9056d38925e506a9cec0f11ac2419077b07bbcc1b76c3c1d5ebe63861e7f"
+    },
+    {
+      "path": "assets/img/desk-morning.jpg",
+      "bytes": 34087,
+      "sha256": "47fc3506245db69538b815ea087c24c31b02b2d1cf29a398ab06e6ea48ecd372"
+    },
+    {
+      "path": "assets/img/glasses-notebook.jpg",
+      "bytes": 30442,
+      "sha256": "7dc385fd3fec3c1bd8279b2d62cfbf087006e89f1643ecf5c2b3c4fb83d66f31"
+    },
+    {
+      "path": "assets/img/notebook-pen.jpg",
+      "bytes": 90364,
+      "sha256": "a75b4ebf97214762da3470ace0db72a801ab399522046bfc837f0df35c4a8e85"
+    },
+    {
+      "path": "assets/img/portrait-smiling.jpg",
+      "bytes": 88804,
+      "sha256": "36359e76c4ef5232ab27fc93efbc1b926410a6e6b952ebc9937a140f0be50c02"
+    },
+    {
+      "path": "assets/img/typing-office.jpg",
+      "bytes": 54700,
+      "sha256": "7e33fbfc9798b35fa245d903bb509b40bdbf233047cec4e6d708e737d15bdbf0"
+    },
+    {
+      "path": "assets/img/workspace-writing.jpg",
+      "bytes": 48718,
+      "sha256": "4b9267d865235c2066a1f6055fbeb0563a728742d2b74001a057e8ad3547071e"
+    },
+    {
+      "path": "assets/ori.js",
+      "bytes": 3487,
+      "sha256": "5bf17a7a08ddc0bbf65e3e4b003a84677e59fe24e948d42cf20074b29e4e85d2"
+    },
+    {
+      "path": "assets/orincard.css",
+      "bytes": 35274,
+      "sha256": "59764d0d733d40ef747a01d1ae3914baf1228c077f45587c633fc651f12362af"
+    },
+    {
+      "path": "brand-kits.html",
+      "bytes": 32484,
+      "sha256": "47de285052f0391d757a76b63090474e4a58e1ef9a67db83613a560c590e1154"
+    },
+    {
+      "path": "editor.html",
+      "bytes": 82496,
+      "sha256": "2d390121c0664ca9d74c8d6a4ba42a5156987ed03e409e12017f93156a6fa890"
+    },
+    {
+      "path": "generator.html",
+      "bytes": 37988,
+      "sha256": "4ed74cfa7e7f89e38694d27fa3147e87d8c50d100ab6d1fb0af0a78c31065343"
+    },
+    {
+      "path": "index.html",
+      "bytes": 18757,
+      "sha256": "bfa866a989a6a0a135eda6ffd1160b03e2c728ad99c79a09412bc0bb1863af6f"
+    },
+    {
+      "path": "projects.html",
+      "bytes": 59154,
+      "sha256": "f1b22934832eb103792c1f9601b1bdad47b1fdc1f877ae763963f47d97951baa"
+    }
+  ]
+}
