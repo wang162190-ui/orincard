@@ -15,6 +15,9 @@ export function inspectTasks(markdown, spec) {
       files: [...line.matchAll(/`([^`]+)`/g)].map(m => m[1]),
       acs: [...line.matchAll(/AC-\d{3}/g)].map(m => m[0]),
       batch: section.match(/^  - Batch: (B\d{2})$/m)?.[1],
+      parallel: /\[P\]/.test(line),
+      parallelGroup: section.match(/^  - Parallel: ([A-Z0-9-]+)\/([A-C])$/m)?.[1],
+      parallelLane: section.match(/^  - Parallel: ([A-Z0-9-]+)\/([A-C])$/m)?.[2],
       deps: section.match(/^  - Depends: (.+)$/m)?.[1].match(/T\d{3}/g) ?? [],
       check: section.match(/^  - Check: `([^`]+)`$/m)?.[1],
       expect: section.match(/^  - Expect: (.+)$/m)?.[1],
@@ -39,9 +42,59 @@ export function inspectTasks(markdown, spec) {
     if (!task.acs.length) fail('missing AC mapping');
     if (!task.check || /\|\|\s*true|--passWithNoTests|--if-present/.test(task.check)) fail('missing or bypassable check');
     if (!task.expect) fail('missing observable expectation');
-    for (const dep of task.deps) if (!seen.has(dep)) fail(`dependency not defined earlier: ${dep}`);
-    if (/\[P\]/.test(task.line)) fail('parallel task contradicts current serial fallback');
+    if (task.parallel && (!task.parallelGroup || !task.parallelLane)) fail('parallel task requires Parallel group/lane metadata');
+    if (!task.parallel && (task.parallelGroup || task.parallelLane)) fail('non-parallel task must not declare Parallel metadata');
     seen.add(task.id);
+  }
+  const taskById = new Map(tasks.map(task => [task.id, task]));
+  for (const task of tasks) {
+    for (const dep of task.deps) {
+      const dependency = taskById.get(dep);
+      if (!dependency) errors.push(`${task.id}: dependency not defined: ${dep}`);
+      else if (Number(dependency.batch?.slice(1)) > Number(task.batch?.slice(1))) errors.push(`${task.id}: dependency ${dep} is in a later batch`);
+    }
+  }
+  const visiting = new Set();
+  const visited = new Set();
+  const visit = task => {
+    if (visiting.has(task.id)) {
+      errors.push(`${task.id}: dependency cycle detected`);
+      return;
+    }
+    if (visited.has(task.id)) return;
+    visiting.add(task.id);
+    for (const dep of task.deps) {
+      const dependency = taskById.get(dep);
+      if (dependency) visit(dependency);
+    }
+    visiting.delete(task.id);
+    visited.add(task.id);
+  };
+  for (const task of tasks) visit(task);
+  const parallelGroups = new Map();
+  for (const task of tasks.filter(task => task.parallelGroup)) {
+    const group = parallelGroups.get(task.parallelGroup) ?? [];
+    group.push(task);
+    parallelGroups.set(task.parallelGroup, group);
+  }
+  for (const [groupName, groupTasks] of parallelGroups) {
+    const lanes = new Set(groupTasks.map(task => task.parallelLane));
+    if (lanes.size < 2) errors.push(`${groupName}: parallel group must use at least two lanes`);
+    if (lanes.size > 3) errors.push(`${groupName}: parallel group exceeds three lanes`);
+    const fileOwners = new Map();
+    for (const task of groupTasks) {
+      for (const file of task.files) {
+        const owner = fileOwners.get(file);
+        if (owner && owner !== task.parallelLane) errors.push(`${groupName}: file overlaps lanes ${owner}/${task.parallelLane}: ${file}`);
+        fileOwners.set(file, task.parallelLane);
+      }
+      for (const dep of task.deps) {
+        const dependency = taskById.get(dep);
+        if (dependency?.parallelGroup === groupName && dependency.parallelLane !== task.parallelLane) {
+          errors.push(`${task.id}: dependency ${dep} is in another lane of ${groupName}`);
+        }
+      }
+    }
   }
   const required = new Set(spec.match(/AC-\d{3}/g) ?? []);
   const covered = new Set(tasks.flatMap(task => task.acs));
@@ -53,7 +106,7 @@ export function inspectTasks(markdown, spec) {
     const last = tasks.filter(task => task.batch === batch).at(-1);
     if (!/集成|冒烟|smoke/.test(last.line)) errors.push(`${batch}: missing closing integration task`);
   }
-  return { errors, tasks, batches, covered };
+  return { errors, tasks, batches, covered, parallelGroups };
 }
 
 export function inspectManifest(root, manifest) {
@@ -119,7 +172,7 @@ function main() {
   }
   const plan = read('plan.md');
   for (const batch of result.batches) if (!plan.includes(batch)) errors.push(`Plan omits ${batch}`);
-  if (!plan.includes('关键路径') || !plan.includes('串行')) errors.push('Plan omits critical path or serial fallback');
+  if (!plan.includes('关键路径') || !plan.includes('三线并行')) errors.push('Plan omits critical path or parallel execution');
   const designRoot = resolve(root, 'docs/design/reference');
   const manifest = JSON.parse(readFileSync(resolve(designRoot, 'manifest.json'), 'utf8'));
   errors.push(...inspectManifest(designRoot, manifest));
@@ -132,7 +185,7 @@ function main() {
     process.exitCode = 1;
     return;
   }
-  console.log(`PASS: ${result.tasks.length} planned tasks / ${result.batches.length} serial batches / ${result.covered.size} ACs / ${api.endpoints.size} API paths assigned / ${manifest.files.length} unchanged design files.`);
+  console.log(`PASS: ${result.tasks.length} planned tasks / ${result.batches.length} batches / ${result.parallelGroups.size} parallel groups (max 3 lanes) / ${result.covered.size} ACs / ${api.endpoints.size} API paths assigned / ${manifest.files.length} unchanged design files.`);
   console.log('Documentation structure and reference integrity only. Product, cloud integration and visual acceptance have NOT been executed.');
 }
 

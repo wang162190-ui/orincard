@@ -2,7 +2,7 @@
 
 > source: docs/sdd/orincard/spec.md
 
-2026-09-04，HARD-GATE 2 待审阅。共 95 项任务，12 批；全部未完成。执行按批次和依赖串行，无 `[P]` 承诺。
+2026-09-04，HARD-GATE 2 已批准。共 95 项任务，12 批；按依赖执行，标记 `[P]` 的任务按 `Parallel` 组在最多三条隔离工作线中并行，未标记者串行收口。
 
 ## 执行约定
 
@@ -13,6 +13,7 @@
 - 每批最后的集成项必须通过并review才合main；生成/支付/导出真集成不能由fixture替代。归档临时截图不提交Git，验收文档只保留摘要和安全的证据引用。
 - 新增依赖、生成迁移、字体下载均需登记来源与哈希；公开内容必须实写并审核，不把空页面视为全量完成。
 - 每项继承前一项的已验证产物。DB定义任务先在允许的开发/CI数据库验证，集成任务通过CLI生成、重放并提交迁移；禁止在生产试SQL。
+- `[P]` 任务必须声明 `Parallel: <组>/<工作线>`；同组不同工作线的文件集合不得交叉，也不得互相依赖。每组最多三条工作线，汇合后的云测试、数据库变更、Trigger部署和Playwright验收由协调线串行执行。
 
 ## B01
 
@@ -72,33 +73,36 @@
   - Check: `pnpm exec vitest run tests/unit/editor-commands.test.ts`
   - Expect: 增删复制排序、4/12边界、undo/redo不改其他页。
 
-- [ ] T010 `src/features/editor/local-drafts.ts`, `tests/unit/local-drafts.test.ts` — 实现隔离的IndexedDB草稿与过期 → AC-001, AC-007
+- [ ] T010 [P] `src/features/editor/local-drafts.ts`, `tests/unit/local-drafts.test.ts` — 实现隔离的IndexedDB草稿与过期 → AC-001, AC-007
   - Batch: B02
+  - Parallel: WS-B02-1/A
   - Depends: T009
   - Check: `pnpm exec vitest run tests/unit/local-drafts.test.ts`
   - Expect: 24小时过期、账号隔离、显式迁移、刷新保留未同步稿。
 
-- [ ] T011 `src/render/slide.tsx`, `src/render/slide.css`, `src/render/preflight.ts`, `tests/ui/preflight.test.tsx` — 实现共享卡片渲染与测量 → AC-004, AC-006
+- [ ] T011 [P] `src/render/slide.tsx`, `src/render/slide.css`, `src/render/preflight.ts`, `tests/ui/preflight.test.tsx` — 实现共享卡片渲染与测量 → AC-004, AC-006
   - Batch: B02
-  - Depends: T010
+  - Parallel: WS-B02-1/B
+  - Depends: T005, T007, T009
   - Check: `pnpm exec vitest run tests/ui/preflight.test.tsx`
   - Expect: 字体/图像就绪后测量；四模式和全部视觉格式统一阻断溢出。
 
 - [ ] T012 `src/features/editor/editor.tsx`, `src/features/editor/slide-panel.tsx`, `src/app/editor/[id]/page.tsx`, `tests/ui/editor.test.tsx` — 连接编辑器控件与页面操作 → AC-003, AC-005
   - Batch: B02
-  - Depends: T011
+  - Depends: T010, T011, T013
   - Check: `pnpm exec vitest run tests/ui/editor.test.tsx`
   - Expect: 单页文本/CTA/模式/图片槽可编辑，拖拽与键盘上下移结果相同。
 
-- [ ] T013 `src/render/templates.ts`, `src/features/editor/theme-panel.tsx`, `tests/unit/themes.test.ts` — 实现六主题和全局样式/平台切换 → AC-004, AC-008
+- [ ] T013 [P] `src/render/templates.ts`, `src/features/editor/theme-panel.tsx`, `tests/unit/themes.test.ts` — 实现六主题和全局样式/平台切换 → AC-004, AC-008
   - Batch: B02
-  - Depends: T012
+  - Parallel: WS-B02-1/C
+  - Depends: T007, T009
   - Check: `pnpm exec vitest run tests/unit/themes.test.ts`
   - Expect: Ink/Paper/Signal/Blush/Butter/Sky完整，局部覆盖和内容在切换后保留。
 
 - [ ] T014 `tests/e2e/editor.spec.ts`, `tests/visual/editor.spec.ts` — 验证编辑器集成与设计回归 → AC-001, AC-003, AC-004, AC-005
   - Batch: B02
-  - Depends: T013
+  - Depends: T012
   - Check: `pnpm exec playwright test tests/e2e/editor.spec.ts tests/visual/editor.spec.ts`
   - Expect: 桌面/窄屏可编辑、4/6/12页、离线草稿、原设计布局通过人工比对。
 
@@ -116,131 +120,149 @@
   - Check: `pnpm exec vitest run tests/db/identity.test.ts`
   - Expect: 匿名/所有者/跨账号、删除账号断言，全部表列有COMMENT。
 
-- [ ] T017 `supabase/definitions/projects.sql`, `supabase/tests/projects.sql`, `tests/db/projects.test.ts` — 定义项目版本与CAS事务SQL → AC-003, AC-007
+- [ ] T017 [P] `supabase/definitions/projects.sql`, `supabase/tests/projects.sql`, `tests/db/projects.test.ts` — 定义项目版本与CAS事务SQL → AC-003, AC-007
   - Batch: B03
+  - Parallel: WS-B03-2/A
   - Depends: T016
   - Check: `pnpm exec vitest run tests/db/projects.test.ts`
   - Expect: CAS并发只成功一次、快照不可变、不能伪造owner。
 
-- [ ] T018 `supabase/definitions/assets.sql`, `supabase/tests/assets.sql`, `tests/db/assets.test.ts` — 定义品牌/来源/资源引用与Storage权限 → AC-002, AC-005, AC-008
+- [ ] T018 [P] `supabase/definitions/assets.sql`, `supabase/tests/assets.sql`, `tests/db/assets.test.ts` — 定义品牌/来源/资源引用与Storage权限 → AC-002, AC-005, AC-008
   - Batch: B03
+  - Parallel: WS-B03-2/A
   - Depends: T017
   - Check: `pnpm exec vitest run tests/db/assets.test.ts`
   - Expect: 私有桶下载需身份；同owner引用、删除后访问与历史保护有效；在项目表已建后添加品牌与素材的跨表约束，分批SQL可顺序重放。
 
-- [ ] T019 `supabase/definitions/jobs-usage.sql`, `supabase/tests/jobs-usage.sql`, `tests/db/jobs-usage.test.ts` — 定义任务/额度/预算原子事务 → AC-002, AC-006, AC-009
+- [ ] T019 [P] `supabase/definitions/jobs-usage.sql`, `supabase/tests/jobs-usage.sql`, `tests/db/jobs-usage.test.ts` — 定义任务/额度/预算原子事务 → AC-002, AC-006, AC-009
   - Batch: B03
+  - Parallel: WS-B03-2/A
   - Depends: T018
   - Check: `pnpm exec vitest run tests/db/jobs-usage.test.ts`
   - Expect: 任务及写操作回放幂等、取消持久化、请求成本预留和attempt流水完整；并发/重复回调不透支不双扣。
 
-- [ ] T020 `scripts/prepare-migrations.mjs`, `supabase/config.toml`, `tests/db/migration-smoke.test.ts` — 生成并验证第一组数据库迁移集成 → AC-007, AC-008, AC-009
+- [ ] T020 [P] `scripts/prepare-migrations.mjs`, `supabase/config.toml`, `tests/db/migration-smoke.test.ts` — 生成并验证第一组数据库迁移集成 → AC-007, AC-008, AC-009
   - Batch: B03
+  - Parallel: WS-B03-2/A
   - Depends: T019
   - Check: `pnpm exec vitest run tests/db/migration-smoke.test.ts`
   - Expect: 在开发分支通过CLI生成并提交迁移，干净CI库可重放；注释完整；只连接允许的开发项目。
 
-- [ ] T021 `src/server/auth.ts`, `src/app/login/page.tsx`, `src/app/signup/page.tsx`, `src/features/auth/auth-form.tsx`, `tests/cloud/auth.test.ts` — 实现邮箱密码登录注册与Google入口 → AC-001, AC-007
+- [ ] T021 [P] `src/server/auth.ts`, `src/app/login/page.tsx`, `src/app/signup/page.tsx`, `src/features/auth/auth-form.tsx`, `tests/cloud/auth.test.ts` — 实现邮箱密码登录注册与Google入口 → AC-001, AC-007
   - Batch: B03
-  - Depends: T020
+  - Parallel: WS-B03-2/B
+  - Depends: T016
   - Check: `pnpm exec vitest run tests/cloud/auth.test.ts`
   - Expect: 真实开发Supabase登录，非法密码/邮箱/过期session失败，注册不自动上传匿名正文。
 
-- [ ] T022 `src/app/auth/callback/route.ts`, `src/app/reset-password/page.tsx`, `src/proxy.ts`, `src/server/mail.ts`, `tests/cloud/auth-recovery.test.ts` — 完成回调/密码重置/会话刷新 → AC-007
+- [ ] T022 [P] `src/app/auth/callback/route.ts`, `src/app/reset-password/page.tsx`, `src/proxy.ts`, `src/server/mail.ts`, `tests/cloud/auth-recovery.test.ts` — 完成回调/密码重置/会话刷新 → AC-007
   - Batch: B03
+  - Parallel: WS-B03-2/B
   - Depends: T021
   - Check: `pnpm exec vitest run tests/cloud/auth-recovery.test.ts`
   - Expect: 受信回调、Resend开发邮件、重置过期/重复链接与退出清理验证。
 
-- [ ] T023 `src/server/projects.ts`, `src/app/api/v1/projects/route.ts`, `src/app/api/v1/projects/[id]/route.ts`, `src/features/editor/autosave.ts`, `tests/cloud/autosave.test.ts` — 实现项目API和可靠自动保存 → AC-003, AC-007
+- [ ] T023 [P] `src/server/projects.ts`, `src/app/api/v1/projects/route.ts`, `src/app/api/v1/projects/[id]/route.ts`, `src/features/editor/autosave.ts`, `tests/cloud/autosave.test.ts` — 实现项目API和可靠自动保存 → AC-003, AC-007
   - Batch: B03
-  - Depends: T022
+  - Parallel: WS-B03-3/A
+  - Depends: T020, T022
   - Check: `pnpm exec vitest run tests/cloud/autosave.test.ts`
   - Expect: 实际写入才显示saved；断网重连/多标签冲突保留本地稿。
 
-- [ ] T024 `src/server/jobs.ts`, `src/trigger/dispatch.ts`, `src/app/api/v1/jobs/[id]/route.ts`, `tests/cloud/dispatch.test.ts` — 实现事务outbox投递与任务状态API → AC-002, AC-006, AC-009
+- [ ] T024 [P] `src/server/jobs.ts`, `src/trigger/dispatch.ts`, `src/app/api/v1/jobs/[id]/route.ts`, `tests/cloud/dispatch.test.ts` — 实现事务outbox投递与任务状态API → AC-002, AC-006, AC-009
   - Batch: B03
-  - Depends: T023
+  - Parallel: WS-B03-3/B
+  - Depends: T020, T022
   - Check: `pnpm exec vitest run tests/cloud/dispatch.test.ts`
   - Expect: 重复投递同jobId，投递超时可恢复，状态仅本人可见。
 
-- [ ] T025 `src/app/api/v1/jobs/[id]/retry/route.ts`, `src/app/api/v1/jobs/[id]/cancel/route.ts`, `src/trigger/reconcile-jobs.ts`, `src/server/jobs.ts`, `tests/cloud/job-controls.test.ts` — 实现任务取消/重试与早期对账 → AC-002, AC-006, AC-009
+- [ ] T025 [P] `src/app/api/v1/jobs/[id]/retry/route.ts`, `src/app/api/v1/jobs/[id]/cancel/route.ts`, `src/trigger/reconcile-jobs.ts`, `src/server/jobs.ts`, `tests/cloud/job-controls.test.ts` — 实现任务取消/重试与早期对账 → AC-002, AC-006, AC-009
   - Batch: B03
+  - Parallel: WS-B03-3/B
   - Depends: T024
   - Check: `pnpm exec vitest run tests/cloud/job-controls.test.ts`
   - Expect: 取消状态持久化，心跳过期先查云任务；重复重试不双扣、不重放成功步骤。
 
 - [ ] T026 `tests/e2e/projects-save.spec.ts`, `tests/cloud/ownership-smoke.test.ts` — 完成账号与保存集成冒烟 → AC-001, AC-007, AC-008
   - Batch: B03
-  - Depends: T025
+  - Depends: T023, T025
   - Check: `pnpm exec playwright test tests/e2e/projects-save.spec.ts && pnpm exec vitest run tests/cloud/ownership-smoke.test.ts`
   - Expect: 匿名同意迁移、保存刷新、账号切换、猜ID失败。
 
 ## B04
 
-- [ ] T027 `src/server/sources/index.ts`, `src/app/api/v1/sources/route.ts`, `tests/cloud/text-source.test.ts` — 建立Topic/Text来源写入接口 → AC-002
+- [ ] T027 [P] `src/server/sources/index.ts`, `src/app/api/v1/sources/route.ts`, `tests/cloud/text-source.test.ts` — 建立Topic/Text来源写入接口 → AC-002
   - Batch: B04
+  - Parallel: WS-B04-1/A
   - Depends: T026
   - Check: `pnpm exec vitest run tests/cloud/text-source.test.ts`
   - Expect: 注册文本来源先验证后保存7天，匿名禁止持久化；sourceId可以供下一项生成使用。
 
-- [ ] T028 `src/server/ai.ts`, `src/server/prompts.ts`, `src/server/generation.ts`, `tests/cloud/generation.test.ts` — 实现云AI适配与结构化生成 → AC-002, AC-003
+- [ ] T028 [P] `src/server/ai.ts`, `src/server/prompts.ts`, `src/server/generation.ts`, `tests/cloud/generation.test.ts` — 实现云AI适配与结构化生成 → AC-002, AC-003
   - Batch: B04
+  - Parallel: WS-B04-1/A
   - Depends: T027
   - Check: `pnpm exec vitest run tests/cloud/generation.test.ts`
   - Expect: 真实模型输出schema有效，拒绝嵌入指令，修复失败不会返回空成功。
 
-- [ ] T029 `src/trigger/generate.ts`, `src/app/api/v1/generation/route.ts`, `src/features/generation/progress.tsx`, `tests/cloud/generation-job.test.ts` — 连接注册生成任务与进度UI → AC-002, AC-003
+- [ ] T029 [P] `src/trigger/generate.ts`, `src/app/api/v1/generation/route.ts`, `src/features/generation/progress.tsx`, `tests/cloud/generation-job.test.ts` — 连接注册生成任务与进度UI → AC-002, AC-003
   - Batch: B04
+  - Parallel: WS-B04-2/A
   - Depends: T028
   - Check: `pnpm exec vitest run tests/cloud/generation-job.test.ts`
   - Expect: 关闭再开页面可按jobId恢复，完成前不结算，不覆盖旧稿。
 
-- [ ] T030 `src/app/api/v1/guest/generate/route.ts`, `src/server/guest-guards.ts`, `tests/cloud/guest.test.ts` — 实现匿名临时生成和反滥用 → AC-001, AC-002
+- [ ] T030 [P] `src/app/api/v1/guest/generate/route.ts`, `src/server/guest-guards.ts`, `tests/cloud/guest.test.ts` — 实现匿名临时生成和反滥用 → AC-001, AC-002
   - Batch: B04
-  - Depends: T029
+  - Parallel: WS-B04-2/B
+  - Depends: T028
   - Check: `pnpm exec vitest run tests/cloud/guest.test.ts`
   - Expect: 无正文持久化/日志，幂等元数据、预算、410结果不保留错误明确。
 
 - [ ] T031 `src/features/generation/source-input.tsx`, `src/features/generation/options.tsx`, `src/app/create/page.tsx`, `tests/e2e/text-generation.spec.ts` — 连接Topic/Text创建入口与生成结果 → AC-001, AC-002
   - Batch: B04
-  - Depends: T030
+  - Depends: T029, T030
   - Check: `pnpm exec playwright test tests/e2e/text-generation.spec.ts`
   - Expect: 匿名短请求和注册source→job两条路径可编辑；默认6页/4–12页、语言和指令真实生效。
 
-- [ ] T032 `src/server/rewrite.ts`, `src/features/editor/ai-proposal.tsx`, `src/app/api/v1/projects/[id]/rewrite/route.ts`, `src/app/api/v1/projects/[id]/apply-proposal/route.ts`, `tests/cloud/rewrite.test.ts` — 实现局部AI提案接受/拒绝 → AC-003
+- [ ] T032 [P] `src/server/rewrite.ts`, `src/features/editor/ai-proposal.tsx`, `src/app/api/v1/projects/[id]/rewrite/route.ts`, `src/app/api/v1/projects/[id]/apply-proposal/route.ts`, `tests/cloud/rewrite.test.ts` — 实现局部AI提案接受/拒绝 → AC-003
   - Batch: B04
-  - Depends: T031
+  - Parallel: WS-B04-2/B
+  - Depends: T023, T028
   - Check: `pnpm exec vitest run tests/cloud/rewrite.test.ts`
   - Expect: 只改目标字段，人工编辑后旧提案409，不重复收费。
 
-- [ ] T033 `src/app/api/v1/projects/[id]/regenerate/route.ts`, `src/features/generation/regenerate.tsx`, `src/server/generation.ts`, `tests/cloud/regenerate.test.ts` — 实现整套重新生成候选稿 → AC-003
+- [ ] T033 [P] `src/app/api/v1/projects/[id]/regenerate/route.ts`, `src/features/generation/regenerate.tsx`, `src/server/generation.ts`, `tests/cloud/regenerate.test.ts` — 实现整套重新生成候选稿 → AC-003
   - Batch: B04
+  - Parallel: WS-B04-2/B
   - Depends: T032
   - Check: `pnpm exec vitest run tests/cloud/regenerate.test.ts`
   - Expect: 原项目不被任务自动覆盖；替换/另存均经确认，版本冲突和重复请求不会丢稿。
 
-- [ ] T034 `src/render/render-deck.ts`, `src/trigger/export.ts`, `src/server/export-package.ts`, `tests/cloud/basic-export.test.ts` — 实现PNG/JPG/PDF云端导出 → AC-004, AC-006
+- [ ] T034 [P] `src/render/render-deck.ts`, `src/trigger/export.ts`, `src/server/export-package.ts`, `tests/cloud/basic-export.test.ts` — 实现PNG/JPG/PDF云端导出 → AC-004, AC-006
   - Batch: B04
-  - Depends: T033
+  - Parallel: WS-B04-1/C
+  - Depends: T026
   - Check: `pnpm exec vitest run tests/cloud/basic-export.test.ts`
   - Expect: 真实文件尺寸/页数/顺序正确，无隐藏原文；格式失败互不删除。
 
-- [ ] T035 `src/app/api/v1/projects/[id]/preflight/route.ts`, `src/app/api/v1/exports/route.ts`, `tests/cloud/export-preflight.test.ts` — 接通导出预检与历史列表接口 → AC-006, AC-007
+- [ ] T035 [P] `src/app/api/v1/projects/[id]/preflight/route.ts`, `src/app/api/v1/exports/route.ts`, `tests/cloud/export-preflight.test.ts` — 接通导出预检与历史列表接口 → AC-006, AC-007
   - Batch: B04
+  - Parallel: WS-B04-1/C
   - Depends: T034
   - Check: `pnpm exec vitest run tests/cloud/export-preflight.test.ts`
   - Expect: 预检基于授权固定版本，溢出/缺资源明确；列表只读本人、到期可识别，不扣额度。
 
-- [ ] T036 `src/features/exports/export-dialog.tsx`, `src/app/exports/page.tsx`, `src/app/api/v1/projects/[id]/exports/route.ts`, `src/app/api/v1/exports/[id]/download/route.ts`, `tests/cloud/download.test.ts` — 实现导出中心和授权下载 → AC-006, AC-007
+- [ ] T036 [P] `src/features/exports/export-dialog.tsx`, `src/app/exports/page.tsx`, `src/app/api/v1/projects/[id]/exports/route.ts`, `src/app/api/v1/exports/[id]/download/route.ts`, `tests/cloud/download.test.ts` — 实现导出中心和授权下载 → AC-006, AC-007
   - Batch: B04
+  - Parallel: WS-B04-1/C
   - Depends: T035
   - Check: `pnpm exec vitest run tests/cloud/download.test.ts`
   - Expect: 固定revision导出、过期重导、带身份下载，删除后新请求失败。
 
 - [ ] T037 `tests/e2e/walking-skeleton.spec.ts`, `docs/acceptance/walking-skeleton.md` — 验收第一条真实小闭环集成冒烟 → AC-001, AC-002, AC-003, AC-006, AC-007
   - Batch: B04
-  - Depends: T036
+  - Depends: T031, T033, T036
   - Check: `pnpm exec playwright test tests/e2e/walking-skeleton.spec.ts`
   - Expect: Topic/Text→编辑→注册保存→刷新→真实PNG/PDF，禁止用mock代替供应商/Storage。
 
