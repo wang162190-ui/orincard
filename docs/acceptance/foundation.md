@@ -1,6 +1,6 @@
 # B01 技术地基验收记录
 
-状态：`IN PROGRESS — 等待 Trigger.dev 真实云部署与运行`
+状态：`PASS — T004/T006 真实云端运行验收完成`
 
 记录日期：2026-09-04
 
@@ -16,6 +16,7 @@
 | 字体资源 | Inter、Source Serif 4、Noto Sans SC 三个固定 WOFF2 均通过包版本与 SHA-256 校验 |
 | 云端预检 | Trigger.dev CLI 4.5.16 登录成功；已创建专用 Free 项目 `orincard-dev` |
 | Preview 取舍 | Trigger Free 方案支持 0 个 Preview branch，因此 B01 部署到专用开发项目的 Production 环境；不得把它当作未来正式生产项目 |
+| 云端测试 | `RUN_CLOUD_PROBES=1 pnpm test:cloud`：3 个测试文件、3 项测试全部通过；密钥只注入测试进程，未写入文件或 Git |
 
 ## 已发现并修正的问题
 
@@ -25,28 +26,28 @@
 | 修正 | 将 `playwright`、`@playwright/test` 和构建扩展安装版本统一锁定为 1.57.0；该版本仍输出扩展需要的 `browser: chromium-headless-shell` 记录 |
 | `20260903.2` / `gsl41h40` | 成功；专用开发项目的 Production 环境在 Node 22 运行时完成 Chromium、qpdf、任务依赖与索引构建 |
 
-## 云端通过条件
+## 真实云端运行结果
 
-只有以下条件都获得真实运行证据后，才把状态改为 `PASS` 并完成 T004/T006：
+同一个幂等云任务运行生成并返回全部产物；三个云测试分别验证渲染、可恢复性和地基冒烟，不以本地渲染替代。
 
-1. Trigger.dev 专用开发项目的 Production 环境部署成功，运行时为 Node 22；
-2. 构建镜像安装 Chromium 与 qpdf；
-3. 云任务真实生成 360×450 PNG、单页 PDF 和含可编辑文本的 PPTX；
-4. qpdf 把 `orincard-project.json` 嵌入 PDF，并能逐字取回同一 JSON；
-5. 三个产物的字节数、SHA-256、任务耗时和 RSS 内存来自同一次真实运行；
-6. `RUN_CLOUD_PROBES=1 pnpm test:cloud` 全部通过。
-
-## 待回填的真实证据
-
-| 字段 | 结果 |
+| 检查 | 真实结果 |
 |---|---|
-| Trigger 项目 ref | `proj_bhwgeecxnhxxjrkmdqvh` |
-| Deployment/version | `gsl41h40` / `20260903.2` |
-| Run ID | `PENDING` |
-| Chromium version | `PENDING` |
-| qpdf version | `PENDING` |
-| PNG/PDF/PPTX bytes | `PENDING` |
-| elapsedMs / rssBytes | `PENDING` |
-| 云测试结果 | `PENDING` |
+| Trigger 项目 / 环境 | `proj_bhwgeecxnhxxjrkmdqvh` / 专用开发项目的 Production 环境 |
+| Deployment / version | `gsl41h40` / `20260903.2`；配置与构建运行时为 Node 22 |
+| Run | `run_06g6jhirrjap2onj2ch665dh01`；状态 `completed`；Attempt 1 完成 |
+| Chromium | `143.0.7499.4`；真实 PNG 为 360×450，文件头、尺寸、字节数和 SHA-256 断言通过 |
+| PDF | 1 页，文件头、页数、字节数和 SHA-256 断言通过 |
+| PPTX | ZIP/XML 可读；`Orincard editable probe` 与 `This text must remain editable.` 均存在于 slide XML，确认文字可编辑 |
+| qpdf 恢复 | `qpdf version 11.3.0`；附件名为 `orincard-project.json`，取回 JSON 与嵌入前逐字一致 |
+| 任务输出耗时 / RSS | `2201 ms` / `145797120 bytes`（约 139.04 MiB） |
+| 云测试 | `RUN_CLOUD_PROBES=1 pnpm test:cloud`：3/3 通过；最终复验耗时 4.15 秒 |
 
-不得用本地模拟、空文件、截图或手写数字替代以上云端证据。
+## 产物证据
+
+| 产物 | 字节数 | SHA-256 |
+|---|---|
+| PNG | `14981` | `d361530ec93127d169ef27b79ae97143de1f013fc03d8e0abefbd94ec0ce7d23` |
+| PDF（含恢复附件） | `18168` | `e6a164a0c86195109a8b555dc480bb821beed8e052bb32cc1800e17947d9bb39` |
+| PPTX | `45836` | `d5552e9cad4da22a83b621f5fa747a056d9a5bfeae703f19f879920684b7febe` |
+
+安全证据入口：[Trigger.dev run `run_06g6jhirrjap2onj2ch665dh01`](https://cloud.trigger.dev/projects/v3/proj_bhwgeecxnhxxjrkmdqvh/runs/run_06g6jhirrjap2onj2ch665dh01)。未提交 Base64 产物、临时文件、密钥或日志；以上数字由云任务输出返回，并由本地云测试对解码后的真实文件复核。

@@ -34,7 +34,7 @@
   - Check: `pnpm exec vitest run tests/unit/document.test.ts`
   - Expect: 4/6/12页、三预设、非法引用/字段/版本均有断言。
 
-- [ ] T004 `src/trigger/probe.ts`, `tests/cloud/render-probe.test.ts`, `tests/cloud/recovery-probe.test.ts`, `trigger.config.ts` — 验证云端Chromium/PPTX/qpdf技术探针 → AC-006, AC-007
+- [x] T004 `src/trigger/probe.ts`, `tests/cloud/render-probe.test.ts`, `tests/cloud/recovery-probe.test.ts`, `trigger.config.ts` — 验证云端Chromium/PPTX/qpdf技术探针 → AC-006, AC-007
   - Batch: B01
   - Depends: T003
   - Check: `pnpm exec vitest run tests/cloud/render-probe.test.ts tests/cloud/recovery-probe.test.ts`
@@ -46,7 +46,7 @@
   - Check: `pnpm exec vitest run tests/unit/fonts.test.ts`
   - Expect: 字体许可、来源、版本、哈希完整；缺字体明确报错；不提交不明系统字体。
 
-- [ ] T006 `tests/cloud/foundation-smoke.test.ts`, `docs/acceptance/foundation.md` — 完成地基集成冒烟 → AC-001, AC-006, AC-007
+- [x] T006 `tests/cloud/foundation-smoke.test.ts`, `docs/acceptance/foundation.md` — 完成地基集成冒烟 → AC-001, AC-006, AC-007
   - Batch: B01
   - Depends: T005
   - Check: `pnpm exec vitest run tests/cloud/foundation-smoke.test.ts`

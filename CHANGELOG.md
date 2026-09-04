@@ -4,9 +4,20 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ## [Unreleased]
 
-### Pending
+### Completed
 
-- 完成 Trigger.dev 云端任务运行验收后，再关闭 B01 技术地基阶段。
+- 完成 B01 T004/T006 的 Trigger.dev 真实云端运行验收；Chromium、PNG、PDF、可编辑文字 PPTX 与 qpdf 恢复附件全部通过。
+
+### Verified
+
+- 专用开发项目 Production worker 的 `20260903.2` 版本完成 run `run_06g6jhirrjap2onj2ch665dh01`；任务输出耗时 2201 ms，峰值 RSS 145797120 bytes。
+- `RUN_CLOUD_PROBES=1 pnpm test:cloud` 的 3 个云测试全部通过；类型检查、24 项单元测试和 12 项规划检查继续通过。
+- 三个云产物的文件头/结构、尺寸或页数、字节数与 SHA-256 均经测试复核，PDF 中的 `orincard-project.json` 可逐字取回。
+
+### Known limitations
+
+- Vercel 与 Supabase 仍未初始化；当前 Trigger.dev 部署只包含后台探针任务，不是 Orincard 网站。
+- 当前本机终端仍为 Node 24；项目配置与 Trigger.dev worker 固定为 Node 22.23.2，不将本机版本冒充 Node 22 验证。
 
 ## [0.1.0] - 2026-09-04
 
