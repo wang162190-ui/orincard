@@ -88,4 +88,13 @@ describe("UI primitives", () => {
     expect(primitives).toMatch(/\.scrim\[hidden\]\s*\{\s*display:\s*none;/);
     expect(primitives).toContain(".btn[disabled]");
   });
+
+  it("provides the approved responsive workspace shell primitives", () => {
+    expect(primitives).toMatch(/\.app\s*\{[^}]*grid-template-columns:\s*var\(--rail-w\) 1fr/s);
+    expect(primitives).toMatch(/\.rail\s*\{[^}]*background:\s*var\(--fg\)/s);
+    expect(primitives).toMatch(/\.topbar\s*\{[^}]*position:\s*sticky/s);
+    expect(primitives).toMatch(
+      /@media \(max-width:\s*1180px\)\s*\{[^}]*\.app\s*\{\s*grid-template-columns:\s*64px 1fr/s,
+    );
+  });
 });
