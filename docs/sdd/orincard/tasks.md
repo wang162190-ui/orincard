@@ -73,14 +73,14 @@
   - Check: `pnpm exec vitest run tests/unit/editor-commands.test.ts`
   - Expect: 增删复制排序、4/12边界、undo/redo不改其他页。
 
-- [ ] T010 [P] `src/features/editor/local-drafts.ts`, `tests/unit/local-drafts.test.ts` — 实现隔离的IndexedDB草稿与过期 → AC-001, AC-007
+- [x] T010 [P] `src/features/editor/local-drafts.ts`, `tests/unit/local-drafts.test.ts` — 实现隔离的IndexedDB草稿与过期 → AC-001, AC-007
   - Batch: B02
   - Parallel: WS-B02-1/A
   - Depends: T009
   - Check: `pnpm exec vitest run tests/unit/local-drafts.test.ts`
   - Expect: 24小时过期、账号隔离、显式迁移、刷新保留未同步稿。
 
-- [ ] T011 [P] `src/render/slide.tsx`, `src/render/slide.css`, `src/render/preflight.ts`, `tests/ui/preflight.test.tsx` — 实现共享卡片渲染与测量 → AC-004, AC-006
+- [x] T011 [P] `src/render/slide.tsx`, `src/render/slide.css`, `src/render/preflight.ts`, `tests/ui/preflight.test.tsx` — 实现共享卡片渲染与测量 → AC-004, AC-006
   - Batch: B02
   - Parallel: WS-B02-1/B
   - Depends: T005, T007, T009
@@ -93,7 +93,7 @@
   - Check: `pnpm exec vitest run tests/ui/editor.test.tsx`
   - Expect: 单页文本/CTA/模式/图片槽可编辑，拖拽与键盘上下移结果相同。
 
-- [ ] T013 [P] `src/render/templates.ts`, `src/features/editor/theme-panel.tsx`, `tests/unit/themes.test.ts` — 实现六主题和全局样式/平台切换 → AC-004, AC-008
+- [x] T013 [P] `src/render/templates.ts`, `src/features/editor/theme-panel.tsx`, `tests/unit/themes.test.ts` — 实现六主题和全局样式/平台切换 → AC-004, AC-008
   - Batch: B02
   - Parallel: WS-B02-1/C
   - Depends: T007, T009
