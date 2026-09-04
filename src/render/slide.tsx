@@ -29,9 +29,23 @@ type SlideStyle = CSSProperties & {
   "--slide-accent"?: string;
   "--slide-aspect": string;
   "--slide-bg": string;
+  "--slide-bg-opacity": number;
   "--slide-fg"?: string;
+  "--slide-font-body"?: string;
+  "--slide-font-display"?: string;
   "--slide-radius": string;
   "--slide-text-scale": number;
+  "--slide-title-scale": number;
+};
+
+const FONT_PAIR_STYLES: Record<
+  string,
+  { readonly body: string; readonly display: string }
+> = {
+  "source-serif-inter": {
+    body: '"Inter Variable", "Noto Sans SC", sans-serif',
+    display: '"Source Serif 4 Variable", "Noto Sans SC", serif',
+  },
 };
 
 function textBlock(block: TextBlock, index: number): ReactNode {
@@ -56,15 +70,6 @@ function textBlock(block: TextBlock, index: number): ReactNode {
   }
 }
 
-function assetFor(input: SlideRenderInput): {
-  asset: SlideRenderAsset;
-  slot: Slide["assetSlots"][number];
-} | null {
-  const slot = input.slide.assetSlots[0];
-  const asset = slot ? input.assets[slot.assetId] : undefined;
-  return slot && asset && asset.state !== "failed" ? { asset, slot } : null;
-}
-
 function SlideImage({
   asset,
   className,
@@ -82,6 +87,7 @@ function SlideImage({
       alt={slot.alt || asset.alt}
       className={className}
       data-asset-id={asset.id}
+      data-slot-id={slot.slotId}
       decoding="async"
       height={asset.height}
       loading="eager"
@@ -97,20 +103,36 @@ function SlideImage({
 }
 
 function VisualAsset({ input }: { readonly input: SlideRenderInput }) {
-  const resolved = assetFor(input);
-  if (!resolved) {
-    return input.slide.mode === "text" ? null : (
-      <div className="orincard-slide__asset-placeholder" role="status">
+  if (input.slide.mode === "text") {
+    return null;
+  }
+
+  const images = input.slide.assetSlots.map((slot, index) => {
+    const asset = input.assets[slot.assetId];
+    return asset && asset.state !== "failed" ? (
+      <SlideImage asset={asset} key={`${slot.slotId}-${index}`} slot={slot} />
+    ) : (
+      <div
+        className="orincard-slide__asset-placeholder"
+        data-slot-id={slot.slotId}
+        key={`${slot.slotId}-${index}`}
+        role="status"
+      >
         Image required
       </div>
     );
-  }
+  });
 
-  const { asset, slot } = resolved;
   if (input.slide.mode === "image") {
     return (
       <div className="orincard-slide__bleed">
-        <SlideImage asset={asset} slot={slot} />
+        {images.length > 0 ? (
+          images
+        ) : (
+          <div className="orincard-slide__asset-placeholder" role="status">
+            Image required
+          </div>
+        )}
       </div>
     );
   }
@@ -123,14 +145,26 @@ function VisualAsset({ input }: { readonly input: SlideRenderInput }) {
           <i />
           <i />
         </div>
-        <SlideImage asset={asset} slot={slot} />
+        {images.length > 0 ? (
+          images
+        ) : (
+          <div className="orincard-slide__asset-placeholder" role="status">
+            Image required
+          </div>
+        )}
       </div>
     );
   }
 
   return input.slide.mode === "text_image" ? (
     <div className="orincard-slide__figure">
-      <SlideImage asset={asset} slot={slot} />
+      {images.length > 0 ? (
+        images
+      ) : (
+        <div className="orincard-slide__asset-placeholder" role="status">
+          Image required
+        </div>
+      )}
     </div>
   ) : null;
 }
@@ -139,8 +173,10 @@ function BrandFooter({ input }: { readonly input: SlideRenderInput }) {
   const brand = input.brandSnapshot;
   if (!brand || (input.slide.role !== "intro" && input.slide.role !== "outro")) {
     return input.slide.cta ? (
-      <footer className="orincard-slide__footer">
-        <span className="orincard-slide__cta">{input.slide.cta}</span>
+      <footer className="orincard-slide__footer" data-slide-content>
+        <span className="orincard-slide__cta" data-slide-content>
+          {input.slide.cta}
+        </span>
       </footer>
     ) : null;
   }
@@ -149,7 +185,7 @@ function BrandFooter({ input }: { readonly input: SlideRenderInput }) {
   const portrait = portraitId ? input.assets[portraitId] : undefined;
 
   return (
-    <footer className="orincard-slide__footer">
+    <footer className="orincard-slide__footer" data-slide-content>
       {portrait && portrait.state !== "failed" ? (
         <img
           alt=""
@@ -166,7 +202,9 @@ function BrandFooter({ input }: { readonly input: SlideRenderInput }) {
         {brand.website ? <span>{brand.website}</span> : null}
       </span>
       {input.slide.cta ? (
-        <span className="orincard-slide__cta">{input.slide.cta}</span>
+        <span className="orincard-slide__cta" data-slide-content>
+          {input.slide.cta}
+        </span>
       ) : null}
     </footer>
   );
@@ -176,37 +214,80 @@ export function SlideRenderer({ input }: { readonly input: SlideRenderInput }) {
   const { slide, theme } = input;
   const { width, height } = getPlatformDimensions(input.platform);
   const colors = theme.colors ?? [];
+  const fontPair = FONT_PAIR_STYLES[theme.fontPairId];
+  const backgroundOverride = slide.overrides.background;
+  const foregroundOverride = slide.overrides.foreground;
+  const accentOverride = slide.overrides.accent;
+  const titleScaleOverride = slide.overrides.titleScale;
+  const textScaleOverride = slide.overrides.textScale;
+  const radiusOverride = slide.overrides.radius;
+  const alignmentOverride = slide.overrides.alignment;
   const style: SlideStyle = {
-    "--slide-accent": colors[2],
+    "--slide-accent":
+      typeof accentOverride === "string" ? accentOverride : colors[2],
     "--slide-aspect": `${width} / ${height}`,
-    "--slide-bg": theme.background.value,
-    "--slide-fg": colors[1],
-    "--slide-radius": `${theme.radius}px`,
-    "--slide-text-scale": theme.textScale,
-    textAlign: theme.alignment,
+    "--slide-bg":
+      typeof backgroundOverride === "string"
+        ? backgroundOverride
+        : theme.background.value,
+    "--slide-bg-opacity": theme.background.opacity,
+    "--slide-fg":
+      typeof foregroundOverride === "string" ? foregroundOverride : colors[1],
+    "--slide-font-body": fontPair?.body,
+    "--slide-font-display": fontPair?.display,
+    "--slide-radius": `${
+      typeof radiusOverride === "number" && radiusOverride >= 0
+        ? radiusOverride
+        : theme.radius
+    }px`,
+    "--slide-text-scale":
+      typeof textScaleOverride === "number" && textScaleOverride > 0
+        ? textScaleOverride
+        : theme.textScale,
+    "--slide-title-scale":
+      typeof titleScaleOverride === "number" && titleScaleOverride > 0
+        ? titleScaleOverride
+        : 1,
+    textAlign:
+      alignmentOverride === "left" ||
+      alignmentOverride === "center" ||
+      alignmentOverride === "right"
+        ? alignmentOverride
+        : theme.alignment,
   };
 
   return (
     <article
-      className={`orincard-slide orincard-slide--${slide.mode} orincard-slide--${slide.role} orincard-slide--palette-${theme.paletteId ?? "custom"}`}
+      className={`orincard-slide orincard-slide--${slide.mode} orincard-slide--${slide.role} orincard-slide--palette-${theme.paletteId ?? "custom"} orincard-slide--layout-${slide.layoutId}`}
+      data-arrow={theme.arrow}
+      data-background-shape={theme.background.shape ?? undefined}
+      data-background-texture={theme.background.texture ?? undefined}
+      data-font-pair={theme.fontPairId}
+      data-layout={slide.layoutId}
       data-mode={slide.mode}
       data-platform={input.platform}
+      data-slide-content
       data-spacing={theme.spacing}
       data-slide-id={slide.id}
       data-slide-number={input.slideNumber}
       style={style}
     >
+      <span className="orincard-slide__background" aria-hidden="true" />
       {slide.mode === "image" ? <VisualAsset input={input} /> : null}
       {slide.mode === "image" ? <div className="orincard-slide__veil" aria-hidden="true" /> : null}
       {theme.background.shape ? <span className="orincard-slide__shape" aria-hidden="true" /> : null}
       {slide.counterVisible && theme.counterStyle !== "none" ? (
-        <span className="orincard-slide__counter">
+        <span className="orincard-slide__counter" data-slide-content>
           {theme.counterStyle === "fraction"
             ? `${input.slideNumber} / ${input.slideCount}`
             : input.slideNumber}
         </span>
       ) : null}
-      {slide.eyebrow ? <p className="orincard-slide__eyebrow">{slide.eyebrow}</p> : null}
+      {slide.eyebrow ? (
+        <p className="orincard-slide__eyebrow" data-slide-content>
+          {slide.eyebrow}
+        </p>
+      ) : null}
       <div className="orincard-slide__main" data-slide-content>
         {slide.mode === "text_image" || slide.mode === "screenshot" ? (
           <VisualAsset input={input} />
@@ -221,6 +302,12 @@ export function SlideRenderer({ input }: { readonly input: SlideRenderInput }) {
         </div>
       </div>
       <BrandFooter input={input} />
+      {theme.arrow !== "none" ? (
+        <span
+          aria-hidden="true"
+          className={`orincard-slide__arrow orincard-slide__arrow--${theme.arrow}`}
+        />
+      ) : null}
     </article>
   );
 }
