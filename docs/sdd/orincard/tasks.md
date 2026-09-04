@@ -54,7 +54,7 @@
 
 ## B02
 
-- [ ] T007 `src/components/ui.tsx`, `src/components/ui.css`, `src/styles/tokens.css`, `tests/ui/primitives.test.tsx` — 迁移设计tokens和公共基础组件 → AC-001, AC-004
+- [x] T007 `src/components/ui.tsx`, `src/components/ui.css`, `src/styles/tokens.css`, `tests/ui/primitives.test.tsx`, `vitest.config.ts` — 迁移设计tokens和公共基础组件 → AC-001, AC-004
   - Batch: B02
   - Depends: T006
   - Check: `pnpm exec vitest run tests/ui/primitives.test.tsx`

@@ -1,0 +1,69 @@
+:root {
+  --bg: oklch(96.8% 0.007 116);
+  --surface: oklch(100% 0 0);
+  --fg: oklch(19.3% 0.010 117);
+  --fg-lift: oklch(28% 0.010 117);
+  --muted: oklch(52% 0.008 117);
+  --border: oklch(90% 0.004 117);
+
+  --focus: oklch(52% 0.16 252);
+  --danger: oklch(52% 0.19 25);
+
+  --sig-pink: oklch(86.9% 0.058 347);
+  --sig-yellow: oklch(90.5% 0.108 94);
+  --sig-blue: oklch(83.0% 0.063 250);
+  --sig-mist: oklch(95.5% 0.016 254);
+
+  --on-ink: oklch(96.8% 0.007 116);
+  --on-ink-dim: oklch(74% 0.006 117);
+
+  --tpl-ink-bg: oklch(19.3% 0.010 117);
+  --tpl-ink-fg: oklch(96.8% 0.007 116);
+  --tpl-ink-accent: oklch(90.5% 0.108 94);
+  --tpl-paper-bg: oklch(96.8% 0.007 116);
+  --tpl-paper-fg: oklch(19.3% 0.010 117);
+  --tpl-paper-accent: oklch(48% 0.14 250);
+  --tpl-signal-bg: oklch(48% 0.14 250);
+  --tpl-signal-fg: oklch(97% 0.008 250);
+  --tpl-signal-accent: oklch(90.5% 0.108 94);
+  --tpl-blush-bg: oklch(86.9% 0.058 347);
+  --tpl-blush-fg: oklch(19.3% 0.010 117);
+  --tpl-blush-accent: oklch(46% 0.16 347);
+  --tpl-butter-bg: oklch(90.5% 0.108 94);
+  --tpl-butter-fg: oklch(19.3% 0.010 117);
+  --tpl-butter-accent: oklch(44% 0.12 68);
+  --tpl-sky-bg: oklch(83.0% 0.063 250);
+  --tpl-sky-fg: oklch(19.3% 0.010 117);
+  --tpl-sky-accent: oklch(44% 0.15 252);
+
+  --fg-soft: color-mix(in oklch, var(--fg) 5%, transparent);
+  --fg-line: color-mix(in oklch, var(--fg) 14%, transparent);
+  --surface-2: color-mix(in oklch, var(--fg) 3%, var(--surface));
+  --on-ink-soft: color-mix(in oklch, var(--bg) 13%, transparent);
+  --focus-soft: color-mix(in oklch, var(--focus) 16%, transparent);
+  --danger-soft: color-mix(in oklch, var(--danger) 10%, var(--surface));
+
+  --font-display: "Source Serif 4 Variable", "Noto Sans SC", serif;
+  --font-body: "Inter Variable", "Noto Sans SC", sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
+
+  --fs-h1: clamp(38px, 4.6vw, 60px);
+  --fs-h2: clamp(26px, 2.6vw, 34px);
+  --fs-h3: 19px;
+  --fs-lead: 18px;
+  --fs-body: 15px;
+  --fs-meta: 12px;
+
+  --gap-xs: 8px;
+  --gap-sm: 12px;
+  --gap-md: 20px;
+  --gap-lg: 32px;
+  --gap-xl: 56px;
+  --gap-2xl: 96px;
+  --container: 1120px;
+  --gutter: 32px;
+  --rail-w: 236px;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+}
