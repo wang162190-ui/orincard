@@ -66,7 +66,7 @@
   - Check: `pnpm exec vitest run tests/ui/shell.test.tsx`
   - Expect: 真实路由可打开，设计导航不成为营销首页，无失效主入口。
 
-- [ ] T009 `src/features/editor/reducer.ts`, `src/features/editor/commands.ts`, `tests/unit/editor-commands.test.ts` — 实现逐页命令与撤销重做 → AC-003, AC-005
+- [x] T009 `src/features/editor/reducer.ts`, `src/features/editor/commands.ts`, `tests/unit/editor-commands.test.ts` — 实现逐页命令与撤销重做 → AC-003, AC-005
   - Batch: B02
   - Depends: T008
   - Check: `pnpm exec vitest run tests/unit/editor-commands.test.ts`
