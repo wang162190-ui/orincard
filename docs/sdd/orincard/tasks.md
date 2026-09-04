@@ -17,19 +17,19 @@
 
 ## B01
 
-- [ ] T001 `package.json`, `pnpm-lock.yaml`, `tsconfig.json`, `.node-version`, `.gitignore` — 建立锁版本运行环境 → AC-001, AC-011
+- [x] T001 `package.json`, `pnpm-lock.yaml`, `tsconfig.json`, `.node-version`, `.gitignore` — 建立锁版本运行环境 → AC-001, AC-011
   - Batch: B01
   - Depends: none
   - Check: `node --version && pnpm install --frozen-lockfile`
   - Expect: 依赖锁定、Node版本一致；本任务尚无应用代码，类型检查自T002开始。
 
-- [ ] T002 `vitest.config.ts`, `playwright.config.ts`, `tests/setup.ts`, `tests/fixtures/base-document.json`, `tests/setup.test.ts` — 建立单元、契约和浏览器测试入口 → AC-001, AC-006
+- [x] T002 `vitest.config.ts`, `playwright.config.ts`, `tests/setup.ts`, `tests/fixtures/base-document.json`, `tests/setup.test.ts` — 建立单元、契约和浏览器测试入口 → AC-001, AC-006
   - Batch: B01
   - Depends: T001
   - Check: `pnpm exec vitest run tests/setup.test.ts && pnpm exec tsc --noEmit`
   - Expect: 测试命令缺凭据不默默跳过；浏览器默认单worker。
 
-- [ ] T003 `src/domain/document.ts`, `src/domain/errors.ts`, `tests/unit/document.test.ts` — 实现文档schema与格式约束 → AC-003, AC-004, AC-006
+- [x] T003 `src/domain/document.ts`, `src/domain/errors.ts`, `tests/unit/document.test.ts` — 实现文档schema与格式约束 → AC-003, AC-004, AC-006
   - Batch: B01
   - Depends: T002
   - Check: `pnpm exec vitest run tests/unit/document.test.ts`
@@ -41,7 +41,7 @@
   - Check: `pnpm exec vitest run tests/cloud/render-probe.test.ts tests/cloud/recovery-probe.test.ts`
   - Expect: 真实云任务输出PNG/PDF/PPTX，PPTX可编辑文本，PDF附件可取回；无凭据必须失败。
 
-- [ ] T005 `src/render/fonts.ts`, `src/render/font-manifest.json`, `docs/licenses/fonts.md`, `tests/unit/fonts.test.ts` — 建立许可字体清单与资源装载校验 → AC-004, AC-006
+- [x] T005 `src/render/fonts.ts`, `src/render/font-manifest.json`, `docs/licenses/fonts.md`, `tests/unit/fonts.test.ts` — 建立许可字体清单与资源装载校验 → AC-004, AC-006
   - Batch: B01
   - Depends: T004
   - Check: `pnpm exec vitest run tests/unit/fonts.test.ts`

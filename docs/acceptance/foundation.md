@@ -1,24 +1,30 @@
 # B01 技术地基验收记录
 
-状态：`PASS — T004/T006 真实云端运行验收完成`
+状态：`PASS — B01 T001–T006 全部验收完成`
 
-记录日期：2026-09-04
+记录日期：2026-09-05（云探针证据采集于 2026-09-04）
 
 ## 本地结果
 
 | 检查 | 结果 |
 |---|---|
-| 固定运行版本 | `.node-version` 与 `package.json` 均为 Node 22.23.2；当前开发终端实际为 Node 24.14.0，因此保留引擎告警，不将其冒充 Node 22 验证 |
-| 依赖解析 | `pnpm install` 成功；TypeScript 从不兼容 Trigger 构建链的 7.0.2 调整并锁定为 5.9.3 |
-| 类型检查 | `pnpm exec tsc --noEmit` 通过 |
-| 单元测试 | `pnpm test:unit`：24 项通过 |
-| 规划测试 | `pnpm test:planning`：12 项通过；95 个任务、12 个串行批次、11 个 AC、48 条 API 路径有映射 |
+| 固定运行版本 | 临时隔离的 Docker/Colima profile 使用官方 `node:22.23.2` 镜像，容器实际输出 Node `v22.23.2` 与 pnpm `10.32.1`；当前开发终端仍为 Node 24.14.0，不用本机结果代替精确版本验收 |
+| 依赖解析 | Node 22.23.2 容器执行 `pnpm install --frozen-lockfile` 成功并确认 lockfile 无需更新；首闭环所需 IndexedDB、Testing Library/jsdom、dnd-kit、Supabase、Supabase CLI 与 OpenAI SDK 均为精确版本 |
+| 类型检查 | Node 22.23.2 容器执行 `pnpm exec tsc --noEmit` 通过 |
+| 单元测试 | `test:unit` 已改为收集 `tests/unit` 全目录；Node 22.23.2 容器 4 个文件、32 项通过，不再遗漏编辑器命令测试 |
+| 规划测试 | Node 22.23.2 容器执行 `pnpm test:planning`：19 项通过；95 个任务、12 批、5 个最多三线的并行组、11 个 AC、48 条 API 路径有映射 |
 | 字体资源 | Inter、Source Serif 4、Noto Sans SC 三个固定 WOFF2 均通过包版本与 SHA-256 校验 |
+| 全量非云回归 / 构建 | Node 22.23.2 容器执行 `pnpm test` 为 44/44，通过 `pnpm build`；`/` 与 `/create` 静态预渲染 |
 | 云端预检 | Trigger.dev CLI 4.5.16 登录成功；已创建专用 Free 项目 `orincard-dev` |
 | Preview 取舍 | Trigger Free 方案支持 0 个 Preview branch，因此 B01 部署到专用开发项目的 Production 环境；不得把它当作未来正式生产项目 |
 | 云端测试 | `RUN_CLOUD_PROBES=1 pnpm test:cloud`：3 个测试文件、3 项测试全部通过；密钥只注入测试进程，未写入文件或 Git |
 
 ## 已发现并修正的问题
+
+| 本地复验 | 结果 |
+|---|---|
+| 原 `test:unit` 固定文件列表 | 只运行 setup/document/fonts，遗漏新增的 `tests/unit/editor-commands.test.ts`；已改为收集全部 `tests/unit` |
+| 本机 Node 24 与目标不一致 | 创建隔离 Node 22.23.2 容器完成 frozen install、T002/T003/T005 定向测试、全单元、全非云回归、类型检查、规划检查和构建；据此完成 T001–T003/T005 验收 |
 
 | 部署 | 结果 |
 |---|---|
