@@ -1,4 +1,5 @@
 import type { SlideRenderAsset, SlideRenderInput } from "./slide";
+import fontManifestJson from "./font-manifest.json";
 
 export const VISUAL_EXPORT_FORMATS = ["png", "jpg", "pdf", "pptx", "mp4"] as const;
 
@@ -29,7 +30,9 @@ export type PreflightMeasurementAdapter = {
     input: SlideRenderInput,
     asset: SlideRenderAsset,
   ) => Promise<boolean>;
-  readonly measureText: (input: SlideRenderInput) => Promise<TextMeasurement>;
+  readonly measureText: (
+    input: SlideRenderInput,
+  ) => Promise<TextMeasurement | readonly TextMeasurement[]>;
 };
 
 export type VisualPreflightResult = {
@@ -54,10 +57,47 @@ function issue(input: SlideRenderInput, code: PreflightIssueCode): PreflightIssu
   };
 }
 
+type FontManifest = {
+  readonly fonts: readonly {
+    readonly id: string;
+    readonly family: string;
+    readonly package: string;
+  }[];
+};
+
+const FONT_PAIR_MANIFEST_IDS: Readonly<Record<string, readonly string[]>> = {
+  "source-serif-inter": [
+    "source-serif-4-latin-variable",
+    "inter-latin-variable",
+    "noto-sans-sc-simplified-400",
+  ],
+};
+
+function selectedFontFamilies(fontPairId: string): readonly string[] {
+  const ids = FONT_PAIR_MANIFEST_IDS[fontPairId];
+  if (!ids) {
+    return [];
+  }
+
+  const manifest = fontManifestJson as FontManifest;
+  const entries = ids.map((id) => manifest.fonts.find((font) => font.id === id));
+  return entries.every((entry) => entry !== undefined)
+    ? entries.map((entry) =>
+        entry.package.startsWith("@fontsource-variable/")
+          ? `${entry.family} Variable`
+          : entry.family,
+      )
+    : [];
+}
+
 function requiredAssetIds(input: SlideRenderInput): readonly (string | null)[] {
   const ids: Array<string | null> = [];
   if (input.slide.mode !== "text") {
-    ids.push(input.slide.assetSlots[0]?.assetId ?? null);
+    if (input.slide.assetSlots.length === 0) {
+      ids.push(null);
+    } else {
+      ids.push(...input.slide.assetSlots.map((slot) => slot.assetId));
+    }
   }
 
   if (input.slide.role === "intro" || input.slide.role === "outro") {
@@ -122,17 +162,14 @@ export async function preflightVisualExport(
   inputs: readonly SlideRenderInput[],
   adapter: PreflightMeasurementAdapter,
 ): Promise<VisualPreflightResult> {
-  let fontsReady = false;
-  if (inputs.length > 0) {
+  const issues: PreflightIssue[] = [];
+  for (const input of inputs) {
+    let fontsReady = false;
     try {
-      fontsReady = await adapter.waitForFonts(inputs[0]);
+      fontsReady = await adapter.waitForFonts(input);
     } catch {
       fontsReady = false;
     }
-  }
-
-  const issues: PreflightIssue[] = [];
-  for (const input of inputs) {
     const currentIssues = await resourceIssues(input, adapter, fontsReady);
     issues.push(...currentIssues);
     if (currentIssues.length > 0) {
@@ -140,10 +177,12 @@ export async function preflightVisualExport(
     }
 
     try {
-      const measurement = await adapter.measureText(input);
-      if (!hasUsableBounds(measurement)) {
+      const measured = await adapter.measureText(input);
+      const measurements = Array.isArray(measured) ? measured : [measured];
+      const usableMeasurements = measurements.filter(hasUsableBounds);
+      if (usableMeasurements.length === 0) {
         issues.push(issue(input, "MEASUREMENT_FAILED"));
-      } else if (hasOverflow(measurement)) {
+      } else if (usableMeasurements.some(hasOverflow)) {
         issues.push(issue(input, "TEXT_OVERFLOW"));
       }
     } catch {
@@ -177,13 +216,14 @@ function ownerDocument(root: ParentNode): Document | null {
 
 export function createDomPreflightAdapter(root: ParentNode): PreflightMeasurementAdapter {
   return {
-    async waitForFonts() {
+    async waitForFonts(input) {
       const fonts = ownerDocument(root)?.fonts;
-      if (!fonts) {
+      const families = selectedFontFamilies(input.theme.fontPairId);
+      if (!fonts || typeof fonts.check !== "function" || families.length === 0) {
         return false;
       }
       await fonts.ready;
-      return fonts.status === "loaded";
+      return families.every((family) => fonts.check(`16px "${family}"`));
     },
 
     async waitForImage(input, asset) {
@@ -206,19 +246,21 @@ export function createDomPreflightAdapter(root: ParentNode): PreflightMeasuremen
     },
 
     async measureText(input) {
-      const content = findSlide(root, input.slide.id)?.querySelector<HTMLElement>(
-        "[data-slide-content]",
-      );
-      if (!content) {
+      const slide = findSlide(root, input.slide.id);
+      if (!slide) {
         throw new Error(`Slide ${input.slide.id} is not rendered.`);
       }
 
-      return {
-        clientWidth: content.clientWidth,
-        clientHeight: content.clientHeight,
-        scrollWidth: content.scrollWidth,
-        scrollHeight: content.scrollHeight,
-      };
+      const content = [
+        slide,
+        ...slide.querySelectorAll<HTMLElement>("[data-slide-content]"),
+      ];
+      return content.map((element) => ({
+        clientWidth: element.clientWidth,
+        clientHeight: element.clientHeight,
+        scrollWidth: element.scrollWidth,
+        scrollHeight: element.scrollHeight,
+      }));
     },
   };
 }
