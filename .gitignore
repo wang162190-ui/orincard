@@ -1,6 +1,7 @@
 # OS and tooling
 .DS_Store
 node_modules/
+next-env.d.ts
 .next/
 .vercel/
 .trigger/

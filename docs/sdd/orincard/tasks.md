@@ -16,7 +16,7 @@
 
 ## B01
 
-- [ ] T001 `package.json`, `pnpm-lock.yaml`, `tsconfig.json`, `.node-version`, `next-env.d.ts` — 建立锁版本运行环境 → AC-001, AC-011
+- [ ] T001 `package.json`, `pnpm-lock.yaml`, `tsconfig.json`, `.node-version`, `.gitignore` — 建立锁版本运行环境 → AC-001, AC-011
   - Batch: B01
   - Depends: none
   - Check: `node --version && pnpm install --frozen-lockfile`
