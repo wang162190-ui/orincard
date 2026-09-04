@@ -60,7 +60,7 @@
   - Check: `pnpm exec vitest run tests/ui/primitives.test.tsx`
   - Expect: 原设计色彩和按钮/面板一致，焦点、dialog语义可用。
 
-- [ ] T008 `src/app/layout.tsx`, `src/app/page.tsx`, `src/components/workspace-shell.tsx`, `src/app/create/page.tsx`, `tests/ui/shell.test.tsx` — 建立同风格工作区壳和入口 → AC-001, AC-011
+- [x] T008 `src/app/layout.tsx`, `src/app/page.tsx`, `src/components/workspace-shell.tsx`, `src/app/create/page.tsx`, `tests/ui/shell.test.tsx` — 建立同风格工作区壳和入口 → AC-001, AC-011
   - Batch: B02
   - Depends: T007
   - Check: `pnpm exec vitest run tests/ui/shell.test.tsx`
