@@ -12,7 +12,7 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": {
@@ -26,7 +26,9 @@
     "tests/**/*.tsx",
     "trigger.config.ts",
     "vitest.config.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }
