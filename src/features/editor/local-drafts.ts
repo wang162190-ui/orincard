@@ -68,11 +68,13 @@ function requestResult<T>(request: IDBRequest<T>): Promise<T> {
 }
 
 function transactionCompletion(transaction: IDBTransaction): Promise<void> {
-  return new Promise((resolve, reject) => {
+  const completed = new Promise<void>((resolve, reject) => {
     transaction.oncomplete = () => resolve();
     transaction.onabort = () =>
       reject(transaction.error ?? new Error("IndexedDB transaction was aborted."));
   });
+  void completed.catch(() => undefined);
+  return completed;
 }
 
 function isExpired(draft: StoredDraft, now: number): boolean {
@@ -108,6 +110,26 @@ export class LocalDraftStore {
     this.databaseName = options.databaseName ?? DATABASE_NAME;
     this.indexedDB = indexedDB;
     this.now = options.now ?? Date.now;
+  }
+
+  async initialize(): Promise<{ readonly deleted: number }> {
+    const database = await this.openDatabase();
+    const transaction = database.transaction(DRAFT_STORE, "readwrite");
+    const completed = transactionCompletion(transaction);
+    const store = transaction.objectStore(DRAFT_STORE);
+    const drafts = (await requestResult(store.getAll())) as StoredDraft[];
+    const now = this.now();
+    let deleted = 0;
+
+    for (const draft of drafts) {
+      if (isExpired(draft, now)) {
+        store.delete(draft.key);
+        deleted += 1;
+      }
+    }
+
+    await completed;
+    return { deleted };
   }
 
   async saveDraft(
@@ -226,13 +248,19 @@ export class LocalDraftStore {
   }
 
   async close(): Promise<void> {
-    if (!this.databasePromise) {
+    const databasePromise = this.databasePromise;
+    if (!databasePromise) {
       return;
     }
 
-    const database = await this.databasePromise;
-    database.close();
-    this.databasePromise = undefined;
+    try {
+      const database = await databasePromise;
+      database.close();
+    } finally {
+      if (this.databasePromise === databasePromise) {
+        this.databasePromise = undefined;
+      }
+    }
   }
 
   private async deleteAccountDraft(
@@ -262,8 +290,20 @@ export class LocalDraftStore {
   }
 
   private openDatabase(): Promise<IDBDatabase> {
-    this.databasePromise ??= new Promise((resolve, reject) => {
+    if (this.databasePromise) {
+      return this.databasePromise;
+    }
+
+    let databasePromise: Promise<IDBDatabase>;
+    databasePromise = new Promise((resolve, reject) => {
       const request = this.indexedDB.open(this.databaseName, DATABASE_VERSION);
+      let settled = false;
+
+      const clearCachedPromise = () => {
+        if (this.databasePromise === databasePromise) {
+          this.databasePromise = undefined;
+        }
+      };
 
       request.onupgradeneeded = () => {
         const store = request.result.createObjectStore(DRAFT_STORE, {
@@ -271,16 +311,44 @@ export class LocalDraftStore {
         });
         store.createIndex(OWNER_INDEX, "ownerKey", { unique: false });
       };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () =>
+      request.onsuccess = () => {
+        const database = request.result;
+        database.onversionchange = () => {
+          database.close();
+          clearCachedPromise();
+        };
+        if (settled) {
+          database.close();
+          return;
+        }
+
+        settled = true;
+        resolve(database);
+      };
+      request.onerror = () => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        clearCachedPromise();
         reject(
           request.error ??
             new Error("Could not open the local draft database."),
         );
-      request.onblocked = () =>
-        reject(new Error("The local draft database upgrade is blocked."));
-    });
+      };
+      request.onblocked = () => {
+        if (settled) {
+          return;
+        }
 
-    return this.databasePromise;
+        settled = true;
+        clearCachedPromise();
+        reject(new Error("The local draft database upgrade is blocked."));
+      };
+    });
+    this.databasePromise = databasePromise;
+
+    return databasePromise;
   }
 }

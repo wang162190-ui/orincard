@@ -30,7 +30,109 @@ function createStore(
   return new LocalDraftStore({ databaseName, indexedDB, now });
 }
 
+function instrumentDatabaseOpen(
+  indexedDB: IDBFactory,
+  instrument: (request: IDBOpenDBRequest) => void,
+): IDBFactory {
+  return new Proxy(indexedDB, {
+    get(target, property) {
+      if (property !== "open") {
+        const value = Reflect.get(target, property, target) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      }
+
+      return (...arguments_: Parameters<IDBFactory["open"]>) => {
+        const request = target.open(...arguments_);
+        instrument(request);
+        return request;
+      };
+    },
+  });
+}
+
+function abortReadwriteTransactions(indexedDB: IDBFactory): IDBFactory {
+  return instrumentDatabaseOpen(indexedDB, (request) => {
+    request.addEventListener(
+      "success",
+      () => {
+        const database = request.result;
+        const transaction = database.transaction.bind(database);
+        database.transaction = (
+          ...arguments_: Parameters<IDBDatabase["transaction"]>
+        ) => {
+          const result = transaction(...arguments_);
+          if (result.mode === "readwrite") {
+            queueMicrotask(() => result.abort());
+          }
+          return result;
+        };
+      },
+      { once: true },
+    );
+  });
+}
+
+function blockFirstOpen(indexedDB: IDBFactory): {
+  readonly factory: IDBFactory;
+  readonly lateConnection: () => IDBDatabase | undefined;
+} {
+  let firstOpen = true;
+  let lateConnection: IDBDatabase | undefined;
+  const factory = instrumentDatabaseOpen(indexedDB, (request) => {
+    request.addEventListener("success", () => {
+      lateConnection = request.result;
+    });
+    if (firstOpen) {
+      firstOpen = false;
+      queueMicrotask(() => {
+        request.onblocked?.call(
+          request,
+          new Event("blocked") as IDBVersionChangeEvent,
+        );
+      });
+    }
+  });
+
+  return { factory, lateConnection: () => lateConnection };
+}
+
 describe("local drafts", () => {
+  it("cleans every expired anonymous draft on app initialization without deleting account drafts", async () => {
+    const indexedDB = new IDBFactory();
+    let currentTime = 1_000;
+    const firstVisit = createStore(indexedDB, "startup-cleanup", () => currentTime);
+
+    await firstVisit.saveDraft(
+      anonymous("expired-session"),
+      "local-expired",
+      createDocument("Expired"),
+    );
+    await firstVisit.saveDraft(
+      account("user-a"),
+      "local-account",
+      createDocument("Account"),
+    );
+    currentTime += ANONYMOUS_DRAFT_TTL_MS - 1;
+    await firstVisit.saveDraft(
+      anonymous("fresh-session"),
+      "local-fresh",
+      createDocument("Fresh"),
+    );
+    await firstVisit.close();
+
+    currentTime += 1;
+    const reopened = createStore(indexedDB, "startup-cleanup", () => currentTime);
+    await expect(reopened.initialize()).resolves.toEqual({ deleted: 1 });
+    expect(
+      await reopened.loadDraft(anonymous("expired-session"), "local-expired"),
+    ).toBeNull();
+    expect(
+      await reopened.loadDraft(anonymous("fresh-session"), "local-fresh"),
+    ).not.toBeNull();
+    expect(await reopened.loadDraft(account("user-a"), "local-account"))
+      .not.toBeNull();
+  });
+
   it("expires and deletes anonymous drafts at the exact 24-hour boundary", async () => {
     const indexedDB = new IDBFactory();
     let currentTime = 1_000;
@@ -198,5 +300,64 @@ describe("local drafts", () => {
       store.clearAccountDraft(owner, "local-draft", { confirmed: true }),
     ).resolves.toBe(true);
     expect(await store.loadDraft(owner, "local-draft")).toBeNull();
+  });
+
+  it("does not leave an unhandled transaction rejection when a request aborts", async () => {
+    const indexedDB = abortReadwriteTransactions(new IDBFactory());
+    const store = createStore(indexedDB, "request-abort", () => 1_000);
+    const unhandled: unknown[] = [];
+    const listener = (reason: unknown) => unhandled.push(reason);
+    process.on("unhandledRejection", listener);
+
+    try {
+      await expect(
+        store.saveDraft(
+          anonymous("session-a"),
+          "local-draft",
+          createDocument("Aborted"),
+        ),
+      ).rejects.toMatchObject({ name: "AbortError" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    } finally {
+      process.off("unhandledRejection", listener);
+    }
+
+    expect(unhandled).toEqual([]);
+  });
+
+  it("closes a late connection after a blocked open and allows a retry", async () => {
+    const controlled = blockFirstOpen(new IDBFactory());
+    const store = createStore(controlled.factory, "blocked-open", () => 1_000);
+
+    await expect(store.initialize()).rejects.toThrow(
+      "The local draft database upgrade is blocked.",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    let closedConnectionError: unknown;
+    try {
+      controlled.lateConnection()?.transaction("drafts");
+    } catch (error) {
+      closedConnectionError = error;
+    }
+    expect(closedConnectionError).toMatchObject({ name: "InvalidStateError" });
+    await expect(store.initialize()).resolves.toEqual({ deleted: 0 });
+  });
+
+  it("closes its connection when another context requests a database upgrade", async () => {
+    const indexedDB = new IDBFactory();
+    const store = createStore(indexedDB, "version-change", () => 1_000);
+    await store.initialize();
+
+    const outcome = await new Promise<"blocked" | "upgraded">((resolve) => {
+      const request = indexedDB.open("version-change", 2);
+      request.onblocked = () => resolve("blocked");
+      request.onsuccess = () => {
+        request.result.close();
+        resolve("upgraded");
+      };
+    });
+
+    expect(outcome).toBe("upgraded");
   });
 });

@@ -11,6 +11,7 @@ import {
 } from "../../src/render/slide";
 import {
   VISUAL_EXPORT_FORMATS,
+  createDomPreflightAdapter,
   preflightVisualExport,
   type PreflightMeasurementAdapter,
 } from "../../src/render/preflight";
@@ -95,6 +96,75 @@ describe("SlideRenderer", () => {
         expect(image?.dataset.assetId).toBe(readyAsset.id);
         expect(image?.alt).toBe(readyAsset.alt);
       }
+    },
+  );
+
+  it("applies the selected layout, slide overrides, and complete theme chrome", () => {
+    const input = renderInput("text");
+    input.slide.layoutId = "numbered-point";
+    input.slide.overrides = { background: "#112233", titleScale: 0.88 };
+    input.theme.background = {
+      kind: "solid",
+      value: "#f5f1e8",
+      opacity: 0.72,
+      texture: "paper-grain",
+    };
+    input.theme.arrow = "filled";
+
+    const { container } = render(<SlideRenderer input={input} />);
+    const slide = container.querySelector<HTMLElement>("[data-slide-id]");
+
+    expect(slide?.dataset.layout).toBe("numbered-point");
+    expect(slide?.classList.contains("orincard-slide--layout-numbered-point")).toBe(
+      true,
+    );
+    expect(slide?.dataset.fontPair).toBe("source-serif-inter");
+    expect(slide?.dataset.backgroundTexture).toBe("paper-grain");
+    expect(slide?.dataset.arrow).toBe("filled");
+    expect(slide?.style.getPropertyValue("--slide-bg")).toBe("#112233");
+    expect(slide?.style.getPropertyValue("--slide-bg-opacity")).toBe("0.72");
+    expect(slide?.style.getPropertyValue("--slide-title-scale")).toBe("0.88");
+    expect(slide?.style.getPropertyValue("--slide-font-display")).toContain(
+      "Source Serif 4 Variable",
+    );
+    expect(slide?.style.getPropertyValue("--slide-font-body")).toContain(
+      "Inter Variable",
+    );
+    expect(container.querySelector(".orincard-slide__background")).toBeTruthy();
+    expect(container.querySelector(".orincard-slide__arrow--filled")).toBeTruthy();
+  });
+
+  it.each(["text_image", "image", "screenshot"] as const)(
+    "renders every configured asset slot in %s mode",
+    (mode) => {
+      const baseInput = renderInput(mode);
+      const secondAsset = {
+        ...readyAsset,
+        id: "local-asset-02",
+        alt: "Second asset",
+      };
+      const input: SlideRenderInput = {
+        ...baseInput,
+        assets: {
+          [readyAsset.id]: readyAsset,
+          [secondAsset.id]: secondAsset,
+        },
+      };
+      input.slide.assetSlots.push({
+        slotId: "detail",
+        assetId: secondAsset.id,
+        fit: "contain",
+        crop: { x: 0, y: 0, width: 1, height: 1 },
+        opacity: 0.8,
+        alt: secondAsset.alt,
+      });
+
+      const { container } = render(<SlideRenderer input={input} />);
+      expect(
+        Array.from(
+          container.querySelectorAll<HTMLImageElement>("img[data-slot-id]"),
+        ).map((image) => image.dataset.slotId),
+      ).toEqual(["hero", "detail"]);
     },
   );
 });
@@ -185,5 +255,73 @@ describe("preflightVisualExport", () => {
     );
 
     expect(result).toEqual({ ok: true, issues: [], blockedFormats: [] });
+  });
+
+  it("checks every asset slot before measuring", async () => {
+    const baseInput = renderInput("screenshot");
+    const secondAsset = { ...readyAsset, id: "local-asset-02", alt: "Second asset" };
+    const input: SlideRenderInput = {
+      ...baseInput,
+      assets: {
+        [readyAsset.id]: readyAsset,
+        [secondAsset.id]: secondAsset,
+      },
+    };
+    input.slide.assetSlots.push({
+      slotId: "detail",
+      assetId: secondAsset.id,
+      fit: "contain",
+      crop: { x: 0, y: 0, width: 1, height: 1 },
+      opacity: 1,
+      alt: secondAsset.alt,
+    });
+    const waitForImage = vi.fn().mockResolvedValue(true);
+
+    await preflightVisualExport([input], measurements({ waitForImage }));
+
+    expect(waitForImage.mock.calls.map((call) => call[1].id)).toEqual([
+      readyAsset.id,
+      secondAsset.id,
+    ]);
+  });
+
+  it.each([
+    ".orincard-slide__eyebrow",
+    ".orincard-slide__counter",
+    ".orincard-slide__footer",
+    ".orincard-slide__cta",
+  ])("detects content clipped outside %s", async (selector) => {
+    const input = renderInput("text");
+    input.slide.eyebrow = "EYEBROW";
+    input.slide.cta = "Continue";
+    input.slide.counterVisible = true;
+    const { container } = render(<SlideRenderer input={input} />);
+    const clipped = container.querySelector<HTMLElement>(selector);
+    expect(clipped).toBeTruthy();
+    Object.defineProperties(clipped!, {
+      clientWidth: { configurable: true, value: 100 },
+      clientHeight: { configurable: true, value: 20 },
+      scrollWidth: { configurable: true, value: 101 },
+      scrollHeight: { configurable: true, value: 20 },
+    });
+    const check = vi.fn().mockReturnValue(true);
+    Object.defineProperty(document, "fonts", {
+      configurable: true,
+      value: { ready: Promise.resolve(), status: "loading", check },
+    });
+
+    const result = await preflightVisualExport(
+      [input],
+      createDomPreflightAdapter(container),
+    );
+
+    expect(result.issues).toEqual([
+      expect.objectContaining({ code: "TEXT_OVERFLOW", slideId: input.slide.id }),
+    ]);
+    expect(check.mock.calls.map(([font]) => font)).toEqual([
+      '16px "Source Serif 4 Variable"',
+      '16px "Inter Variable"',
+      '16px "Noto Sans SC"',
+    ]);
   });
 });
