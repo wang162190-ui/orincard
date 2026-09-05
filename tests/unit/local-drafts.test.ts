@@ -1,4 +1,4 @@
-import { IDBFactory } from "fake-indexeddb";
+import { forceCloseDatabase, IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
 import baseDocument from "../fixtures/base-document.json";
 import { parseCarouselDocument } from "../../src/domain/document";
@@ -94,6 +94,27 @@ function blockFirstOpen(indexedDB: IDBFactory): {
   });
 
   return { factory, lateConnection: () => lateConnection };
+}
+
+function throwFirstOpen(indexedDB: IDBFactory): IDBFactory {
+  let firstOpen = true;
+
+  return new Proxy(indexedDB, {
+    get(target, property) {
+      if (property !== "open") {
+        const value = Reflect.get(target, property, target) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      }
+
+      return (...arguments_: Parameters<IDBFactory["open"]>) => {
+        if (firstOpen) {
+          firstOpen = false;
+          throw new DOMException("Storage access is denied.", "SecurityError");
+        }
+        return target.open(...arguments_);
+      };
+    },
+  });
 }
 
 describe("local drafts", () => {
@@ -359,5 +380,59 @@ describe("local drafts", () => {
     });
 
     expect(outcome).toBe("upgraded");
+  });
+
+  it("reopens after the browser unexpectedly closes the cached connection", async () => {
+    const indexedDB = new IDBFactory();
+    let openCount = 0;
+    let openedDatabase: IDBDatabase | undefined;
+    const instrumented = instrumentDatabaseOpen(indexedDB, (request) => {
+      openCount += 1;
+      request.addEventListener(
+        "success",
+        () => {
+          openedDatabase = request.result;
+        },
+        { once: true },
+      );
+    });
+    const store = createStore(instrumented, "forced-close", () => 1_000);
+
+    await store.initialize();
+    if (!openedDatabase) {
+      throw new Error("Expected the initial database connection to open.");
+    }
+    const closedDatabase = openedDatabase;
+    const staleCloseHandler = closedDatabase.onclose;
+    const closed = new Promise<void>((resolve) => {
+      closedDatabase.addEventListener("close", () => resolve(), { once: true });
+    });
+    forceCloseDatabase(
+      closedDatabase as unknown as Parameters<typeof forceCloseDatabase>[0],
+    );
+    await closed;
+
+    await expect(store.initialize()).resolves.toEqual({ deleted: 0 });
+    expect(openCount).toBe(2);
+    staleCloseHandler?.call(closedDatabase, new Event("close"));
+    await expect(store.initialize()).resolves.toEqual({ deleted: 0 });
+    expect(openCount).toBe(2);
+    await expect(
+      store.saveDraft(
+        anonymous("session-a"),
+        "local-draft",
+        createDocument("Recovered"),
+      ),
+    ).resolves.toMatchObject({ document: { title: "Recovered" } });
+  });
+
+  it("does not cache a synchronous database open failure", async () => {
+    const indexedDB = throwFirstOpen(new IDBFactory());
+    const store = createStore(indexedDB, "synchronous-open-error", () => 1_000);
+
+    await expect(store.initialize()).rejects.toMatchObject({
+      name: "SecurityError",
+    });
+    await expect(store.initialize()).resolves.toEqual({ deleted: 0 });
   });
 });
