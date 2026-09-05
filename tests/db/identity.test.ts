@@ -34,7 +34,7 @@ describe("identity database definition", () => {
     expect(policyTests).toContain("set local role anon");
     expect(policyTests).toContain("an owner cannot read another profile");
     expect(policyTests).toContain("a deleting account cannot read its workspace profile");
-    expect(policyTests).toContain("select * from finish()");
+    expect(policyTests).toContain("select * from finish(true)");
   });
 });
 
@@ -53,8 +53,23 @@ describe.runIf(process.env.RUN_DB_TESTS === "1")(
       }
 
       for (const args of [
-        ["db", "query", "--project-ref", projectRef, "--file", definitionPath],
-        ["test", "db", "--project-ref", projectRef, policyTestPath],
+        [
+          "db",
+          "query",
+          "--linked",
+          "--project-ref",
+          projectRef,
+          "--file",
+          definitionPath,
+        ],
+        [
+          "test",
+          "db",
+          "--linked",
+          "--project-ref",
+          projectRef,
+          policyTestPath,
+        ],
       ]) {
         const result = spawnSync("pnpm", ["exec", "supabase", ...args], {
           cwd: fileURLToPath(new URL("../..", import.meta.url)),

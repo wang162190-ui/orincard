@@ -1,4 +1,5 @@
 begin;
+set local search_path = extensions, public, pg_catalog;
 select plan(18);
 
 select has_table('public', 'profiles', 'profiles table exists');
@@ -162,5 +163,5 @@ select is_empty(
 );
 reset role;
 
-select * from finish();
+select * from finish(true);
 rollback;
