@@ -3,6 +3,7 @@ import {
   AUTH_MAIL_DELIVERY,
   buildAuthCallbackUrl,
   buildPasswordRecoveryUrl,
+  completePasswordRecovery,
   consumeAuthCode,
   safeNextPath,
 } from "../../src/server/mail";
@@ -48,6 +49,47 @@ describe("T022 callback and recovery contract", () => {
       transport: "custom-smtp",
       provider: "resend",
     });
+  });
+
+  it("updates a verified recovery session then clears it locally", async () => {
+    const updateUser = vi.fn().mockResolvedValue({ error: null });
+    const signOut = vi.fn().mockResolvedValue({ error: null });
+    const client = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-1" } },
+          error: null,
+        }),
+        updateUser,
+        signOut,
+      },
+    };
+
+    await completePasswordRecovery(client, "new-password");
+
+    expect(updateUser).toHaveBeenCalledWith({ password: "new-password" });
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+
+  it("does not update or sign out an expired recovery session", async () => {
+    const updateUser = vi.fn();
+    const signOut = vi.fn();
+    const client = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+          error: new Error("JWT expired"),
+        }),
+        updateUser,
+        signOut,
+      },
+    };
+
+    await expect(
+      completePasswordRecovery(client, "new-password"),
+    ).rejects.toThrow("expired or has already been used");
+    expect(updateUser).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
   });
 });
 
