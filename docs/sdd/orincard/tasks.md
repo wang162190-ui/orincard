@@ -87,7 +87,7 @@
   - Check: `pnpm exec vitest run tests/ui/preflight.test.tsx`
   - Expect: 字体/图像就绪后测量；四模式和全部视觉格式统一阻断溢出。
 
-- [ ] T012 `src/features/editor/editor.tsx`, `src/features/editor/slide-panel.tsx`, `src/app/editor/[id]/page.tsx`, `tests/ui/editor.test.tsx` — 连接编辑器控件与页面操作 → AC-003, AC-005
+- [x] T012 `src/features/editor/editor.tsx`, `src/features/editor/slide-panel.tsx`, `src/app/editor/[id]/page.tsx`, `tests/ui/editor.test.tsx` — 连接编辑器控件与页面操作 → AC-003, AC-005
   - Batch: B02
   - Depends: T010, T011, T013
   - Check: `pnpm exec vitest run tests/ui/editor.test.tsx`
@@ -100,7 +100,7 @@
   - Check: `pnpm exec vitest run tests/unit/themes.test.ts`
   - Expect: Ink/Paper/Signal/Blush/Butter/Sky完整，局部覆盖和内容在切换后保留。
 
-- [ ] T014 `tests/e2e/editor.spec.ts`, `tests/visual/editor.spec.ts` — 验证编辑器集成与设计回归 → AC-001, AC-003, AC-004, AC-005
+- [x] T014 `tests/e2e/editor.spec.ts`, `tests/visual/editor.spec.ts` — 验证编辑器集成与设计回归 → AC-001, AC-003, AC-004, AC-005
   - Batch: B02
   - Depends: T012
   - Check: `pnpm exec playwright test tests/e2e/editor.spec.ts tests/visual/editor.spec.ts`
