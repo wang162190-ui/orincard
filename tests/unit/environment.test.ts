@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  readBrowserEnvironment,
-  readServerEnvironment,
-} from "../../src/server/environment";
+import { readBrowserEnvironment } from "../../src/features/auth/client";
+import { readServerEnvironment } from "../../src/server/environment";
 
 const publishableKey = ["sb", "publishable", "test-client-key"].join("_");
 const secretKey = ["sb", "secret", "test-server-key"].join("_");
@@ -60,7 +58,18 @@ describe("environment validation", () => {
           SUPABASE_PROJECT_REF: "production-ref",
         }),
       ),
-    ).toThrow("Preview cannot use the production Supabase project");
+    ).toThrow("cannot use the production Supabase project");
+  });
+
+  it("rejects a development environment that points at the production project", () => {
+    expect(() =>
+      readServerEnvironment(
+        validServerEnvironment({
+          NEXT_PUBLIC_SUPABASE_URL: "https://production-ref.supabase.co",
+          SUPABASE_PROJECT_REF: "production-ref",
+        }),
+      ),
+    ).toThrow("cannot use the production Supabase project");
   });
 
   it("rejects a project reference that does not match the Supabase URL", () => {
@@ -91,11 +100,27 @@ describe("environment validation", () => {
     ).toThrow("publishable key");
 
     expect(() =>
+      readServerEnvironment(
+        validServerEnvironment({ NEXT_PUBLIC_SUPABASE_SECRET_KEY: secretKey }),
+      ),
+    ).toThrow("server credential");
+  });
+
+  it("rejects key prefixes without key material", () => {
+    expect(() =>
       readBrowserEnvironment({
         NEXT_PUBLIC_SUPABASE_URL: "https://development-ref.supabase.co",
-        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
-        NEXT_PUBLIC_SUPABASE_SECRET_KEY: secretKey,
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ["sb", "publishable", ""].join(
+          "_",
+        ),
       }),
-    ).toThrow("server credential");
+    ).toThrow("publishable key");
+    expect(() =>
+      readServerEnvironment(
+        validServerEnvironment({
+          SUPABASE_SECRET_KEY: ["sb", "secret", ""].join("_"),
+        }),
+      ),
+    ).toThrow("secret key");
   });
 });
