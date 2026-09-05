@@ -78,6 +78,35 @@ function measurements(
   };
 }
 
+type FakeFontFace = {
+  readonly family: string;
+  readonly status: "unloaded" | "loading" | "loaded" | "error";
+};
+
+const loadedFontFaces: readonly FakeFontFace[] = [
+  { family: '"Source Serif 4 Variable"', status: "loaded" },
+  { family: "Inter Variable", status: "loaded" },
+  { family: "Noto Sans SC", status: "loaded" },
+];
+
+function installFontFaces(
+  faces: readonly FakeFontFace[],
+  checkResult = true,
+) {
+  const check = vi.fn().mockReturnValue(checkResult);
+  Object.defineProperty(document, "fonts", {
+    configurable: true,
+    value: {
+      ready: Promise.resolve(),
+      check,
+      forEach(callback: (face: FakeFontFace) => void) {
+        faces.forEach(callback);
+      },
+    },
+  });
+  return check;
+}
+
 describe("SlideRenderer", () => {
   it.each(["text", "text_image", "image", "screenshot"] as const)(
     "renders %s mode through the shared input contract",
@@ -165,8 +194,32 @@ describe("SlideRenderer", () => {
           container.querySelectorAll<HTMLImageElement>("img[data-slot-id]"),
         ).map((image) => image.dataset.slotId),
       ).toEqual(["hero", "detail"]);
+      const slots = Array.from(
+        container.querySelectorAll<HTMLElement>(".orincard-slide__asset-slot"),
+      );
+      expect(slots.map((slot) => slot.style.gridColumn)).toEqual(["1", "2"]);
+      expect(slots[0]?.parentElement?.style.gridTemplateColumns).toBe(
+        "repeat(2, minmax(0, 1fr))",
+      );
+      if (mode === "screenshot") {
+        expect(
+          container.querySelector<HTMLElement>(".orincard-slide__screenshot-bar")
+            ?.style.gridColumn,
+        ).toBe("1 / -1");
+      }
     },
   );
+
+  it("applies background opacity to the full-bleed image veil", () => {
+    const input = renderInput("image");
+    input.theme.background.opacity = 0.42;
+
+    const { container } = render(<SlideRenderer input={input} />);
+
+    expect(
+      container.querySelector<HTMLElement>(".orincard-slide__veil")?.style.opacity,
+    ).toBe("0.42");
+  });
 });
 
 describe("preflightVisualExport", () => {
@@ -304,11 +357,7 @@ describe("preflightVisualExport", () => {
       scrollWidth: { configurable: true, value: 101 },
       scrollHeight: { configurable: true, value: 20 },
     });
-    const check = vi.fn().mockReturnValue(true);
-    Object.defineProperty(document, "fonts", {
-      configurable: true,
-      value: { ready: Promise.resolve(), status: "loading", check },
-    });
+    const check = installFontFaces(loadedFontFaces);
 
     const result = await preflightVisualExport(
       [input],
@@ -323,5 +372,33 @@ describe("preflightVisualExport", () => {
       '16px "Inter Variable"',
       '16px "Noto Sans SC"',
     ]);
+  });
+
+  it("blocks a selected family that check claims is available but is absent", async () => {
+    installFontFaces(loadedFontFaces.slice(0, 2), true);
+    const adapter = createDomPreflightAdapter(document);
+
+    await expect(adapter.waitForFonts(renderInput())).resolves.toBe(false);
+  });
+
+  it.each(["loading", "error"] as const)(
+    "blocks a selected family whose actual face status is %s",
+    async (status) => {
+      installFontFaces([
+        ...loadedFontFaces.slice(0, 2),
+        { family: "Noto Sans SC", status },
+      ]);
+      const adapter = createDomPreflightAdapter(document);
+
+      await expect(adapter.waitForFonts(renderInput())).resolves.toBe(false);
+    },
+  );
+
+  it("allows the selected manifest families only when actual faces are loaded", async () => {
+    const check = installFontFaces(loadedFontFaces);
+    const adapter = createDomPreflightAdapter(document);
+
+    await expect(adapter.waitForFonts(renderInput())).resolves.toBe(true);
+    expect(check).toHaveBeenCalledTimes(3);
   });
 });

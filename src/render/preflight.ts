@@ -90,6 +90,10 @@ function selectedFontFamilies(fontPairId: string): readonly string[] {
     : [];
 }
 
+function normalizeFontFamily(family: string): string {
+  return family.trim().replace(/^['"]|['"]$/g, "").toLocaleLowerCase();
+}
+
 function requiredAssetIds(input: SlideRenderInput): readonly (string | null)[] {
   const ids: Array<string | null> = [];
   if (input.slide.mode !== "text") {
@@ -219,11 +223,26 @@ export function createDomPreflightAdapter(root: ParentNode): PreflightMeasuremen
     async waitForFonts(input) {
       const fonts = ownerDocument(root)?.fonts;
       const families = selectedFontFamilies(input.theme.fontPairId);
-      if (!fonts || typeof fonts.check !== "function" || families.length === 0) {
+      if (
+        !fonts ||
+        typeof fonts.check !== "function" ||
+        typeof fonts.forEach !== "function" ||
+        families.length === 0
+      ) {
         return false;
       }
       await fonts.ready;
-      return families.every((family) => fonts.check(`16px "${family}"`));
+      const loadedFamilies = new Set<string>();
+      fonts.forEach((face) => {
+        if (face.status === "loaded") {
+          loadedFamilies.add(normalizeFontFamily(face.family));
+        }
+      });
+      return families.every(
+        (family) =>
+          loadedFamilies.has(normalizeFontFamily(family)) &&
+          fonts.check(`16px "${family}"`),
+      );
     },
 
     async waitForImage(input, asset) {
