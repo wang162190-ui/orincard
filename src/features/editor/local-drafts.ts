@@ -295,15 +295,14 @@ export class LocalDraftStore {
     }
 
     let databasePromise: Promise<IDBDatabase>;
+    const clearCachedPromise = () => {
+      if (this.databasePromise === databasePromise) {
+        this.databasePromise = undefined;
+      }
+    };
     databasePromise = new Promise((resolve, reject) => {
       const request = this.indexedDB.open(this.databaseName, DATABASE_VERSION);
       let settled = false;
-
-      const clearCachedPromise = () => {
-        if (this.databasePromise === databasePromise) {
-          this.databasePromise = undefined;
-        }
-      };
 
       request.onupgradeneeded = () => {
         const store = request.result.createObjectStore(DRAFT_STORE, {
@@ -313,6 +312,7 @@ export class LocalDraftStore {
       };
       request.onsuccess = () => {
         const database = request.result;
+        database.onclose = clearCachedPromise;
         database.onversionchange = () => {
           database.close();
           clearCachedPromise();
@@ -348,6 +348,7 @@ export class LocalDraftStore {
       };
     });
     this.databasePromise = databasePromise;
+    void databasePromise.catch(clearCachedPromise);
 
     return databasePromise;
   }
