@@ -6,6 +6,7 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Completed
 
+- 完成 B03 T016：在真实 `orincard-dev` Supabase 项目建立用户 profile、最小 GRANT、RLS、私有触发器函数及完整表/字段注释。
 - 完成 B03 T015：建立 Supabase browser/SSR/admin 客户端边界、真实用户重新验证和 Development/Preview/Production 环境隔离；开发与预览误指生产库时拒绝启动。
 - 完成 B02 T010–T014：IndexedDB 草稿按身份隔离并支持显式原子迁移；共享 React renderer/preflight 阻断字体、图片和文字问题；六主题与三平台切换保留内容、素材和局部覆盖；真实 `/editor/[id]` 页面连接编辑控件、撤销重做、排序和离线刷新恢复。
 - 完成 B01 T001–T003/T005 复验：在精确 Node 22.23.2 容器中验证 frozen lockfile、测试入口、文档 schema 与字体清单，并补齐首闭环依赖基线。
@@ -18,6 +19,7 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Verified
 
+- T016 在真实开发云库通过 18/18 pgTAP 行为验收；RLS、2 条 policy、2 个 trigger、表注释和 6/6 字段注释均存在，事务回滚后无测试数据；安全与性能顾问均为 0 项。Node 22.23.2 集成回归为非云测试 109 项通过、类型检查、19 项规划检查和生产构建通过。
 - T015 在精确 Node 22.23.2 中通过 10/10 定向测试和类型检查；Next 生产构建的 client chunks 未发现 server secret 变量、生产项目 ref 变量或 secret-key 标记；Development 可在生产项目尚未创建时省略其 ref，Preview/Production 仍强制校验。
 - T010/T011/T013 三线定向测试合计 43/43，T012 UI 测试 10/10；汇合后在 Node 22.23.2 容器中全非云 98/98、类型检查、19 项规划检查与生产构建全部通过。
 - T014 使用 Playwright 1.57.0、Chromium 143.0.7499.4 和单 worker 完成 4/4 浏览器验收；离线刷新、草稿隔离、4→12→4 页边界、指针/键盘排序、桌面三栏和 820 px canvas-first 布局均通过，临时截图人工检查后已移出工作区。
@@ -33,7 +35,7 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Known limitations
 
-- Vercel 仍未初始化；Supabase CLI 创建专用 `orincard-dev` 项目时 API 返回 `Forbidden`。T016 identity SQL 与 18 项 pgTAP 套件已提交，但真实 DB 测试保持未执行，T016 未勾选；当前 Trigger.dev 部署仍只包含后台探针任务，不是 Orincard 网站。
+- Vercel 仍未初始化；当前 Supabase CLI OAuth 对 `orincard-dev` 返回 403，但已授权 Supabase 连接可完成真实云库验证。当前 Trigger.dev 部署仍只包含后台探针任务，不是 Orincard 网站。
 - 当前本机终端仍为 Node 24；精确 Node 22.23.2 已在隔离容器中验证，后续 Node/非云集成仍需在该版本复验。
 
 ## [0.1.0] - 2026-09-04

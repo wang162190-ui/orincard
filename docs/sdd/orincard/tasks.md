@@ -114,7 +114,7 @@
   - Check: `pnpm exec vitest run tests/unit/environment.test.ts`
   - Expect: Preview指向生产、缺密钥、客户端泄露server secret均被拒绝。
 
-- [ ] T016 `supabase/definitions/identity.sql`, `supabase/tests/identity.sql`, `tests/db/identity.test.ts` — 定义用户及最小权限SQL → AC-007
+- [x] T016 `supabase/definitions/identity.sql`, `supabase/tests/identity.sql`, `tests/db/identity.test.ts` — 定义用户及最小权限SQL → AC-007
   - Batch: B03
   - Depends: T015
   - Check: `pnpm exec vitest run tests/db/identity.test.ts`

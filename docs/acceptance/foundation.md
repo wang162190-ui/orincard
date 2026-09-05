@@ -76,13 +76,18 @@
 
 浏览器截图仅用于当次人工比对，完成后已从工作区移入废纸篓；Playwright 输出、临时服务日志和测试草稿均未提交。交叉审查发现的草稿事务恢复、嵌套溢出检测、素材槽覆盖、刷新时序和窄屏胶片方向问题均已修正并纳入回归。
 
-## B03 身份地基进行中
+## B03 身份与数据地基进行中
 
-状态：`IN PROGRESS — T015 通过；T016 等待开发云项目权限`
+状态：`IN PROGRESS — T015–T016 通过；下一项 T017`
+
+记录日期：2026-09-06
 
 | 检查 | 结果 |
 |---|---|
 | T015 环境隔离 | 精确 Node 22.23.2 中 10/10 通过并完成类型检查；Development/Preview 指向生产项目、项目 ref 与 URL 不符、缺失凭据、公开 server secret 和错误 key 类型均拒绝启动；尚未创建生产项目时 Development 无需伪造 production ref |
 | 客户端边界 | 浏览器与 SSR 用户客户端只使用 publishable key；admin client 只在 server 模块读取 secret key；生产 client chunks 不含 server secret 变量或标记；授权辅助方法调用 `auth.getUser()` 重新验证用户 |
-| T016 本地定义 | identity 定义、18 项 pgTAP 行为套件与普通静态审计已提交；静态检查 1/1 通过，真实 DB 检查因没有专用开发项目而保持跳过，任务未勾选 |
-| 云项目门槛 | 已登录 CLI 下仅见一个非 Orincard 的 `INACTIVE` 旧项目；创建 `orincard-dev` 的请求被 Supabase API 返回 `Forbidden`，未复用或修改旧项目，未写入任何密码或密钥 |
+| T016 云端身份基线 | 在真实开发项目执行 identity 定义及 18 项 pgTAP 行为套件，`finish(true)` 无失败；覆盖匿名拒绝、本人读取/更新、跨账号隔离、禁止状态/删除/换主及 deleting 状态阻断，事务回滚后测试用户与 profile 均为 0 |
+| 云项目 | `orincard-dev` / `ettuzeunkadkfnawawdy`，`us-east-2`，`ACTIVE_HEALTHY`，Postgres 17.6.1.166；使用已授权 Supabase 连接验证，未读取、写入或记录密钥 |
+| 权限与结构 | `public.profiles` 已启用 RLS；2 条 policy、2 个 trigger、表注释及 6/6 字段注释存在；匿名 SELECT 与 authenticated 更新 `status` 均为 false |
+| 数据库质量门 | pgTAP 1.3.3；安全顾问 0 项、性能顾问 0 项；本地静态检查 1/1 通过。当前 Supabase CLI OAuth 对该项目仍返回 403，因此真实云测试由已授权连接执行 |
+| T016 集成回归 | 官方 Node 22.23.2 容器中非云测试 109 项通过、1 项仅在显式云测试模式运行；类型检查、19 项规划检查及生产构建通过 |
