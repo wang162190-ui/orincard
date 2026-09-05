@@ -12,13 +12,29 @@ const policyTestPath = fileURLToPath(
 
 describe("identity database definition", () => {
   it("declares comments, explicit grants and complete owner RLS", async () => {
-    const sql = await readFile(definitionPath, "utf8");
+    const [sql, policyTests] = await Promise.all([
+      readFile(definitionPath, "utf8"),
+      readFile(policyTestPath, "utf8"),
+    ]);
     expect(sql).toContain("comment on table public.profiles");
     expect(sql.match(/comment on column public\.profiles\./g)).toHaveLength(6);
     expect(sql).toContain("enable row level security");
     expect(sql).toContain("revoke all on table public.profiles from anon, authenticated");
     expect(sql).toContain("grant select on table public.profiles to authenticated");
+    expect(sql).toContain(
+      "grant update (display_name, preferences) on table public.profiles to authenticated",
+    );
     expect(sql).toMatch(/for update[\s\S]+using \([\s\S]+with check \(/);
+    expect(sql).toMatch(
+      /function private\.create_profile_for_auth_user\(\)[\s\S]+security definer[\s\S]+set search_path = ''/,
+    );
+    expect(sql).toContain(
+      "revoke execute on function private.create_profile_for_auth_user() from public, anon, authenticated",
+    );
+    expect(policyTests).toContain("set local role anon");
+    expect(policyTests).toContain("an owner cannot read another profile");
+    expect(policyTests).toContain("a deleting account cannot read its workspace profile");
+    expect(policyTests).toContain("select * from finish()");
   });
 });
 
