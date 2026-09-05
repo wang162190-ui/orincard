@@ -105,10 +105,13 @@ export function readServerEnvironment(environment: Environment): ServerEnvironme
   const appUrl = requireVariable(environment, "NEXT_PUBLIC_APP_URL");
   const supabaseSecretKey = requireVariable(environment, "SUPABASE_SECRET_KEY");
   const supabaseProjectRef = requireVariable(environment, "SUPABASE_PROJECT_REF");
-  const productionProjectRef = requireVariable(
-    environment,
-    "SUPABASE_PRODUCTION_PROJECT_REF",
-  );
+  const productionProjectRef =
+    environment.SUPABASE_PRODUCTION_PROJECT_REF?.trim();
+  if (appEnvironment !== "development" && !productionProjectRef) {
+    throw new EnvironmentConfigurationError(
+      "Missing required environment variable: SUPABASE_PRODUCTION_PROJECT_REF",
+    );
+  }
 
   readUrl(appUrl, "NEXT_PUBLIC_APP_URL", appEnvironment === "development");
   const supabaseUrl = readUrl(
@@ -126,7 +129,11 @@ export function readServerEnvironment(environment: Environment): ServerEnvironme
       "SUPABASE_PROJECT_REF must match NEXT_PUBLIC_SUPABASE_URL",
     );
   }
-  if (appEnvironment !== "production" && supabaseProjectRef === productionProjectRef) {
+  if (
+    appEnvironment !== "production" &&
+    productionProjectRef &&
+    supabaseProjectRef === productionProjectRef
+  ) {
     throw new EnvironmentConfigurationError(
       "Development and Preview cannot use the production Supabase project",
     );

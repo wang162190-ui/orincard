@@ -82,7 +82,7 @@
 
 | 检查 | 结果 |
 |---|---|
-| T015 环境隔离 | 精确 Node 22.23.2 中 8/8 通过并完成类型检查；Development/Preview 指向生产项目、项目 ref 与 URL 不符、缺失凭据、公开 server secret 和错误 key 类型均拒绝启动 |
+| T015 环境隔离 | 精确 Node 22.23.2 中 10/10 通过并完成类型检查；Development/Preview 指向生产项目、项目 ref 与 URL 不符、缺失凭据、公开 server secret 和错误 key 类型均拒绝启动；尚未创建生产项目时 Development 无需伪造 production ref |
 | 客户端边界 | 浏览器与 SSR 用户客户端只使用 publishable key；admin client 只在 server 模块读取 secret key；生产 client chunks 不含 server secret 变量或标记；授权辅助方法调用 `auth.getUser()` 重新验证用户 |
 | T016 本地定义 | identity 定义、18 项 pgTAP 行为套件与普通静态审计已提交；静态检查 1/1 通过，真实 DB 检查因没有专用开发项目而保持跳过，任务未勾选 |
 | 云项目门槛 | 已登录 CLI 下仅见一个非 Orincard 的 `INACTIVE` 旧项目；创建 `orincard-dev` 的请求被 Supabase API 返回 `Forbidden`，未复用或修改旧项目，未写入任何密码或密钥 |

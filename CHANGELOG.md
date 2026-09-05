@@ -18,7 +18,7 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Verified
 
-- T015 在精确 Node 22.23.2 中通过 8/8 定向测试和类型检查；Next 生产构建的 client chunks 未发现 server secret 变量、生产项目 ref 变量或 secret-key 标记。
+- T015 在精确 Node 22.23.2 中通过 10/10 定向测试和类型检查；Next 生产构建的 client chunks 未发现 server secret 变量、生产项目 ref 变量或 secret-key 标记；Development 可在生产项目尚未创建时省略其 ref，Preview/Production 仍强制校验。
 - T010/T011/T013 三线定向测试合计 43/43，T012 UI 测试 10/10；汇合后在 Node 22.23.2 容器中全非云 98/98、类型检查、19 项规划检查与生产构建全部通过。
 - T014 使用 Playwright 1.57.0、Chromium 143.0.7499.4 和单 worker 完成 4/4 浏览器验收；离线刷新、草稿隔离、4→12→4 页边界、指针/键盘排序、桌面三栏和 820 px canvas-first 布局均通过，临时截图人工检查后已移出工作区。
 - 官方 `node:22.23.2` 容器实际输出 Node `v22.23.2`、pnpm `10.32.1`；`pnpm install --frozen-lockfile`、类型检查、T002/T003/T005 定向测试、全单元 32/32、全非云 44/44、生产构建全部通过。

@@ -32,6 +32,28 @@ describe("environment validation", () => {
     });
   });
 
+  it("allows development before a production project has been created", () => {
+    expect(() =>
+      readServerEnvironment(
+        validServerEnvironment({ SUPABASE_PRODUCTION_PROJECT_REF: undefined }),
+      ),
+    ).not.toThrow();
+  });
+
+  it("requires the production reference in preview and production", () => {
+    for (const APP_ENV of ["preview", "production"]) {
+      expect(() =>
+        readServerEnvironment(
+          validServerEnvironment({
+            APP_ENV,
+            NEXT_PUBLIC_APP_URL: `https://${APP_ENV}.orincard.example`,
+            SUPABASE_PRODUCTION_PROJECT_REF: undefined,
+          }),
+        ),
+      ).toThrow("SUPABASE_PRODUCTION_PROJECT_REF");
+    }
+  });
+
   it("rejects missing credentials by variable name only", () => {
     expect(() =>
       readServerEnvironment(

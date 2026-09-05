@@ -44,8 +44,12 @@ describe.runIf(process.env.RUN_DB_TESTS === "1")(
     it("passes the real pgTAP owner and account-state suite", () => {
       const projectRef = process.env.SUPABASE_PROJECT_REF?.trim();
       const productionRef = process.env.SUPABASE_PRODUCTION_PROJECT_REF?.trim();
-      if (!projectRef || !productionRef || projectRef === productionRef) {
-        throw new Error("Database tests require distinct development and production project refs");
+      if (
+        process.env.APP_ENV !== "development" ||
+        !projectRef ||
+        (productionRef && projectRef === productionRef)
+      ) {
+        throw new Error("Database tests require an isolated development project ref");
       }
 
       for (const args of [
