@@ -14,7 +14,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Panel, PanelBody, PanelHeader } from "../../components/ui";
 import {
   MAX_SLIDE_COUNT,
@@ -42,10 +42,15 @@ import {
   type Slide,
 } from "./commands";
 import {
+  appendEditorHistory,
   createEditorState,
   editorReducer,
   type EditorState,
 } from "./reducer";
+import {
+  LocalDraftStore,
+  type DraftOwner,
+} from "./local-drafts";
 import { SlidePanel } from "./slide-panel";
 import { ThemePanel } from "./theme-panel";
 
@@ -61,17 +66,73 @@ export interface EditorProps {
   readonly draftId: string;
   readonly initialDocument?: CarouselDocument;
   readonly assets?: Readonly<Record<string, SlideRenderAsset | undefined>>;
+  readonly draftOwner?: DraftOwner;
+  readonly draftStore?: EditorDraftStore | null;
 }
 
-function paragraphText(slide: Slide): string {
-  return slide.bodyBlocks
-    .flatMap((block) => {
-      if (block.kind === "bullets") {
-        return block.items;
+export type EditorDraftStore = Pick<
+  LocalDraftStore,
+  "initialize" | "loadDraft" | "saveDraft" | "close"
+>;
+
+type DraftStatus = "loading" | "saving" | "saved" | "unavailable";
+
+const SESSION_OWNER_KEY = "orincard-anonymous-session";
+
+function browserDraftOwner(): DraftOwner {
+  const storage = globalThis.localStorage;
+  let sessionId = storage.getItem(SESSION_OWNER_KEY);
+  if (!sessionId) {
+    const random = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+    sessionId = `session-${random}`;
+    storage.setItem(SESSION_OWNER_KEY, sessionId);
+  }
+  return { kind: "anonymous", sessionId };
+}
+
+function supportingParagraphText(slide: Slide): string {
+  const paragraph = slide.bodyBlocks.find((block) => block.kind === "paragraph");
+  return paragraph?.text ?? "";
+}
+
+export function updateSupportingParagraph(slide: Slide, text: string): Slide {
+  const paragraphIndex = slide.bodyBlocks.findIndex(
+    (block) => block.kind === "paragraph",
+  );
+  if (paragraphIndex < 0) {
+    return text
+      ? {
+          ...slide,
+          bodyBlocks: [
+            ...slide.bodyBlocks,
+            { kind: "paragraph", text, emphasisRanges: [] },
+          ],
+        }
+      : slide;
+  }
+
+  if (!text) {
+    return {
+      ...slide,
+      bodyBlocks: slide.bodyBlocks.filter((_, index) => index !== paragraphIndex),
+    };
+  }
+
+  const textLength = Array.from(text).length;
+  return {
+    ...slide,
+    bodyBlocks: slide.bodyBlocks.map((block, index) => {
+      if (index !== paragraphIndex || block.kind !== "paragraph") {
+        return block;
       }
-      return [block.text];
-    })
-    .join("\n");
+      const emphasisRanges = block.emphasisRanges.flatMap((range) => {
+        const start = Math.min(range.start, textLength);
+        const end = Math.min(range.end, textLength);
+        return end > start ? [{ start, end }] : [];
+      });
+      return { ...block, text, emphasisRanges };
+    }),
+  };
 }
 
 function replaceDocument(
@@ -84,7 +145,7 @@ function replaceDocument(
 
   return {
     document,
-    past: [...state.past, state.document],
+    past: appendEditorHistory(state.past, state.document),
     future: [],
   };
 }
@@ -177,6 +238,8 @@ export function Editor({
   draftId,
   initialDocument,
   assets = EMPTY_ASSETS,
+  draftOwner,
+  draftStore,
 }: EditorProps) {
   const [state, setState] = useState(() =>
     createEditorState(initialDocument ?? createStarterDocument()),
@@ -184,6 +247,11 @@ export function Editor({
   const [selectedSlideId, setSelectedSlideId] = useState(
     () => state.document.slides[0].id,
   );
+  const [draftContext, setDraftContext] = useState<{
+    readonly owner: DraftOwner;
+    readonly store: EditorDraftStore;
+  } | null>(null);
+  const [draftStatus, setDraftStatus] = useState<DraftStatus>("loading");
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -196,6 +264,73 @@ export function Editor({
   const slideCount = state.document.slides.length;
   const atMaximum = slideCount >= MAX_SLIDE_COUNT;
   const atMinimum = slideCount <= MIN_SLIDE_COUNT;
+
+  useEffect(() => {
+    let active = true;
+    let ownedStore: EditorDraftStore | null = null;
+    setDraftContext(null);
+    setDraftStatus("loading");
+
+    async function loadDraft() {
+      try {
+        if (draftStore === null) {
+          throw new Error("Local draft storage was disabled.");
+        }
+        const owner = draftOwner ?? browserDraftOwner();
+        const store = draftStore ?? new LocalDraftStore();
+        if (draftStore === undefined) {
+          ownedStore = store;
+        }
+        await store.initialize();
+        const saved = await store.loadDraft(owner, draftId);
+        if (!active) {
+          return;
+        }
+        if (saved) {
+          setState(createEditorState(saved.document));
+          setSelectedSlideId(saved.document.slides[0].id);
+        }
+        setDraftContext({ owner, store });
+        setDraftStatus(saved ? "saved" : "saving");
+      } catch {
+        if (active) {
+          setDraftStatus("unavailable");
+        }
+      }
+    }
+
+    void loadDraft();
+    return () => {
+      active = false;
+      if (ownedStore) {
+        void ownedStore.close();
+      }
+    };
+  }, [draftId, draftOwner, draftStore]);
+
+  useEffect(() => {
+    if (!draftContext) {
+      return;
+    }
+    let active = true;
+    setDraftStatus("saving");
+    void draftContext.store
+      .saveDraft(draftContext.owner, draftId, state.document)
+      .then(() => {
+        if (active) {
+          setDraftStatus("saved");
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setDraftStatus("unavailable");
+          setDraftContext(null);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [draftContext, draftId, state.document]);
 
   function applyCommand(command: EditorCommand) {
     const next = editorReducer(state, command);
@@ -282,22 +417,26 @@ export function Editor({
 
   function selectAsset(assetId: string) {
     editSelected((slide) => {
-      if (!assetId) {
-        return { ...slide, assetSlots: [] };
-      }
       const current = slide.assetSlots[0];
+      if (!assetId) {
+        return {
+          ...slide,
+          assetSlots: current ? slide.assetSlots.slice(1) : slide.assetSlots,
+        };
+      }
+      const nextSlot = {
+        slotId: current?.slotId ?? `primary-${slide.id}`,
+        assetId,
+        fit: current?.fit ?? "cover",
+        crop: current?.crop ?? { x: 0, y: 0, width: 1, height: 1 },
+        opacity: current?.opacity ?? 1,
+        alt: current?.alt ?? assets[assetId]?.alt ?? "",
+      } satisfies Slide["assetSlots"][number];
       return {
         ...slide,
-        assetSlots: [
-          {
-            slotId: current?.slotId ?? `primary-${slide.id}`,
-            assetId,
-            fit: current?.fit ?? "cover",
-            crop: current?.crop ?? { x: 0, y: 0, width: 1, height: 1 },
-            opacity: current?.opacity ?? 1,
-            alt: current?.alt ?? assets[assetId]?.alt ?? "",
-          },
-        ],
+        assetSlots: current
+          ? [nextSlot, ...slide.assetSlots.slice(1)]
+          : [nextSlot, ...slide.assetSlots],
       };
     });
   }
@@ -320,6 +459,14 @@ export function Editor({
           </p>
         </div>
         <div className="row">
+          <p className="meta" data-testid="draft-status" role="status">
+            {draftStatus === "loading" ? "Loading local draft…" : null}
+            {draftStatus === "saving" ? "Saving locally…" : null}
+            {draftStatus === "saved" ? "Saved locally." : null}
+            {draftStatus === "unavailable"
+              ? "Local draft unavailable. Edits remain in this tab."
+              : null}
+          </p>
           <Button
             disabled={state.past.length === 0}
             onClick={() => applyCommand(undo())}
@@ -337,15 +484,25 @@ export function Editor({
         </div>
       </header>
 
-      <div
-        style={{
-          alignItems: "start",
-          display: "grid",
-          gap: "var(--gap-md)",
-          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
-        }}
-      >
-        <Panel aria-label="Slide content">
+      <style data-editor-layout>{`
+        .editor-workbench {
+          align-items: start;
+          display: grid;
+          gap: var(--gap-md);
+          grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) minmax(0, 0.8fr);
+        }
+        .editor-content { grid-column: 1; grid-row: 1; }
+        .editor-canvas { grid-column: 2; grid-row: 1; min-width: 0; }
+        .editor-controls { grid-column: 3; grid-row: 1; min-width: 0; }
+        @media (max-width: 1000px) {
+          .editor-workbench { grid-template-columns: minmax(0, 1fr); }
+          .editor-canvas { grid-column: 1; grid-row: 1; }
+          .editor-content { grid-column: 1; grid-row: 2; }
+          .editor-controls { grid-column: 1; grid-row: 3; }
+        }
+      `}</style>
+      <div className="editor-workbench">
+        <Panel aria-label="Slide content" className="editor-content">
           <PanelHeader><h2 className="h3">Content</h2></PanelHeader>
           <PanelBody className="stack">
             <label className="field">
@@ -380,12 +537,10 @@ export function Editor({
                   const text = event.target.value;
                   editSelected((slide) => ({
                     ...slide,
-                    bodyBlocks: text
-                      ? [{ kind: "paragraph", text, emphasisRanges: [] }]
-                      : [],
+                    ...updateSupportingParagraph(slide, text),
                   }));
                 }}
-                value={paragraphText(selectedSlide)}
+                value={supportingParagraphText(selectedSlide)}
               />
             </label>
             <label className="field">
@@ -404,7 +559,7 @@ export function Editor({
           </PanelBody>
         </Panel>
 
-        <section aria-label="Canvas" className="stack" style={{ alignItems: "center" }}>
+        <section aria-label="Canvas" className="editor-canvas stack" style={{ alignItems: "center" }}>
           <div style={{ maxWidth: 520, width: "100%" }}>
             <SlideRenderer
               input={{
@@ -467,7 +622,7 @@ export function Editor({
           </Panel>
         </section>
 
-        <div className="stack">
+        <div className="editor-controls stack">
           <Panel aria-label="Slide controls">
             <PanelHeader><h2 className="h3">Slide controls</h2></PanelHeader>
             <PanelBody className="stack">
@@ -508,8 +663,10 @@ export function Editor({
                       disabled={!currentSlot}
                       onChange={(event) => editSelected((slide) => ({
                         ...slide,
-                        assetSlots: slide.assetSlots.map((slot, index) =>
-                          index === 0 ? { ...slot, alt: event.target.value } : slot,
+                        assetSlots: slide.assetSlots.map((slot) =>
+                          slot.slotId === currentSlot?.slotId
+                            ? { ...slot, alt: event.target.value }
+                            : slot,
                         ),
                       }))}
                       type="text"

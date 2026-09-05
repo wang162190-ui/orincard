@@ -12,6 +12,15 @@ export interface EditorState {
   readonly future: readonly CarouselDocument[];
 }
 
+export const EDITOR_HISTORY_LIMIT = 100;
+
+export function appendEditorHistory(
+  history: readonly CarouselDocument[],
+  document: CarouselDocument,
+): readonly CarouselDocument[] {
+  return [...history, document].slice(-EDITOR_HISTORY_LIMIT);
+}
+
 export function createEditorState(document: CarouselDocument): EditorState {
   return { document, past: [], future: [] };
 }
@@ -26,7 +35,7 @@ function commitDocument(
 
   return {
     document,
-    past: [...state.past, state.document],
+    past: appendEditorHistory(state.past, state.document),
     future: [],
   };
 }
@@ -149,7 +158,7 @@ function redoHistory(state: EditorState): EditorState {
 
   return {
     document: next,
-    past: [...state.past, state.document],
+    past: appendEditorHistory(state.past, state.document),
     future: state.future.slice(1),
   };
 }

@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { IDBFactory } from "fake-indexeddb";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import fixture from "../fixtures/base-document.json";
 import {
   MAX_SLIDE_COUNT,
@@ -13,8 +14,13 @@ import {
 import {
   Editor,
   reorderEditorState,
+  updateSupportingParagraph,
 } from "../../src/features/editor/editor";
 import { createEditorState } from "../../src/features/editor/reducer";
+import {
+  LocalDraftStore,
+  type DraftOwner,
+} from "../../src/features/editor/local-drafts";
 import EditorPage from "../../src/app/editor/[id]/page";
 
 function documentFixture(): CarouselDocument {
@@ -43,6 +49,138 @@ function filmstripOrder(container: HTMLElement): string[] {
 afterEach(cleanup);
 
 describe("Editor", () => {
+  it("initializes and loads before saving, then restores edits after remount", async () => {
+    const user = userEvent.setup();
+    const store = new LocalDraftStore({
+      indexedDB: new IDBFactory(),
+      databaseName: "editor-remount",
+    });
+    const owner: DraftOwner = { kind: "anonymous", sessionId: "session-remount" };
+    const first = render(
+      <Editor
+        draftId="local-remount"
+        draftOwner={owner}
+        draftStore={store}
+        initialDocument={documentFixture()}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("draft-status").textContent).toBe("Saved locally.");
+    });
+    await user.click(
+      screen.getByRole("button", {
+        name: "Slide 2: A carousel is not a chopped-up article.",
+      }),
+    );
+    await user.clear(screen.getByLabelText("Headline"));
+    await user.type(screen.getByLabelText("Headline"), "Recovered headline");
+    await waitFor(async () => {
+      expect((await store.loadDraft(owner, "local-remount"))?.document.slides[1].title)
+        .toBe("Recovered headline");
+    });
+    first.unmount();
+
+    render(
+      <Editor
+        draftId="local-remount"
+        draftOwner={owner}
+        draftStore={store}
+        initialDocument={documentFixture()}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Slide 2: Recovered headline" })).toBeTruthy();
+    });
+  });
+
+  it("isolates the same draft ID by session and reports unavailable persistence without blocking edits", async () => {
+    const user = userEvent.setup();
+    const store = new LocalDraftStore({
+      indexedDB: new IDBFactory(),
+      databaseName: "editor-session-isolation",
+    });
+    const firstOwner: DraftOwner = { kind: "anonymous", sessionId: "session-a" };
+    const secondOwner: DraftOwner = { kind: "anonymous", sessionId: "session-b" };
+    const firstDocument = documentFixture();
+    firstDocument.slides[1].title = "Only session A";
+    await store.saveDraft(firstOwner, "local-shared", parseCarouselDocument(firstDocument));
+
+    const isolated = render(
+      <Editor
+        draftId="local-shared"
+        draftOwner={secondOwner}
+        draftStore={store}
+        initialDocument={documentFixture()}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Slide 2: Only session A" })).toBeNull();
+      expect(screen.getByTestId("draft-status").textContent).toBe("Saved locally.");
+    });
+    isolated.unmount();
+
+    render(
+      <Editor
+        draftId="local-unavailable"
+        draftStore={null}
+        initialDocument={documentFixture()}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("draft-status").textContent).toContain(
+        "Local draft unavailable",
+      );
+    });
+    await user.clear(screen.getByLabelText("Headline"));
+    await user.type(screen.getByLabelText("Headline"), "Still editable");
+    expect(screen.getByRole("heading", { name: "Still editable" })).toBeTruthy();
+  });
+
+  it("edits only the explicit paragraph while preserving other blocks and source references", () => {
+    const slide = structuredClone(documentFixture().slides[1]);
+    slide.bodyBlocks = [
+      {
+        kind: "bullets",
+        items: ["Keep this bullet"],
+        sourceRefs: [{
+          sourceId: "local-source",
+          segmentId: "local-segment",
+          kind: "paraphrase",
+        }],
+      },
+      {
+        kind: "paragraph",
+        text: "Original paragraph",
+        emphasisRanges: [{ start: 0, end: 8 }],
+        sourceRefs: [{
+          sourceId: "local-source",
+          segmentId: "local-paragraph",
+          kind: "paraphrase",
+        }],
+      },
+      {
+        kind: "quote",
+        text: "Keep this quote",
+        attribution: "Source",
+        sourceRefs: [{
+          sourceId: "local-source",
+          segmentId: "local-quote",
+          kind: "quote",
+        }],
+      },
+    ];
+
+    const updated = updateSupportingParagraph(slide, "Short");
+
+    expect(updated.bodyBlocks[0]).toEqual(slide.bodyBlocks[0]);
+    expect(updated.bodyBlocks[2]).toEqual(slide.bodyBlocks[2]);
+    expect(updated.bodyBlocks[1]).toEqual({
+      ...slide.bodyBlocks[1],
+      text: "Short",
+      emphasisRanges: [{ start: 0, end: 5 }],
+    });
+  });
+
   it("edits eyebrow, headline, supporting copy and CTA on only the selected slide", async () => {
     const user = userEvent.setup();
     const document = documentFixture();
@@ -90,10 +228,47 @@ describe("Editor", () => {
         mimeType: "image/png",
         rightsStatus: "user_asserted",
       },
+      {
+        id: "local-asset-02",
+        kind: "upload",
+        mimeType: "image/png",
+        rightsStatus: "user_asserted",
+      },
+      {
+        id: "local-asset-03",
+        kind: "upload",
+        mimeType: "image/png",
+        rightsStatus: "user_asserted",
+      },
     ];
+    document.slides[1].assetSlots = [
+      {
+        slotId: "primary",
+        assetId: "local-asset-01",
+        fit: "cover",
+        crop: { x: 0, y: 0, width: 1, height: 1 },
+        opacity: 1,
+        alt: "Notebook",
+      },
+      {
+        slotId: "secondary",
+        assetId: "local-asset-02",
+        fit: "contain",
+        crop: { x: 0, y: 0, width: 1, height: 1 },
+        opacity: 0.7,
+        alt: "Second image",
+      },
+    ];
+    const store = new LocalDraftStore({
+      indexedDB: new IDBFactory(),
+      databaseName: "editor-image-slots",
+    });
+    const owner: DraftOwner = { kind: "anonymous", sessionId: "session-images" };
     const { container } = render(
       <Editor
         draftId="local-image-test"
+        draftOwner={owner}
+        draftStore={store}
         initialDocument={parseCarouselDocument(document)}
         assets={{
           "local-asset-01": {
@@ -101,6 +276,12 @@ describe("Editor", () => {
             src: "data:image/png;base64,iVBORw0KGgo=",
             state: "ready",
             alt: "Notebook",
+          },
+          "local-asset-03": {
+            id: "local-asset-03",
+            src: "data:image/png;base64,iVBORw0KGgo=",
+            state: "ready",
+            alt: "Replacement",
           },
         }}
       />,
@@ -121,14 +302,25 @@ describe("Editor", () => {
     }
 
     await user.click(screen.getByRole("radio", { name: "Text + image" }));
-    await user.selectOptions(screen.getByLabelText("Image slot"), "local-asset-01");
+    await user.selectOptions(screen.getByLabelText("Image slot"), "local-asset-03");
     await user.clear(screen.getByLabelText("Image alt text"));
     await user.type(screen.getByLabelText("Image alt text"), "Open notebook");
     expect(
       container.querySelector<HTMLImageElement>(
-        '[data-slide-id="local-slide-02"] img[data-asset-id="local-asset-01"]',
+        '[data-slide-id="local-slide-02"] img[data-asset-id="local-asset-03"]',
       )?.alt,
     ).toBe("Open notebook");
+    await waitFor(async () => {
+      const saved = await store.loadDraft(owner, "local-image-test");
+      expect(saved?.document.slides[1].assetSlots).toEqual([
+        expect.objectContaining({
+          slotId: "primary",
+          assetId: "local-asset-03",
+          alt: "Open notebook",
+        }),
+        document.slides[1].assetSlots[1],
+      ]);
+    });
 
     await user.click(screen.getByRole("button", { name: "Slide 3: Lead with the conclusion" }));
     expect((screen.getByRole("radio", { name: "Text" }) as HTMLInputElement).checked).toBe(true);
@@ -174,20 +366,74 @@ describe("Editor", () => {
     expect(addedOrder.at(-1)).toBe(originalOrder.at(-1));
   });
 
-  it("uses the same reorder result for the dnd target path and keyboard move button", async () => {
+  it("activates dnd-kit KeyboardSensor and matches the explicit move path without crossing boundaries", async () => {
     const user = userEvent.setup();
     const document = documentFixture();
+    const slideIds = document.slides.map((slide) => slide.id);
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      function getBoundingClientRect(this: HTMLElement) {
+        const item = this.closest<HTMLElement>("[data-editor-slide-id]");
+        const index = item ? slideIds.indexOf(item.dataset.editorSlideId!) : 0;
+        const top = Math.max(0, index) * 100;
+        return {
+          bottom: top + 80,
+          height: 80,
+          left: 0,
+          right: 100,
+          top,
+          width: 100,
+          x: 0,
+          y: top,
+          toJSON: () => undefined,
+        };
+      },
+    );
     const expected = reorderEditorState(
       createEditorState(document),
       "local-slide-04",
       "local-slide-03",
     ).document.slides.map((slide) => slide.id);
-    const { container } = render(
+    const keyboardView = render(
       <Editor draftId="local-order" initialDocument={document} />,
     );
 
+    const dragHandle = screen.getByRole("button", { name: "Drag slide 4" });
+    dragHandle.focus();
+    fireEvent.keyDown(dragHandle, { code: "Space", key: " " });
+    await waitFor(() => {
+      expect(globalThis.document.body.textContent).toContain(
+        "Draggable item local-slide-04",
+      );
+    });
+    fireEvent.keyDown(globalThis.document, { code: "ArrowUp", key: "ArrowUp" });
+    fireEvent.keyDown(globalThis.document, { code: "Space", key: " " });
+    await waitFor(() => {
+      expect(filmstripOrder(keyboardView.container)).toEqual(expected);
+    });
+    const keyboardOrder = filmstripOrder(keyboardView.container);
+    expect(filmstripOrder(keyboardView.container)[0]).toBe("local-slide-01");
+    expect(filmstripOrder(keyboardView.container).at(-1)).toBe("local-slide-06");
+    keyboardView.unmount();
+
+    const explicitView = render(
+      <Editor draftId="local-order-buttons" initialDocument={document} />,
+    );
     await user.click(screen.getByRole("button", { name: "Move slide 4 up" }));
-    expect(filmstripOrder(container)).toEqual(expected);
+    expect(filmstripOrder(explicitView.container)).toEqual(keyboardOrder);
+  });
+
+  it("declares the approved desktop columns and a single-column canvas-first breakpoint", () => {
+    const { container } = render(
+      <Editor draftId="local-layout" initialDocument={documentFixture()} />,
+    );
+    const layout = container.querySelector("style[data-editor-layout]")?.textContent ?? "";
+
+    expect(layout).toContain("grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) minmax(0, 0.8fr)");
+    expect(layout).toContain("@media (max-width: 1000px)");
+    expect(layout).toContain("grid-template-columns: minmax(0, 1fr)");
+    expect(layout).toContain(".editor-canvas { grid-column: 1; grid-row: 1; }");
+    expect(layout).toContain(".editor-content { grid-column: 1; grid-row: 2; }");
+    expect(layout).toContain(".editor-controls { grid-column: 1; grid-row: 3; }");
   });
 });
 
