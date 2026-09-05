@@ -494,6 +494,86 @@ export function Editor({
         .editor-content { grid-column: 1; grid-row: 1; }
         .editor-canvas { grid-column: 2; grid-row: 1; min-width: 0; }
         .editor-controls { grid-column: 3; grid-row: 1; min-width: 0; }
+        .editor-workbench .field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          color: var(--muted);
+          font-size: 13px;
+        }
+        .editor-workbench .input,
+        .editor-workbench .textarea,
+        .editor-workbench .select {
+          width: 100%;
+          padding: 9px 13px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          background: var(--surface);
+          color: var(--fg);
+          font: inherit;
+          font-size: 14px;
+        }
+        .editor-workbench .textarea {
+          min-height: 82px;
+          resize: vertical;
+          line-height: 1.5;
+        }
+        .editor-workbench .input:focus,
+        .editor-workbench .textarea:focus,
+        .editor-workbench .select:focus {
+          outline: none;
+          border-color: var(--focus);
+          box-shadow: 0 0 0 3px var(--focus-soft);
+        }
+        .editor-workbench fieldset {
+          min-width: 0;
+          margin: 0;
+          padding: 12px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+        }
+        .editor-workbench legend {
+          padding-inline: 5px;
+          color: var(--muted);
+          font-size: 12px;
+        }
+        .editor-filmstrip {
+          display: flex;
+          gap: 10px;
+          margin: 0;
+          padding: 0 0 6px;
+          overflow-x: auto;
+          list-style: none;
+        }
+        .theme-panel,
+        .theme-panel__themes,
+        .theme-panel__platforms {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .theme-panel { flex-direction: column; gap: 14px; }
+        .theme-panel__option,
+        .theme-panel__platforms label {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          color: var(--fg);
+          font-size: 13px;
+        }
+        .theme-panel__option [data-theme-preview] {
+          width: 14px;
+          height: 14px;
+          border: 1px solid var(--fg-line);
+          border-radius: 50%;
+          background: var(--tpl-paper-bg);
+        }
+        .theme-panel__option [data-theme-preview="ink"] { background: var(--tpl-ink-bg); }
+        .theme-panel__option [data-theme-preview="signal"] { background: var(--tpl-signal-bg); }
+        .theme-panel__option [data-theme-preview="blush"] { background: var(--tpl-blush-bg); }
+        .theme-panel__option [data-theme-preview="butter"] { background: var(--tpl-butter-bg); }
+        .theme-panel__option [data-theme-preview="sky"] { background: var(--tpl-sky-bg); }
+        .theme-panel [role="status"] p { margin: 0; color: var(--muted); font-size: 12px; }
         @media (max-width: 1000px) {
           .editor-workbench { grid-template-columns: minmax(0, 1fr); }
           .editor-canvas { grid-column: 1; grid-row: 1; }
@@ -596,7 +676,7 @@ export function Editor({
                 >
                   <ol
                     aria-label="Slides"
-                    style={{ display: "grid", gap: 8, listStyle: "none", margin: 0, padding: 0 }}
+                    className="editor-filmstrip"
                   >
                     {state.document.slides.map((slide, index) => (
                       <SlidePanel

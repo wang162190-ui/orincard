@@ -49,6 +49,7 @@ export function SlidePanel({
     border: "1px solid var(--border)",
     borderRadius: "var(--radius)",
     display: "grid",
+    flex: "0 0 248px",
     gap: 8,
     gridTemplateColumns: "auto minmax(0, 1fr) auto",
     opacity: sortable.isDragging ? 0.55 : 1,
