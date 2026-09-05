@@ -1,19 +1,21 @@
 import { afterEach } from "vitest";
 
+type TestEnvironment = Readonly<Record<string, string | undefined>>;
+
 afterEach(() => {
   delete process.env.RUN_CLOUD_PROBES;
 });
 
 export function missingCloudKeys(
   keys: readonly string[],
-  environment: NodeJS.ProcessEnv = process.env,
+  environment: TestEnvironment = process.env,
 ): string[] {
   return keys.filter((key) => !environment[key]?.trim());
 }
 
 export function requireCloudProbe(
   keys: readonly string[],
-  environment: NodeJS.ProcessEnv = process.env,
+  environment: TestEnvironment = process.env,
 ): void {
   if (environment.RUN_CLOUD_PROBES !== "1") {
     throw new Error("Cloud probes are disabled. Set RUN_CLOUD_PROBES=1 only for an isolated development environment.");
