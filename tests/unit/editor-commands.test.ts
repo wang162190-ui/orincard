@@ -15,6 +15,7 @@ import {
   undo,
 } from "../../src/features/editor/commands";
 import {
+  EDITOR_HISTORY_LIMIT,
   createEditorState,
   editorReducer,
 } from "../../src/features/editor/reducer";
@@ -210,5 +211,30 @@ describe("editor slide commands", () => {
     expect(replacement.document.slides.map((slide) => slide.id)).not.toContain(
       "local-first",
     );
+  });
+
+  it("keeps only the latest 100 documents in commit and redo history", () => {
+    const document = createDocument();
+    let state = createEditorState(document);
+
+    for (let index = 0; index <= EDITOR_HISTORY_LIMIT; index += 1) {
+      state = editorReducer(
+        state,
+        moveSlide("local-slide-03", index % 2 === 0 ? 1 : 2),
+      );
+    }
+
+    expect(state.past).toHaveLength(EDITOR_HISTORY_LIMIT);
+    expect(state.past[0]).not.toBe(document);
+
+    const redone = editorReducer(
+      {
+        document: state.document,
+        past: Array.from({ length: EDITOR_HISTORY_LIMIT }, () => document),
+        future: [state.past.at(-1)!],
+      },
+      redo(),
+    );
+    expect(redone.past).toHaveLength(EDITOR_HISTORY_LIMIT);
   });
 });
