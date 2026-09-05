@@ -21,45 +21,55 @@ export function AuthForm({ mode }: { readonly mode: AuthMode }) {
     setNotice(null);
     setPending(true);
 
-    const form = new FormData(event.currentTarget);
-    const email = String(form.get("email") ?? "").trim().toLowerCase();
-    const password = String(form.get("password") ?? "");
-    const client = createBrowserSupabaseClient();
-    const result = isSignup
-      ? await client.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=%2F`,
-          },
-        })
-      : await client.auth.signInWithPassword({ email, password });
+    try {
+      const form = new FormData(event.currentTarget);
+      const email = String(form.get("email") ?? "").trim().toLowerCase();
+      const password = String(form.get("password") ?? "");
+      const client = createBrowserSupabaseClient();
+      const result = isSignup
+        ? await client.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/callback?next=%2F`,
+            },
+          })
+        : await client.auth.signInWithPassword({ email, password });
 
-    setPending(false);
-    if (result.error) {
-      setError(result.error.message);
-      return;
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+      if (isSignup && !result.data.session) {
+        setNotice("Check your email to confirm your account, then sign in.");
+        return;
+      }
+      router.replace("/");
+      router.refresh();
+    } catch {
+      setError("Authentication is temporarily unavailable. Please try again.");
+    } finally {
+      setPending(false);
     }
-    if (isSignup && !result.data.session) {
-      setNotice("Check your email to confirm your account, then sign in.");
-      return;
-    }
-    router.replace("/");
-    router.refresh();
   }
 
   async function continueWithGoogle() {
     setError(null);
     setPending(true);
-    const client = createBrowserSupabaseClient();
-    const result = await client.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=%2F`,
-      },
-    });
-    if (result.error) {
-      setError(result.error.message);
+    try {
+      const client = createBrowserSupabaseClient();
+      const result = await client.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=%2F`,
+        },
+      });
+      if (result.error) {
+        setError(result.error.message);
+      }
+    } catch {
+      setError("Google sign in is temporarily unavailable. Please try again.");
+    } finally {
       setPending(false);
     }
   }

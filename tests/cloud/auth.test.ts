@@ -132,11 +132,31 @@ cloud("T021 real development Supabase", () => {
     expect(signedIn.error).toBeNull();
     expect(signedIn.data.user?.email).toBe(email);
 
+    const malformed = await client.auth.signInWithPassword({
+      email: "not-an-email",
+      password,
+    });
+    expect(malformed.error).not.toBeNull();
+
     const rejected = await client.auth.signInWithPassword({
       email,
       password: `${password}-invalid`,
     });
     expect(rejected.error).not.toBeNull();
+
+    const expiredPayload = Buffer.from(
+      JSON.stringify({ aud: "authenticated", exp: 1, sub: "expired-test-user" }),
+    ).toString("base64url");
+    const expiredToken = [
+      Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString(
+        "base64url",
+      ),
+      expiredPayload,
+      "invalid-signature",
+    ].join(".");
+    const expired = await client.auth.getUser(expiredToken);
+    expect(expired.error).not.toBeNull();
+    expect(expired.data.user).toBeNull();
     await client.auth.signOut({ scope: "local" });
   });
 });
