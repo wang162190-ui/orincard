@@ -107,27 +107,34 @@ function VisualAsset({ input }: { readonly input: SlideRenderInput }) {
     return null;
   }
 
-  const images = input.slide.assetSlots.map((slot, index) => {
+  const slots = input.slide.assetSlots.map((slot, index) => {
     const asset = input.assets[slot.assetId];
-    return asset && asset.state !== "failed" ? (
-      <SlideImage asset={asset} key={`${slot.slotId}-${index}`} slot={slot} />
-    ) : (
+    return (
       <div
-        className="orincard-slide__asset-placeholder"
+        className="orincard-slide__asset-slot"
         data-slot-id={slot.slotId}
         key={`${slot.slotId}-${index}`}
-        role="status"
+        style={{ gridColumn: index + 1, gridRow: 1 }}
       >
-        Image required
+        {asset && asset.state !== "failed" ? (
+          <SlideImage asset={asset} slot={slot} />
+        ) : (
+          <div className="orincard-slide__asset-placeholder" role="status">
+            Image required
+          </div>
+        )}
       </div>
     );
   });
+  const gridStyle = slots.length > 0
+    ? { gridTemplateColumns: `repeat(${slots.length}, minmax(0, 1fr))` }
+    : undefined;
 
   if (input.slide.mode === "image") {
     return (
-      <div className="orincard-slide__bleed">
-        {images.length > 0 ? (
-          images
+      <div className="orincard-slide__bleed" style={gridStyle}>
+        {slots.length > 0 ? (
+          slots
         ) : (
           <div className="orincard-slide__asset-placeholder" role="status">
             Image required
@@ -139,14 +146,18 @@ function VisualAsset({ input }: { readonly input: SlideRenderInput }) {
 
   if (input.slide.mode === "screenshot") {
     return (
-      <div className="orincard-slide__screenshot">
-        <div className="orincard-slide__screenshot-bar" aria-hidden="true">
+      <div className="orincard-slide__screenshot" style={gridStyle}>
+        <div
+          className="orincard-slide__screenshot-bar"
+          aria-hidden="true"
+          style={{ gridColumn: "1 / -1" }}
+        >
           <i />
           <i />
           <i />
         </div>
-        {images.length > 0 ? (
-          images
+        {slots.length > 0 ? (
+          slots
         ) : (
           <div className="orincard-slide__asset-placeholder" role="status">
             Image required
@@ -157,9 +168,9 @@ function VisualAsset({ input }: { readonly input: SlideRenderInput }) {
   }
 
   return input.slide.mode === "text_image" ? (
-    <div className="orincard-slide__figure">
-      {images.length > 0 ? (
-        images
+    <div className="orincard-slide__figure" style={gridStyle}>
+      {slots.length > 0 ? (
+        slots
       ) : (
         <div className="orincard-slide__asset-placeholder" role="status">
           Image required
@@ -274,7 +285,13 @@ export function SlideRenderer({ input }: { readonly input: SlideRenderInput }) {
     >
       <span className="orincard-slide__background" aria-hidden="true" />
       {slide.mode === "image" ? <VisualAsset input={input} /> : null}
-      {slide.mode === "image" ? <div className="orincard-slide__veil" aria-hidden="true" /> : null}
+      {slide.mode === "image" ? (
+        <div
+          className="orincard-slide__veil"
+          aria-hidden="true"
+          style={{ opacity: theme.background.opacity }}
+        />
+      ) : null}
       {theme.background.shape ? <span className="orincard-slide__shape" aria-hidden="true" /> : null}
       {slide.counterVisible && theme.counterStyle !== "none" ? (
         <span className="orincard-slide__counter" data-slide-content>
