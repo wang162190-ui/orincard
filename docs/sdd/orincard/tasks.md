@@ -108,7 +108,7 @@
 
 ## B03
 
-- [ ] T015 `src/server/supabase.ts`, `src/features/auth/client.ts`, `src/server/environment.ts`, `tests/unit/environment.test.ts`, `tests/db/client.ts` — 建立Supabase客户端与环境校验 → AC-007, AC-008
+- [x] T015 `src/server/supabase.ts`, `src/features/auth/client.ts`, `src/server/environment.ts`, `tests/unit/environment.test.ts`, `tests/db/client.ts` — 建立Supabase客户端与环境校验 → AC-007, AC-008
   - Batch: B03
   - Depends: T014
   - Check: `pnpm exec vitest run tests/unit/environment.test.ts`
