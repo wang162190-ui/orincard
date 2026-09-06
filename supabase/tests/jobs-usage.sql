@@ -1,6 +1,6 @@
 begin;
 set local search_path = extensions, public, pg_catalog;
-select plan(39);
+select plan(45);
 
 select has_table('public', 'jobs', 'jobs table exists');
 select has_table('public', 'usage_accounts', 'usage_accounts table exists');
@@ -67,13 +67,16 @@ select throws_ok(
 select lives_ok($$select private.register_cost_attempt((select id from public.jobs where idempotency_key = 'submit-1'), 'job:submit-1:write:1')$$, 'a provider attempt is recorded before sending');
 select lives_ok($$select private.register_cost_attempt((select id from public.jobs where idempotency_key = 'submit-1'), 'job:submit-1:write:1')$$, 'provider attempt replay is idempotent');
 select results_eq($$select count(*)::bigint from private.cost_attempts$$, array[1::bigint], 'attempt replay creates one row');
+select lives_ok($$select private.settle_cost_attempt((select id from public.jobs where idempotency_key = 'submit-1'), 'job:submit-1:write:1', 'provider-operation-1', '{"inputTokens":10,"outputTokens":20}'::jsonb, 150)$$, 'a provider attempt records its actual cost');
+select lives_ok($$select private.settle_cost_attempt((select id from public.jobs where idempotency_key = 'submit-1'), 'job:submit-1:write:1', 'provider-operation-1', '{"inputTokens":10,"outputTokens":20}'::jsonb, 150)$$, 'the same attempt settlement replays idempotently');
+select results_eq($$select state, actual_micro_usd from private.cost_attempts where attempt_key = 'job:submit-1:write:1'$$, $$values ('settled'::private.cost_attempt_state, 150::bigint)$$, 'attempt audit stores a settled actual amount');
 select lives_ok($$select private.request_job_cancellation('51111111-1111-1111-1111-111111111111', (select id from public.jobs where idempotency_key = 'submit-1'))$$, 'cancel request is persisted');
 select ok((select cancel_requested_at is not null from public.jobs where idempotency_key = 'submit-1'), 'cancel_requested_at is durable');
-select lives_ok($$select private.finalize_job('51111111-1111-1111-1111-111111111111', (select id from public.jobs where idempotency_key = 'submit-1'), null, 'succeeded', '{"candidate":"safe-id"}'::jsonb, null, 0, 10, 'job:submit-1:terminal')$$, 'cancel wins over a later success callback');
+select lives_ok($$select private.finalize_job('51111111-1111-1111-1111-111111111111', (select id from public.jobs where idempotency_key = 'submit-1'), null, 'succeeded', '{"candidate":"safe-id"}'::jsonb, null, 0, 150, 'job:submit-1:terminal')$$, 'cancel wins over a later success callback');
 select results_eq($$select reserved, consumed from public.usage_accounts where owner_id = '51111111-1111-1111-1111-111111111111'$$, $$values (0::bigint, 0::bigint)$$, 'canceled delivery releases product quota');
-select results_eq($$select reserved_micro_usd, spent_micro_usd from private.cost_budgets where environment = 'development'$$, $$values (0::bigint, 10::bigint)$$, 'actual provider cost remains recorded after cancellation');
+select results_eq($$select reserved_micro_usd, spent_micro_usd from private.cost_budgets where environment = 'development'$$, $$values (0::bigint, 150::bigint)$$, 'actual provider cost above the estimate is still recorded after cancellation');
 select results_eq($$select state from public.jobs where idempotency_key = 'submit-1'$$, array['canceled'::public.job_state], 'canceled terminal state is stored');
-select lives_ok($$select private.finalize_job('51111111-1111-1111-1111-111111111111', (select id from public.jobs where idempotency_key = 'submit-1'), null, 'succeeded', '{"candidate":"safe-id"}'::jsonb, null, 0, 10, 'job:submit-1:terminal')$$, 'duplicate finalize does not consume twice');
+select lives_ok($$select private.finalize_job('51111111-1111-1111-1111-111111111111', (select id from public.jobs where idempotency_key = 'submit-1'), null, 'succeeded', '{"candidate":"safe-id"}'::jsonb, null, 0, 150, 'job:submit-1:terminal')$$, 'duplicate finalize does not consume twice');
 select results_eq($$select count(*)::bigint from public.usage_ledger where job_id = (select id from public.jobs where idempotency_key = 'submit-1') and kind in ('settle', 'release')$$, array[1::bigint], 'duplicate finalize creates one terminal ledger event');
 
 select lives_ok(

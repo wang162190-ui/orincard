@@ -26,12 +26,15 @@ describe("jobs and usage database definition", () => {
     expect(sql).toMatch(/function private\.finalize_job\([\s\S]+for update/);
     expect(sql).toContain("cancel_requested_at = coalesce(cancel_requested_at, now())");
     expect(sql).toContain("on conflict (attempt_key) do nothing");
+    expect(sql).toMatch(/function private\.settle_cost_attempt\([\s\S]+state = 'settled'/);
+    expect(sql).toContain("greatest(reservation.reserved_micro_usd - p_actual_micro_usd, 0)");
     expect(sql).toContain("drop function if exists private.save_project");
     expect(sql).toMatch(/function private\.save_project\([\s\S]+private\.operation_receipts[\s\S]+and revision = p_expected_revision/);
     expect(sql).toContain("pg_advisory_xact_lock");
     expect(policyTests).toContain("duplicate submit returns the original job without a second reservation");
     expect(policyTests).toContain("same save receipt replays after revision advanced");
     expect(policyTests).toContain("duplicate finalize does not consume twice");
+    expect(policyTests).toContain("actual provider cost above the estimate is still recorded");
     expect(policyTests).toContain("concurrent reservations cannot overdraw an account");
     expect(policyTests).toContain("select * from finish(true)");
   });
