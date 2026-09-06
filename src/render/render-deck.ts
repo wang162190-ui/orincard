@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { prerender } from "react-dom/static";
 import { chromium } from "playwright";
 import {
   getPlatformDimensions,
@@ -12,7 +14,7 @@ import {
   SlideRenderer,
   type SlideRenderAsset,
 } from "./slide";
-import { loadVerifiedFont } from "./fonts";
+import fontManifestJson from "./font-manifest.json" with { type: "json" };
 
 export const BASIC_EXPORT_FORMATS = ["png_zip", "jpg_zip", "pdf"] as const;
 export type BasicExportFormat = (typeof BASIC_EXPORT_FORMATS)[number];
@@ -59,6 +61,33 @@ export type RenderDeckResult = {
   }[];
 };
 
+const require = createRequire(import.meta.url);
+
+async function loadExportFont(
+  id: string,
+  packageJsonPath: string,
+): Promise<{ readonly entry: { readonly style: string; readonly weight: string }; readonly bytes: Buffer }> {
+  const manifest = fontManifestJson as {
+    readonly fonts: readonly {
+      readonly id: string;
+      readonly packageVersion: string;
+      readonly file: string;
+      readonly sha256: string;
+      readonly style: string;
+      readonly weight: string;
+    }[];
+  };
+  const entry = manifest.fonts.find((font) => font.id === id);
+  if (!entry) throw new Error(`FONT_NOT_DECLARED: ${id}`);
+  const packageJson = JSON.parse(await readFile(packageJsonPath, "utf8")) as { readonly version?: string };
+  if (packageJson.version !== entry.packageVersion) throw new Error(`FONT_PACKAGE_VERSION_MISMATCH: ${id}`);
+  const bytes = await readFile(join(dirname(packageJsonPath), entry.file));
+  if (createHash("sha256").update(bytes).digest("hex") !== entry.sha256) {
+    throw new Error(`FONT_HASH_MISMATCH: ${id}`);
+  }
+  return { entry, bytes };
+}
+
 function assertLocalAssets(
   assets: Readonly<Record<string, SlideRenderAsset | undefined>>,
 ): void {
@@ -77,20 +106,20 @@ async function deckHtml(
 ): Promise<string> {
   const [slideCss, inter, serif, noto] = await Promise.all([
     readFile(new URL("./slide.css", import.meta.url), "utf8"),
-    loadVerifiedFont("inter-latin-variable"),
-    loadVerifiedFont("source-serif-4-latin-variable"),
-    loadVerifiedFont("noto-sans-sc-simplified-400"),
+    loadExportFont("inter-latin-variable", require.resolve("@fontsource-variable/inter/package.json")),
+    loadExportFont("source-serif-4-latin-variable", require.resolve("@fontsource-variable/source-serif-4/package.json")),
+    loadExportFont("noto-sans-sc-simplified-400", require.resolve("@fontsource/noto-sans-sc/package.json")),
   ]);
   const fontCss = [
     ["Inter Variable", inter],
     ["Source Serif 4 Variable", serif],
     ["Noto Sans SC", noto],
   ].map(([family, font]) => {
-    const loaded = font as Awaited<ReturnType<typeof loadVerifiedFont>>;
+    const loaded = font as Awaited<ReturnType<typeof loadExportFont>>;
     return `@font-face{font-family:${family};font-style:${loaded.entry.style};font-weight:${loaded.entry.weight};font-display:block;src:url(data:font/woff2;base64,${loaded.bytes.toString("base64")}) format("woff2")}`;
   }).join("\n");
-  const slides = document.slides.map((slide, index) =>
-    renderToStaticMarkup(
+  const slides = await Promise.all(document.slides.map(async (slide, index) => {
+    const { prelude } = await prerender(
       createElement(
         "section",
         { className: "orincard-export-page", "data-export-slide-id": slide.id },
@@ -106,8 +135,9 @@ async function deckHtml(
           },
         }),
       ),
-    ),
-  );
+    );
+    return new Response(prelude).text();
+  }));
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}
 .orincard-export-page{width:${width}px;height:${height}px;overflow:hidden;break-after:page;page-break-after:always}
