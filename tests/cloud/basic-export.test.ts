@@ -1,0 +1,144 @@
+import { readFile } from "node:fs/promises";
+import { describe, expect, it, vi } from "vitest";
+import type { CarouselDocument } from "../../src/domain/document";
+import {
+  renderDeck,
+  type DeckRenderDriver,
+} from "../../src/render/render-deck";
+import { packageBasicExport } from "../../src/server/export-package";
+import { validateExportTaskPayload } from "../../src/trigger/export";
+
+async function fixture(): Promise<CarouselDocument> {
+  return JSON.parse(
+    await readFile(
+      new URL("../fixtures/base-document.json", import.meta.url),
+      "utf8",
+    ),
+  ) as CarouselDocument;
+}
+
+describe("T034 basic visual export (AC-004, AC-006)", () => {
+  it("renders every fixed-revision slide in order at the platform dimensions", async () => {
+    const document = await fixture();
+    const driver: DeckRenderDriver = {
+      render: vi.fn(async ({ format, html, slides, width, height }) => ({
+        pages: format === "pdf"
+          ? []
+          : slides.map((slide, index) => ({
+              slideId: slide.id,
+              bytes: Buffer.from(`${format}:${index + 1}:${slide.id}`),
+            })),
+        pdf: format === "pdf" ? Buffer.from("%PDF-1.7 test") : undefined,
+        pdfPages: format === "pdf" ? slides.length : undefined,
+        inspectedHtml: html,
+        width,
+        height,
+      })),
+    };
+
+    const rendered = await renderDeck({
+      document,
+      assets: {},
+      formats: ["png_zip", "jpg_zip", "pdf"],
+      driver,
+    });
+
+    expect(driver.render).toHaveBeenCalledTimes(3);
+    expect(rendered.failures).toEqual([]);
+    expect(rendered.outputs.map((output) => output.format)).toEqual([
+      "png_zip",
+      "jpg_zip",
+      "pdf",
+    ]);
+    for (const output of rendered.outputs) {
+      expect(output.width).toBe(1080);
+      expect(output.height).toBe(1350);
+      expect(output.slideIds).toEqual(document.slides.map((slide) => slide.id));
+      expect(output.pageCount).toBe(document.slides.length);
+      expect(output.inspectedHtml).not.toContain("sourceText");
+    }
+  });
+
+  it("packages numbered image files and a PDF manifest without hidden source text", async () => {
+    const document = await fixture();
+    const image = await packageBasicExport({
+      format: "png_zip",
+      width: 1080,
+      height: 1350,
+      slideIds: document.slides.map((slide) => slide.id),
+      pages: document.slides.map((slide, index) => ({
+        slideId: slide.id,
+        bytes: Buffer.from(`real-page-${index + 1}`),
+      })),
+      documentHash: "a".repeat(64),
+      rendererVersion: "b04-v1",
+    });
+    const pdf = await packageBasicExport({
+      format: "pdf",
+      width: 1080,
+      height: 1350,
+      slideIds: document.slides.map((slide) => slide.id),
+      pdf: Buffer.from("%PDF-1.7 real-pdf"),
+      pdfPages: document.slides.length,
+      documentHash: "a".repeat(64),
+      rendererVersion: "b04-v1",
+    });
+
+    expect(image.filename).toBe("orincard-png.zip");
+    expect(image.manifest.files.map((file) => file.name)).toEqual(
+      document.slides.map((_, index) => `${String(index + 1).padStart(2, "0")}.png`),
+    );
+    expect(image.manifest.files.every((file) => /^[a-f0-9]{64}$/.test(file.sha256))).toBe(true);
+    expect(pdf.filename).toBe("orincard.pdf");
+    expect(pdf.manifest.pageCount).toBe(document.slides.length);
+    expect(JSON.stringify(image.manifest)).not.toContain(document.title);
+  });
+
+  it("keeps a failed format isolated and accepts only reference-only task payloads", async () => {
+    const document = await fixture();
+    const rendered = await renderDeck({
+      document,
+      assets: {},
+      formats: ["png_zip", "pdf"],
+      driver: {
+        async render(input) {
+          if (input.format === "pdf") throw new Error("PDF renderer unavailable");
+          return {
+            pages: input.slides.map((slide) => ({
+              slideId: slide.id,
+              bytes: Buffer.from(slide.id),
+            })),
+            width: input.width,
+            height: input.height,
+            inspectedHtml: input.html,
+          };
+        },
+      },
+    });
+
+    expect(rendered.outputs).toHaveLength(1);
+    expect(rendered.outputs[0]?.format).toBe("png_zip");
+    expect(rendered.failures).toEqual([
+      { format: "pdf", code: "RENDER_FAILED", retryable: true },
+    ]);
+    expect(
+      validateExportTaskPayload({
+        jobId: "11111111-1111-4111-8111-111111111111",
+        schemaVersion: 1,
+        requestId: "request-1",
+      }),
+    ).toEqual({
+      jobId: "11111111-1111-4111-8111-111111111111",
+      schemaVersion: 1,
+      requestId: "request-1",
+    });
+    expect(() =>
+      validateExportTaskPayload({
+        jobId: "11111111-1111-4111-8111-111111111111",
+        schemaVersion: 1,
+        requestId: "request-1",
+        document,
+      }),
+    ).toThrow("reference-only");
+  });
+});
