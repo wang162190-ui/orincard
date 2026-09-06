@@ -38,5 +38,6 @@ describe("server-only Data API RPC wrappers", () => {
       /function public\.server_create_project\([\s\S]+?p_idempotency_key text,[\s\S]+?p_request_hash text[\s\S]+?returns jsonb/,
     );
     expect(sql).toContain("operation_name := 'create_project'");
+    expect(sql).toContain("return null; -- retry CAS miss");
   });
 });
