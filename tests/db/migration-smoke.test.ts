@@ -7,6 +7,9 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 const migrationPath = fileURLToPath(
   new URL("../../supabase/migrations/20260906000100_walking_skeleton.sql", import.meta.url),
 );
+const privatePolicyMigrationPath = fileURLToPath(
+  new URL("../../supabase/migrations/20260906043000_private_deny_policies.sql", import.meta.url),
+);
 
 describe("walking skeleton migration", () => {
   it("is deterministic, complete and restricted to the development project", async () => {
@@ -17,8 +20,9 @@ describe("walking skeleton migration", () => {
     );
     expect(prepared.status, prepared.stderr).toBe(0);
 
-    const [migration, config] = await Promise.all([
+    const [migration, privatePolicyMigration, config] = await Promise.all([
       readFile(migrationPath, "utf8"),
+      readFile(privatePolicyMigrationPath, "utf8"),
       readFile(new URL("../../supabase/config.toml", import.meta.url), "utf8"),
     ]);
     const productionRejected = spawnSync(
@@ -41,6 +45,8 @@ describe("walking skeleton migration", () => {
     expect(migration).toContain("comment on table public.projects");
     expect(migration).toContain("comment on table public.assets");
     expect(migration).toContain("comment on table public.jobs");
+    expect(privatePolicyMigration.match(/for all to public/g)).toHaveLength(5);
+    expect(privatePolicyMigration.match(/using \(false\) with check \(false\)/g)).toHaveLength(5);
     expect(config).toContain("auto_expose_new_tables = false");
     expect(config).toContain("major_version = 17");
   });
