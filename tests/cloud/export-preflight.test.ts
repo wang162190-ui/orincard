@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it, vi } from "vitest";
 import type { CarouselDocument } from "../../src/domain/document";
+import { inspectDeckPreflight } from "../../src/render/render-deck";
 import {
   createPreflightPostHandler,
   evaluateProjectExportPreflight,
@@ -71,6 +72,32 @@ describe("T035 export preflight and history (AC-006, AC-007)", () => {
       }),
     ).rejects.toMatchObject({ code: "NOT_FOUND", status: 404 });
   });
+
+  it("uses trusted Chromium measurement to detect overflow on the authorized snapshot", async () => {
+    const document = await fixture();
+    const overflowing = structuredClone(document);
+    overflowing.slides[2]!.bodyBlocks = [{ kind: "paragraph", text: "Overflow ".repeat(2_000) }];
+    const measured = await inspectDeckPreflight({ document: overflowing, assets: {} });
+    const store: ExportPreflightStore = {
+      load: vi.fn().mockResolvedValue({
+        projectVersionId: "22222222-2222-4222-8222-222222222222",
+        revision: 7,
+        document: overflowing,
+        issues: measured.issues,
+      }),
+    };
+    const result = await evaluateProjectExportPreflight(store, {
+      ownerId: "owner-a",
+      projectId: "11111111-1111-4111-8111-111111111111",
+      expectedRevision: 7,
+      format: "pdf",
+      options: {},
+    });
+    expect(result.canExport).toBe(false);
+    expect(result.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "TEXT_OVERFLOW", slideId: overflowing.slides[2]!.id }),
+    ]));
+  }, 30_000);
 
   it("lists only the authenticated owner's history and marks expired artifacts", async () => {
     const list = vi.fn().mockResolvedValue([

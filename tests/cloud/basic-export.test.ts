@@ -3,6 +3,8 @@ import JSZip from "jszip";
 import { describe, expect, it, vi } from "vitest";
 import type { CarouselDocument } from "../../src/domain/document";
 import {
+  countPdfPages,
+  inspectDeckPreflight,
   renderDeck,
   type DeckRenderDriver,
   type DeckRenderDriverInput,
@@ -39,6 +41,10 @@ describe("T034 basic visual export (AC-004, AC-006)", () => {
     expect(png?.pages[0]?.bytes.readUInt32BE(20)).toBe(1350);
     expect(jpg?.pages[0]?.bytes.subarray(0, 2)).toEqual(Buffer.from([0xff, 0xd8]));
     expect(pdf?.pdf?.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+    expect(countPdfPages(pdf!.pdf!)).toBe(document.slides.length);
+    expect(png?.inspectedHtml).toContain("@font-face");
+    expect(png?.inspectedHtml).toContain("font-family:Inter Variable");
+    expect(png?.inspectedHtml).toContain("font-family:Source Serif 4 Variable");
 
     const packaged = await packageBasicExport({
       ...png!,
@@ -49,6 +55,20 @@ describe("T034 basic visual export (AC-004, AC-006)", () => {
       ...document.slides.map((_, index) => `${String(index + 1).padStart(2, "0")}.png`),
       "manifest.json",
     ]);
+  }, 30_000);
+
+  it("runs real font, image, and text measurements before rendering", async () => {
+    const document = await fixture();
+    const overflowing = structuredClone(document);
+    overflowing.slides[1]!.bodyBlocks = [{
+      kind: "paragraph",
+      text: "Long content ".repeat(2_000),
+    }];
+    const result = await inspectDeckPreflight({ document: overflowing, assets: {} });
+    expect(result.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "TEXT_OVERFLOW", slideId: overflowing.slides[1]!.id }),
+    ]));
+    expect(result.issues.some((issue) => issue.code === "FONT_NOT_READY")).toBe(false);
   }, 30_000);
 
   it("renders every fixed-revision slide in order at the platform dimensions", async () => {
