@@ -266,20 +266,22 @@ begin
     raise exception using errcode = '42501', message = 'job is not accessible';
   end if;
 
-  if target.state in ('pending_dispatch', 'queued', 'running')
-    and target.cancel_requested_at is null
-    and target.provider_run_id is not distinct from p_expected_provider_run_id
-    and target.attempt < 3 then
-    update public.jobs
-    set attempt = attempt + 1,
-        state = 'pending_dispatch',
-        heartbeat_at = null,
-        lease_token = null,
-        error_code = null,
-        updated_at = now()
-    where id = p_job_id
-    returning * into target;
+  if target.state not in ('queued', 'running')
+    or target.cancel_requested_at is not null
+    or target.provider_run_id is distinct from p_expected_provider_run_id
+    or target.attempt >= 3 then
+    return null; -- retry CAS miss
   end if;
+
+  update public.jobs
+  set attempt = attempt + 1,
+      state = 'pending_dispatch',
+      heartbeat_at = null,
+      lease_token = null,
+      error_code = null,
+      updated_at = now()
+  where id = p_job_id
+  returning * into target;
 
   return target;
 end;
