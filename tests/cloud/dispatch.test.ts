@@ -6,6 +6,7 @@ import {
   type JobStore,
   type TriggerDispatcher,
 } from "../../src/server/jobs";
+import { validateJobDispatchPayload } from "../../src/trigger/job-dispatch";
 
 const pendingJob: JobRecord = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -58,6 +59,28 @@ function store(initial: JobRecord): JobStore & { current: JobRecord } {
 }
 
 describe("T024 outbox dispatch", () => {
+  it("registers a worker handoff with a strict, reference-only payload", () => {
+    expect(
+      validateJobDispatchPayload({
+        jobId: pendingJob.id,
+        schemaVersion: 1,
+        requestId: "request-1",
+      }),
+    ).toEqual({
+      jobId: pendingJob.id,
+      schemaVersion: 1,
+      requestId: "request-1",
+    });
+    expect(() =>
+      validateJobDispatchPayload({
+        jobId: pendingJob.id,
+        schemaVersion: 1,
+        requestId: "request-1",
+        sourceText: "must not enter the task payload",
+      }),
+    ).toThrow("payload");
+  });
+
   it("uses the job ID as the idempotency key and persists only the run handle", async () => {
     const jobs = store(pendingJob);
     const trigger: TriggerDispatcher = {
