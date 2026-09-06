@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
+import JSZip from "jszip";
 import { describe, expect, it, vi } from "vitest";
 import type { CarouselDocument } from "../../src/domain/document";
 import {
   renderDeck,
   type DeckRenderDriver,
+  type DeckRenderDriverInput,
 } from "../../src/render/render-deck";
 import { packageBasicExport } from "../../src/server/export-package";
 import { validateExportTaskPayload } from "../../src/trigger/export";
@@ -18,10 +20,41 @@ async function fixture(): Promise<CarouselDocument> {
 }
 
 describe("T034 basic visual export (AC-004, AC-006)", () => {
+  it("produces real PNG, JPG, and PDF bytes with local Chromium", async () => {
+    const document = await fixture();
+    const rendered = await renderDeck({
+      document,
+      assets: {},
+      formats: ["png_zip", "jpg_zip", "pdf"],
+    });
+
+    expect(rendered.failures).toEqual([]);
+    const png = rendered.outputs.find((output) => output.format === "png_zip");
+    const jpg = rendered.outputs.find((output) => output.format === "jpg_zip");
+    const pdf = rendered.outputs.find((output) => output.format === "pdf");
+    expect(png?.pages[0]?.bytes.subarray(0, 8)).toEqual(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
+    expect(png?.pages[0]?.bytes.readUInt32BE(16)).toBe(1080);
+    expect(png?.pages[0]?.bytes.readUInt32BE(20)).toBe(1350);
+    expect(jpg?.pages[0]?.bytes.subarray(0, 2)).toEqual(Buffer.from([0xff, 0xd8]));
+    expect(pdf?.pdf?.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+
+    const packaged = await packageBasicExport({
+      ...png!,
+      rendererVersion: "b04-v1",
+    });
+    const zip = await JSZip.loadAsync(packaged.bytes);
+    expect(Object.keys(zip.files).sort()).toEqual([
+      ...document.slides.map((_, index) => `${String(index + 1).padStart(2, "0")}.png`),
+      "manifest.json",
+    ]);
+  }, 30_000);
+
   it("renders every fixed-revision slide in order at the platform dimensions", async () => {
     const document = await fixture();
     const driver: DeckRenderDriver = {
-      render: vi.fn(async ({ format, html, slides, width, height }) => ({
+      render: vi.fn(async ({ format, html, slides, width, height }: DeckRenderDriverInput) => ({
         pages: format === "pdf"
           ? []
           : slides.map((slide, index) => ({
