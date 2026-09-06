@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { readServerEnvironment } from "@/server/environment";
+import { assertTrustedWriteRequest } from "@/server/projects";
 import { createServerSupabaseClient, requireVerifiedUser } from "@/server/supabase";
 
 export class ExportDownloadError extends Error {
   constructor(
-    readonly code: "AUTH_REQUIRED" | "NOT_FOUND" | "EXPORT_EXPIRED" | "SERVICE_UNAVAILABLE",
+    readonly code: "INVALID_REQUEST" | "AUTH_REQUIRED" | "NOT_FOUND" | "EXPORT_EXPIRED" | "SERVICE_UNAVAILABLE",
     message: string,
     readonly status: number,
     readonly retryable = false,
@@ -16,10 +18,13 @@ export class ExportDownloadError extends Error {
 }
 
 export interface ExportDownloadStore {
-  open(ownerId: string, exportId: string, now: Date): Promise<{
-    readonly bytes: Buffer;
+  authorize(ownerId: string, exportId: string, now: Date): Promise<{
+    readonly bucket: "exports";
+    readonly objectPath: string;
+    readonly bytes: number;
     readonly mime: string;
     readonly filename: string;
+    readonly expiresAt: string;
   }>;
 }
 
@@ -29,28 +34,33 @@ function safeFilename(value: string): string {
 
 export function createAuthorizedDownloadHandler(dependencies: {
   readonly authenticate: () => Promise<string>;
+  readonly assertOrigin: (request: Request) => void;
   readonly store: ExportDownloadStore;
   readonly now?: () => Date;
+  readonly maxClientBytes?: number;
 }) {
-  return async (exportId: string) => {
+  return async (request: Request, exportId: string) => {
     const requestId = randomUUID();
     try {
+      dependencies.assertOrigin(request);
       let ownerId: string;
       try {
         ownerId = await dependencies.authenticate();
       } catch {
         throw new ExportDownloadError("AUTH_REQUIRED", "Sign in to download exports.", 401);
       }
-      const artifact = await dependencies.store.open(ownerId, exportId, dependencies.now?.() ?? new Date());
-      return new Response(new Uint8Array(artifact.bytes), {
-        status: 200,
-        headers: {
-          "Cache-Control": "private, no-store",
-          "Content-Type": artifact.mime,
-          "Content-Disposition": `attachment; filename="${safeFilename(artifact.filename)}"`,
-          "X-Content-Type-Options": "nosniff",
+      const artifact = await dependencies.store.authorize(ownerId, exportId, dependencies.now?.() ?? new Date());
+      return Response.json(
+        {
+          data: {
+            ...artifact,
+            filename: safeFilename(artifact.filename),
+            maxClientBytes: dependencies.maxClientBytes ?? 50 * 1024 * 1024,
+          },
+          requestId,
         },
-      });
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
     } catch (error) {
       const failure = error instanceof ExportDownloadError
         ? error
@@ -73,10 +83,10 @@ export function createAuthorizedDownloadHandler(dependencies: {
 
 export function createSupabaseExportDownloadStore(client: SupabaseClient): ExportDownloadStore {
   return {
-    async open(ownerId, exportId, now) {
+    async authorize(ownerId, exportId, now) {
       const { data: record, error } = await client
         .from("exports")
-        .select("id,state,expires_at,asset_id,format,projects!inner(state),assets!inner(bucket,object_key,mime)")
+        .select("id,state,expires_at,asset_id,format,projects!inner(state),assets!inner(bucket,object_key,mime,bytes,purpose,state)")
         .eq("id", exportId)
         .eq("owner_id", ownerId)
         .in("projects.state", ["draft", "archived"])
@@ -90,26 +100,28 @@ export function createSupabaseExportDownloadStore(client: SupabaseClient): Expor
         throw new ExportDownloadError("SERVICE_UNAVAILABLE", "This export is not ready yet.", 503, true);
       }
       const asset = Array.isArray(record.assets) ? record.assets[0] : record.assets;
-      if (!asset) throw new ExportDownloadError("NOT_FOUND", "Export not found.", 404);
-      const { data: blob, error: downloadError } = await client.storage
-        .from(asset.bucket)
-        .download(asset.object_key);
-      if (downloadError || !blob) throw new ExportDownloadError("SERVICE_UNAVAILABLE", "Download is temporarily unavailable.", 503, true);
+      if (!asset || asset.bucket !== "exports" || asset.purpose !== "export" || asset.state !== "ready") {
+        throw new ExportDownloadError("NOT_FOUND", "Export not found.", 404);
+      }
       const extension = record.format === "pdf" ? "pdf" : "zip";
       return {
-        bytes: Buffer.from(await blob.arrayBuffer()),
+        bucket: "exports" as const,
+        objectPath: asset.object_key,
+        bytes: Number(asset.bytes),
         mime: asset.mime,
         filename: `orincard-${record.format.replace("_zip", "")}.${extension}`,
+        expiresAt: record.expires_at,
       };
     },
   };
 }
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { readonly params: Promise<{ readonly id: string }> },
 ) {
   try {
+    const environment = readServerEnvironment(process.env);
     const cookieStore = await cookies();
     const client = createServerSupabaseClient({
       getAll: () => cookieStore.getAll(),
@@ -118,8 +130,12 @@ export async function POST(
     const { id } = await context.params;
     return createAuthorizedDownloadHandler({
       authenticate: async () => (await requireVerifiedUser(client)).id,
+      assertOrigin: (input) => assertTrustedWriteRequest(input, environment.appUrl),
       store: createSupabaseExportDownloadStore(client),
-    })(id);
+      maxClientBytes: environment.appEnvironment === "production"
+        ? 100 * 1024 * 1024
+        : 50 * 1024 * 1024,
+    })(request, id);
   } catch {
     return Response.json(
       { error: { code: "SERVICE_UNAVAILABLE", message: "Download is temporarily unavailable.", retryable: true }, requestId: randomUUID() },
