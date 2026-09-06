@@ -34,5 +34,9 @@ describe("server-only Data API RPC wrappers", () => {
 
     expect(sql).not.toContain("grant usage on schema private to anon");
     expect(sql).not.toContain("grant usage on schema private to authenticated");
+    expect(sql).toMatch(
+      /function public\.server_create_project\([\s\S]+?p_idempotency_key text,[\s\S]+?p_request_hash text[\s\S]+?returns jsonb/,
+    );
+    expect(sql).toContain("operation_name := 'create_project'");
   });
 });
