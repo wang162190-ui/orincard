@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CarouselDocument } from "../../src/domain/document";
 import {
   RewriteError,
+  applyProposalToDocument,
   applyRewriteProposal,
   createRewriteProposal,
   createSupabaseRewriteStore,
@@ -161,6 +162,35 @@ describe("T032 local rewrite proposal", () => {
       baseSlideRevision: slide.revision,
       requestHash: expect.stringMatching(/^[a-f0-9]{64}$/),
     }));
+
+    const proposal = {
+      proposalJobId: "00000000-0000-4000-8000-000000000032",
+      projectId: "00000000-0000-4000-8000-000000000001",
+      projectRevision: 3,
+      slideId: slide.id,
+      baseSlideRevision: slide.revision,
+      field: "title" as const,
+      before: slide.title ?? "",
+      after: "A shorter title",
+    };
+    const updated = applyProposalToDocument(document, 3, proposal);
+    expect(updated.slides[1]).toEqual({
+      ...slide,
+      revision: slide.revision + 1,
+      title: proposal.after,
+    });
+    expect(updated.slides.filter((candidate) => candidate.id !== slide.id)).toEqual(
+      document.slides.filter((candidate) => candidate.id !== slide.id),
+    );
+    await expect(() =>
+      applyProposalToDocument(
+        { ...document, slides: document.slides.map((candidate) =>
+          candidate.id === slide.id ? { ...candidate, title: "Human edit" } : candidate,
+        ) },
+        3,
+        proposal,
+      ),
+    ).toThrowError(RewriteError);
 
     await expect(applyRewriteProposal({
       ownerId: "owner-1",
