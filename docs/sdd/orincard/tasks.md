@@ -120,28 +120,28 @@
   - Check: `pnpm exec vitest run tests/db/identity.test.ts`
   - Expect: 匿名/所有者/跨账号、删除账号断言，全部表列有COMMENT。
 
-- [ ] T017 [P] `supabase/definitions/projects.sql`, `supabase/tests/projects.sql`, `tests/db/projects.test.ts` — 定义项目版本与CAS事务SQL → AC-003, AC-007
+- [x] T017 [P] `supabase/definitions/projects.sql`, `supabase/tests/projects.sql`, `tests/db/projects.test.ts` — 定义项目版本与CAS事务SQL → AC-003, AC-007
   - Batch: B03
   - Parallel: WS-B03-2/A
   - Depends: T016
   - Check: `pnpm exec vitest run tests/db/projects.test.ts`
   - Expect: CAS并发只成功一次、快照不可变、不能伪造owner。
 
-- [ ] T018 [P] `supabase/definitions/assets.sql`, `supabase/tests/assets.sql`, `tests/db/assets.test.ts` — 定义品牌/来源/资源引用与Storage权限 → AC-002, AC-005, AC-008
+- [x] T018 [P] `supabase/definitions/assets.sql`, `supabase/tests/assets.sql`, `tests/db/assets.test.ts` — 定义品牌/来源/资源引用与Storage权限 → AC-002, AC-005, AC-008
   - Batch: B03
   - Parallel: WS-B03-2/A
   - Depends: T017
   - Check: `pnpm exec vitest run tests/db/assets.test.ts`
   - Expect: 私有桶下载需身份；同owner引用、删除后访问与历史保护有效；在项目表已建后添加品牌与素材的跨表约束，分批SQL可顺序重放。
 
-- [ ] T019 [P] `supabase/definitions/jobs-usage.sql`, `supabase/tests/jobs-usage.sql`, `tests/db/jobs-usage.test.ts` — 定义任务/额度/预算原子事务 → AC-002, AC-006, AC-009
+- [x] T019 [P] `supabase/definitions/jobs-usage.sql`, `supabase/tests/jobs-usage.sql`, `tests/db/jobs-usage.test.ts` — 定义任务/额度/预算原子事务 → AC-002, AC-006, AC-009
   - Batch: B03
   - Parallel: WS-B03-2/A
   - Depends: T018
   - Check: `pnpm exec vitest run tests/db/jobs-usage.test.ts`
   - Expect: 任务及写操作回放幂等、取消持久化、请求成本预留和attempt流水完整；并发/重复回调不透支不双扣。
 
-- [ ] T020 [P] `scripts/prepare-migrations.mjs`, `supabase/config.toml`, `tests/db/migration-smoke.test.ts` — 生成并验证第一组数据库迁移集成 → AC-007, AC-008, AC-009
+- [x] T020 [P] `scripts/prepare-migrations.mjs`, `supabase/config.toml`, `tests/db/migration-smoke.test.ts` — 生成并验证第一组数据库迁移集成 → AC-007, AC-008, AC-009
   - Batch: B03
   - Parallel: WS-B03-2/A
   - Depends: T019

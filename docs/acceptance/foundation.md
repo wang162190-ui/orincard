@@ -78,7 +78,7 @@
 
 ## B03 身份与数据地基进行中
 
-状态：`IN PROGRESS — T015–T016 通过；下一项 T017`
+状态：`IN PROGRESS — T015–T020 通过；T021–T022 等待认证云配置与真实邮件验收`
 
 记录日期：2026-09-06
 
@@ -91,3 +91,10 @@
 | 权限与结构 | `public.profiles` 已启用 RLS；2 条 policy、2 个 trigger、表注释及 6/6 字段注释存在；匿名 SELECT 与 authenticated 更新 `status` 均为 false |
 | 数据库质量门 | pgTAP 1.3.3；安全顾问 0 项、性能顾问 0 项；本地静态检查 1/1 通过。当前 Supabase CLI OAuth 对该项目仍返回 403，因此真实云测试由已授权连接执行 |
 | T016 集成回归 | 官方 Node 22.23.2 容器中非云测试 109 项通过、1 项仅在显式云测试模式运行；类型检查、19 项规划检查及生产构建通过 |
+| T017 项目与版本 | 真实云库 23/23 pgTAP 通过；CAS 旧 revision 只能成功一次，不可变快照拒绝更新/删除，跨账号及 deleting 账号不可读，客户端不能伪造 owner |
+| T018 品牌、来源与素材 | 真实云库 25/25 pgTAP 通过；`sources`/`assets` 桶真实存在且为 private，同 owner 跨表引用、历史引用保护、删除后拒绝及 Storage authenticated policy 通过 |
+| T019 任务与双账 | 真实云库 45/45 pgTAP 通过；任务/保存回放幂等、CAS 与回执同事务、取消优先、额度不透支/不双扣、provider attempt 审计及实际成本高于预估仍如实入账均通过 |
+| T020 迁移 | 临时本地 Supabase Postgres 17 栈完成干净 `db reset`、111/111 pgTAP 与 DB lint 0 项后立即停止并删除数据卷；同一基线及 private deny policy 已登记为云端迁移 `walking_skeleton`、`private_deny_policies` |
+| 云库完整性 | 16/16 应用表存在且全部启用 RLS；表/字段缺失注释均为 0；18 条 policy，`private` 仅 service role 有 schema usage；事务测试回滚后 profiles/projects/jobs 均为 0 |
+| 云顾问 | 安全顾问 0 项；性能顾问仅报告空库新索引尚未使用的信息项，索引对应已批准的查询、外键或 TTL 清理路径，保留待真实负载复核 |
+| B03-2 代码回归 | 官方 Node 22.23.2 容器中非云测试 113 项通过、5 项显式 DB 测试默认跳过；类型检查、19 项规划检查与包含 `/login`、`/signup`、`/reset-password`、`/auth/callback`、Proxy 的生产构建通过 |
