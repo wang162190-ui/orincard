@@ -1,6 +1,6 @@
 begin;
 set local search_path = extensions, public, pg_catalog;
-select plan(23);
+select plan(25);
 
 select has_table('public', 'brand_kits', 'brand_kits table exists');
 select has_table('public', 'assets', 'assets table exists');
@@ -16,6 +16,8 @@ select ok(not has_table_privilege('anon', 'public.assets', 'select'), 'anonymous
 select ok(has_table_privilege('authenticated', 'public.assets', 'select'), 'authenticated may read authorized asset metadata');
 select ok(not has_table_privilege('authenticated', 'public.assets', 'insert'), 'authenticated cannot forge asset ownership');
 select results_eq($$select count(*)::bigint from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'storage_download_owned_or_referenced_assets' and 'authenticated' = any(roles)$$, array[1::bigint], 'private bucket download requires identity');
+select results_eq($$select public from storage.buckets where id = 'sources'$$, array[false], 'the sources bucket exists and is private');
+select results_eq($$select public from storage.buckets where id = 'assets'$$, array[false], 'the assets bucket exists and is private');
 
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values

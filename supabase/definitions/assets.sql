@@ -28,6 +28,10 @@ comment on type public.asset_state is '素材验证与删除状态';
 comment on type public.source_kind is '注册用户来源输入类别';
 comment on type public.source_state is '来源上传、解析和清理状态';
 
+insert into storage.buckets (id, name, public)
+values ('sources', 'sources', false), ('assets', 'assets', false)
+on conflict (id) do update set public = false;
+
 create table if not exists public.brand_kits (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users (id) on delete restrict,

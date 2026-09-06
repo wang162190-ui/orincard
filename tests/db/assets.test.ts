@@ -30,6 +30,7 @@ describe("asset database definition", () => {
     expect(sql).toMatch(/function private\.enforce_owned_resource_links\([\s\S]+security definer[\s\S]+set search_path = ''/);
     expect(sql).toContain("revoke execute on function private.enforce_owned_resource_links()");
     expect(sql).toContain("create policy storage_download_owned_or_referenced_assets");
+    expect(sql).toContain("values ('sources', 'sources', false), ('assets', 'assets', false)");
     expect(sql).toContain("on storage.objects for select to authenticated");
     expect(sql).not.toContain("grant insert on table storage.objects");
     expect(policyTests).toContain("cross-account project asset references are rejected");
