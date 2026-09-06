@@ -4,6 +4,7 @@ import type { CarouselDocument } from "../../src/domain/document";
 import {
   ProjectServiceError,
   createProjectService,
+  createSupabaseProjectStore,
   type ProjectRecord,
   type ProjectStore,
 } from "../../src/server/projects";
@@ -156,6 +157,77 @@ describe("T023 project service", () => {
       ),
     );
   });
+
+  it("uses only the service-role wrapper RPCs for project writes", async () => {
+    const document = await fixture();
+    const row = {
+      id: "00000000-0000-4000-8000-000000000001",
+      title: document.title,
+      platform: document.platform,
+      document,
+      revision: 2,
+      state: "draft",
+      updated_at: "2026-09-06T00:00:02.000Z",
+    };
+    const query = {
+      select: vi.fn(),
+      eq: vi.fn(),
+      in: vi.fn(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: row, error: null }),
+    };
+    query.select.mockReturnValue(query);
+    query.eq.mockReturnValue(query);
+    query.in.mockReturnValue(query);
+    const client = {
+      from: vi.fn().mockReturnValue(query),
+      rpc: vi.fn().mockResolvedValue({
+        data: { projectId: row.id, revision: 2 },
+        error: null,
+      }),
+    };
+    const projectStore = createSupabaseProjectStore(client as never);
+
+    await projectStore.create({
+      ownerId: "owner-1",
+      title: document.title,
+      platform: document.platform,
+      document,
+      idempotencyKey: "create-operation-1",
+      requestHash: "a".repeat(64),
+    });
+    await projectStore.save({
+      ownerId: "owner-1",
+      projectId: row.id,
+      expectedRevision: 1,
+      title: document.title,
+      platform: document.platform,
+      document,
+      idempotencyKey: "save-operation-1",
+      requestHash: "b".repeat(64),
+    });
+
+    expect(client.rpc).toHaveBeenNthCalledWith(
+      1,
+      "server_create_project",
+      expect.objectContaining({
+        p_owner_id: "owner-1",
+        p_idempotency_key: "create-operation-1",
+        p_request_hash: "a".repeat(64),
+      }),
+    );
+    expect(client.rpc).toHaveBeenNthCalledWith(
+      2,
+      "server_save_project",
+      expect.objectContaining({
+        p_owner_id: "owner-1",
+        p_project_id: row.id,
+        p_expected_revision: 1,
+        p_idempotency_key: "save-operation-1",
+        p_request_hash: "b".repeat(64),
+      }),
+    );
+    expect(client.from).toHaveBeenCalledWith("projects");
+  });
 });
 
 describe("T023 reliable autosave", () => {
@@ -261,6 +333,35 @@ describe("T023 reliable autosave", () => {
     await controller.setOnline(true);
 
     expect(calls).toEqual(["read"]);
+    expect(controller.getSnapshot()).toMatchObject({
+      status: "conflict",
+      document: local,
+      conflict: { localDocument: local, cloudDocument: cloud, cloudRevision: 2 },
+    });
+    controller.dispose();
+    vi.useRealTimers();
+  });
+
+  it("loads the competing cloud document after a live CAS conflict", async () => {
+    vi.useFakeTimers();
+    const initial = await fixture();
+    const local = { ...initial, title: "Unsaved local edit" };
+    const cloud = { ...initial, title: "Saved in another tab" };
+    const controller = createAutosaveController({
+      initialDocument: initial,
+      initialRevision: 1,
+      delayMs: 1_000,
+      readCloud: vi.fn().mockResolvedValue({ document: cloud, revision: 2 }),
+      save: vi.fn().mockRejectedValue(
+        Object.assign(new Error("conflict"), { code: "VERSION_CONFLICT" }),
+      ),
+      persistLocal: vi.fn(),
+      createOperationKey: () => "operation-1",
+    });
+
+    controller.updateDocument(local);
+    await vi.advanceTimersByTimeAsync(1_000);
+
     expect(controller.getSnapshot()).toMatchObject({
       status: "conflict",
       document: local,
