@@ -39,7 +39,9 @@ select lives_ok(
 );
 select results_eq($$select count(*)::bigint from public.jobs where owner_id = '51111111-1111-1111-1111-111111111111'$$, array[1::bigint], 'one outbox job is created');
 select results_eq($$select reserved from public.usage_accounts where owner_id = '51111111-1111-1111-1111-111111111111'$$, array[1::bigint], 'one user unit is reserved');
+reset role;
 select results_eq($$select reserved_micro_usd from private.cost_budgets where environment = 'development'$$, array[100::bigint], 'provider cost is reserved');
+set local role service_role;
 select lives_ok(
   format(
     $$select private.submit_job('51111111-1111-1111-1111-111111111111', %L, 'generation', '{"sourceId":"safe-id"}'::jsonb, 'submit-1', %L, 'generation', 1, date_trunc('month', now()), date_trunc('month', now()) + interval '1 month', 'development', to_char(now() at time zone 'utc', 'YYYY-MM'), 100)$$,
@@ -49,7 +51,9 @@ select lives_ok(
 );
 select results_eq($$select count(*)::bigint from public.jobs where owner_id = '51111111-1111-1111-1111-111111111111'$$, array[1::bigint], 'duplicate submit creates no second job');
 select results_eq($$select count(*)::bigint from public.usage_ledger where kind = 'reserve'$$, array[1::bigint], 'duplicate submit creates no second reserve ledger event');
+reset role;
 select results_eq($$select count(*)::bigint from private.cost_reservations$$, array[1::bigint], 'duplicate submit creates no second cost reservation');
+set local role service_role;
 select throws_ok(
   format(
     $$select private.submit_job('51111111-1111-1111-1111-111111111111', %L, 'generation', '{"sourceId":"different"}'::jsonb, 'submit-1', %L, 'generation', 1, date_trunc('month', now()), date_trunc('month', now()) + interval '1 month', 'development', to_char(now() at time zone 'utc', 'YYYY-MM'), 100)$$,
@@ -66,15 +70,21 @@ select throws_ok(
 );
 select lives_ok($$select private.register_cost_attempt((select id from public.jobs where idempotency_key = 'submit-1'), 'job:submit-1:write:1')$$, 'a provider attempt is recorded before sending');
 select lives_ok($$select private.register_cost_attempt((select id from public.jobs where idempotency_key = 'submit-1'), 'job:submit-1:write:1')$$, 'provider attempt replay is idempotent');
+reset role;
 select results_eq($$select count(*)::bigint from private.cost_attempts$$, array[1::bigint], 'attempt replay creates one row');
+set local role service_role;
 select lives_ok($$select private.settle_cost_attempt((select id from public.jobs where idempotency_key = 'submit-1'), 'job:submit-1:write:1', 'provider-operation-1', '{"inputTokens":10,"outputTokens":20}'::jsonb, 150)$$, 'a provider attempt records its actual cost');
 select lives_ok($$select private.settle_cost_attempt((select id from public.jobs where idempotency_key = 'submit-1'), 'job:submit-1:write:1', 'provider-operation-1', '{"inputTokens":10,"outputTokens":20}'::jsonb, 150)$$, 'the same attempt settlement replays idempotently');
+reset role;
 select results_eq($$select state, actual_micro_usd from private.cost_attempts where attempt_key = 'job:submit-1:write:1'$$, $$values ('settled'::private.cost_attempt_state, 150::bigint)$$, 'attempt audit stores a settled actual amount');
+set local role service_role;
 select lives_ok($$select private.request_job_cancellation('51111111-1111-1111-1111-111111111111', (select id from public.jobs where idempotency_key = 'submit-1'))$$, 'cancel request is persisted');
 select ok((select cancel_requested_at is not null from public.jobs where idempotency_key = 'submit-1'), 'cancel_requested_at is durable');
 select lives_ok($$select private.finalize_job('51111111-1111-1111-1111-111111111111', (select id from public.jobs where idempotency_key = 'submit-1'), null, 'succeeded', '{"candidate":"safe-id"}'::jsonb, null, 0, 150, 'job:submit-1:terminal')$$, 'cancel wins over a later success callback');
 select results_eq($$select reserved, consumed from public.usage_accounts where owner_id = '51111111-1111-1111-1111-111111111111'$$, $$values (0::bigint, 0::bigint)$$, 'canceled delivery releases product quota');
+reset role;
 select results_eq($$select reserved_micro_usd, spent_micro_usd from private.cost_budgets where environment = 'development'$$, $$values (0::bigint, 150::bigint)$$, 'actual provider cost above the estimate is still recorded after cancellation');
+set local role service_role;
 select results_eq($$select state from public.jobs where idempotency_key = 'submit-1'$$, array['canceled'::public.job_state], 'canceled terminal state is stored');
 select lives_ok($$select private.finalize_job('51111111-1111-1111-1111-111111111111', (select id from public.jobs where idempotency_key = 'submit-1'), null, 'succeeded', '{"candidate":"safe-id"}'::jsonb, null, 0, 150, 'job:submit-1:terminal')$$, 'duplicate finalize does not consume twice');
 select results_eq($$select count(*)::bigint from public.usage_ledger where job_id = (select id from public.jobs where idempotency_key = 'submit-1') and kind in ('settle', 'release')$$, array[1::bigint], 'duplicate finalize creates one terminal ledger event');
@@ -103,7 +113,9 @@ select results_eq(
   'same save receipt replays after revision advanced'
 );
 select results_eq($$select revision from public.projects where owner_id = '51111111-1111-1111-1111-111111111111'$$, array[3::bigint], 'receipt replay does not overwrite the newer revision');
+reset role;
 select results_eq($$select count(*)::bigint from private.operation_receipts where owner_id = '51111111-1111-1111-1111-111111111111'$$, array[2::bigint], 'each distinct save has one receipt');
+set local role service_role;
 select throws_ok(
   format(
     $$select private.save_project('51111111-1111-1111-1111-111111111111', %L, 1, 'Changed replay', 'instagram', '{"schemaVersion":1,"title":"Changed replay","platform":"instagram"}'::jsonb, 'manual', 'save-1', %L)$$,

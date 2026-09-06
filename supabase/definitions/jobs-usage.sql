@@ -538,9 +538,9 @@ create or replace function private.save_project(
   p_platform public.platform_preset, p_document jsonb, p_reason public.project_version_reason default 'manual'
 )
 returns public.projects language plpgsql security definer set search_path = '' as $$
-declare ignored jsonb; saved public.projects;
+declare saved public.projects;
 begin
-  ignored := private.save_project(
+  perform private.save_project(
     p_owner_id, p_project_id, p_expected_revision, p_title, p_platform, p_document, p_reason,
     'legacy:' || p_expected_revision::text || ':' || md5(p_document::text),
     md5(p_title || ':' || p_platform::text || ':' || p_document::text)

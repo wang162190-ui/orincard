@@ -204,10 +204,12 @@ declare
   referenced_owner uuid;
   second_owner uuid;
 begin
-  if tg_table_name = 'assets' and new.parent_asset_id is not null then
-    select owner_id into referenced_owner from public.assets where id = new.parent_asset_id;
-    if referenced_owner is distinct from new.owner_id then
-      raise exception using errcode = '23514', message = 'asset parent must have the same owner';
+  if tg_table_name = 'assets' then
+    if new.parent_asset_id is not null then
+      select owner_id into referenced_owner from public.assets where id = new.parent_asset_id;
+      if referenced_owner is distinct from new.owner_id then
+        raise exception using errcode = '23514', message = 'asset parent must have the same owner';
+      end if;
     end if;
   elsif tg_table_name = 'sources' then
     if new.project_id is not null then

@@ -1,6 +1,6 @@
 begin;
 set local search_path = extensions, public, pg_catalog;
-select plan(20);
+select plan(23);
 
 select has_table('public', 'projects', 'projects table exists');
 select has_table('public', 'project_versions', 'project_versions table exists');
