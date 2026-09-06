@@ -72,13 +72,32 @@ export interface TriggerDispatcher {
   ): Promise<{ readonly id: string }>;
 }
 
+export interface TriggerRunController {
+  cancel(runId: string): Promise<void>;
+  retrieve(
+    runId: string,
+  ): Promise<{ readonly failed: boolean; readonly completed: boolean }>;
+}
+
+export const triggerRunController: TriggerRunController = {
+  async cancel(runId) {
+    const { runs } = await import("@trigger.dev/sdk");
+    await runs.cancel(runId);
+  },
+  async retrieve(runId) {
+    const { runs } = await import("@trigger.dev/sdk");
+    const run = await runs.retrieve(runId);
+    return { failed: run.isFailed, completed: run.isCompleted };
+  },
+};
+
 export class JobServiceError extends Error {
-  readonly code: "NOT_FOUND" | "SERVICE_UNAVAILABLE";
+  readonly code: "INVALID_REQUEST" | "NOT_FOUND" | "SERVICE_UNAVAILABLE";
   readonly httpStatus: number;
   readonly retryable: boolean;
 
   constructor(
-    code: "NOT_FOUND" | "SERVICE_UNAVAILABLE",
+    code: "INVALID_REQUEST" | "NOT_FOUND" | "SERVICE_UNAVAILABLE",
     message: string,
     httpStatus: number,
     retryable: boolean,
@@ -230,6 +249,14 @@ function notFound(): JobServiceError {
   return new JobServiceError("NOT_FOUND", "Job not found.", 404, false);
 }
 
+function invalidRequest(message: string): JobServiceError {
+  return new JobServiceError("INVALID_REQUEST", message, 400, false);
+}
+
+function isTerminal(state: JobState): boolean {
+  return ["succeeded", "partial", "failed", "canceled"].includes(state);
+}
+
 export function toJobStatus(job: JobRecord): JobStatus {
   return {
     id: job.id,
@@ -277,7 +304,7 @@ export async function dispatchPendingJob(
 
   const handle = await trigger.trigger(
     { jobId, schemaVersion: 1, requestId },
-    jobId,
+    `${jobId}:${job.attempt}`,
   );
   const queued = await store.markQueued(jobId, null, handle.id);
   if (queued) {
@@ -289,6 +316,172 @@ export async function dispatchPendingJob(
     throw notFound();
   }
   return current;
+}
+
+export async function requestOwnedJobCancellation(
+  store: JobStore,
+  runs: TriggerRunController,
+  ownerId: string,
+  jobId: string,
+): Promise<JobStatus> {
+  const current = await store.findOwned(ownerId, jobId);
+  if (!current) {
+    throw notFound();
+  }
+  if (isTerminal(current.state)) {
+    return toJobStatus(current);
+  }
+
+  const persisted = await store.requestCancellation(ownerId, jobId);
+  if (!persisted) {
+    const latest = await store.findOwned(ownerId, jobId);
+    if (!latest) {
+      throw notFound();
+    }
+    return toJobStatus(latest);
+  }
+
+  if (persisted.providerRunId) {
+    try {
+      await runs.cancel(persisted.providerRunId);
+    } catch {
+      // The durable cancel flag is authoritative; reconciliation retries the provider call.
+    }
+  }
+  return toJobStatus(persisted);
+}
+
+async function dispatchClaimedRetry(
+  store: JobStore,
+  trigger: TriggerDispatcher,
+  job: JobRecord,
+  requestId: string,
+): Promise<JobRecord> {
+  if (!job.providerRunId) {
+    return dispatchPendingJob(store, trigger, job.id, requestId);
+  }
+  const handle = await trigger.trigger(
+    { jobId: job.id, schemaVersion: 1, requestId },
+    `${job.id}:${job.attempt}`,
+  );
+  const queued = await store.markQueued(job.id, job.providerRunId, handle.id);
+  if (queued) {
+    return queued;
+  }
+  const current = await store.findById(job.id);
+  if (!current) {
+    throw notFound();
+  }
+  return current;
+}
+
+export async function retryOwnedJob(
+  store: JobStore,
+  runs: TriggerRunController,
+  trigger: TriggerDispatcher,
+  ownerId: string,
+  jobId: string,
+  requestId: string,
+): Promise<JobStatus> {
+  const job = await store.findOwned(ownerId, jobId);
+  if (!job) {
+    throw notFound();
+  }
+  if (isTerminal(job.state)) {
+    throw invalidRequest("A terminal job cannot be retried by this operation.");
+  }
+  if (job.cancelRequestedAt) {
+    throw invalidRequest("A canceled job cannot be retried.");
+  }
+  if (job.state === "pending_dispatch") {
+    return toJobStatus(await dispatchClaimedRetry(store, trigger, job, requestId));
+  }
+  if (!job.providerRunId) {
+    throw invalidRequest("The job has no provider run to reconcile.");
+  }
+  if (job.attempt >= 3) {
+    throw invalidRequest("The job has reached its retry limit.");
+  }
+
+  const provider = await runs.retrieve(job.providerRunId);
+  if (!provider.failed) {
+    throw invalidRequest("The provider run is not retryable.");
+  }
+
+  const claimed = await store.claimRetry(ownerId, jobId, job.providerRunId);
+  if (!claimed) {
+    const latest = await store.findOwned(ownerId, jobId);
+    if (!latest) {
+      throw notFound();
+    }
+    if (latest.state !== "pending_dispatch") {
+      return toJobStatus(latest);
+    }
+    return toJobStatus(
+      await dispatchClaimedRetry(store, trigger, latest, requestId),
+    );
+  }
+  return toJobStatus(
+    await dispatchClaimedRetry(store, trigger, claimed, requestId),
+  );
+}
+
+export interface ReconciliationSummary {
+  readonly checked: number;
+  readonly dispatched: number;
+  readonly retried: number;
+  readonly cancelRequested: number;
+}
+
+export async function reconcileJobs(
+  store: JobStore,
+  runs: TriggerRunController,
+  trigger: TriggerDispatcher,
+  before: string,
+): Promise<ReconciliationSummary> {
+  const candidates = await store.listReconciliationCandidates(before, 50);
+  const summary = {
+    checked: candidates.length,
+    dispatched: 0,
+    retried: 0,
+    cancelRequested: 0,
+  };
+
+  for (const job of candidates) {
+    if (job.cancelRequestedAt) {
+      if (job.providerRunId) {
+        try {
+          await runs.cancel(job.providerRunId);
+        } catch {
+          // A later reconciliation pass keeps trying while the durable flag remains set.
+        }
+      }
+      summary.cancelRequested += 1;
+      continue;
+    }
+
+    try {
+      if (job.state === "pending_dispatch" && !job.providerRunId) {
+        await dispatchPendingJob(store, trigger, job.id, crypto.randomUUID());
+        summary.dispatched += 1;
+        continue;
+      }
+      if (job.providerRunId) {
+        await retryOwnedJob(
+          store,
+          runs,
+          trigger,
+          job.ownerId,
+          job.id,
+          crypto.randomUUID(),
+        );
+        summary.retried += 1;
+      }
+    } catch {
+      // Active, terminal, unknown, or temporarily unreachable runs stay recoverable.
+    }
+  }
+  return summary;
 }
 
 export function isJobServiceError(error: unknown): error is JobServiceError {

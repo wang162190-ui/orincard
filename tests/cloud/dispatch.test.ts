@@ -74,7 +74,7 @@ describe("T024 outbox dispatch", () => {
         schemaVersion: 1,
         requestId: "request-1",
       },
-      pendingJob.id,
+      `${pendingJob.id}:0`,
     );
     expect(first.providerRunId).toBe("run_same_job");
     expect(second.providerRunId).toBe("run_same_job");

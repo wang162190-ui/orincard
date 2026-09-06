@@ -201,7 +201,7 @@ describe("T025 bounded retry and reconciliation", () => {
         schemaVersion: 1,
         requestId: "request-recover",
       },
-      queuedJob.id,
+      `${queuedJob.id}:1`,
     );
     expect(jobs.current.attempt).toBe(1);
     expect(jobs.current.providerRunId).toBe("run_retried_once");
