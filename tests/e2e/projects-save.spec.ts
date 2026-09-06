@@ -4,6 +4,7 @@ import type { CarouselDocument } from "../../src/domain/document";
 
 const cloud = process.env.ORINCARD_RUN_PROJECTS_CLOUD === "1";
 test.skip(!cloud, "Set ORINCARD_RUN_PROJECTS_CLOUD=1 for the isolated development project.");
+test.use({ screenshot: "off", trace: "off" });
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
@@ -31,8 +32,10 @@ test("migrates an explicitly approved local draft and restores the saved revisio
 
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  const passwordField = page.getByLabel("Password");
+  await passwordField.fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
+  await passwordField.fill("").catch(() => undefined);
   await expect(page).toHaveURL(`${appUrl}/`, { timeout: 30_000 });
 
   const migrated = structuredClone(document);
