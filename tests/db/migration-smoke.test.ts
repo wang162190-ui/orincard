@@ -59,9 +59,11 @@ describe.runIf(process.env.RUN_DB_MIGRATION_TESTS === "1")(
           encoding: "utf8",
         });
         if (result.status !== 0) {
-          throw new Error(`Supabase migration smoke failed:\n${result.stderr}`);
+          throw new Error(
+            `Supabase migration smoke failed:\n${result.stderr}${result.stdout}`,
+          );
         }
       }
-    });
+    }, 120_000);
   },
 );
