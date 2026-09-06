@@ -148,42 +148,42 @@
   - Check: `pnpm exec vitest run tests/db/migration-smoke.test.ts`
   - Expect: 在开发分支通过CLI生成并提交迁移，干净CI库可重放；注释完整；只连接允许的开发项目。
 
-- [ ] T021 [P] `src/server/auth.ts`, `src/app/login/page.tsx`, `src/app/signup/page.tsx`, `src/features/auth/auth-form.tsx`, `tests/cloud/auth.test.ts` — 实现邮箱密码登录注册与Google入口 → AC-001, AC-007
+- [x] T021 [P] `src/server/auth.ts`, `src/app/login/page.tsx`, `src/app/signup/page.tsx`, `src/features/auth/auth-form.tsx`, `tests/cloud/auth.test.ts` — 实现邮箱密码登录注册与Google入口 → AC-001, AC-007
   - Batch: B03
   - Parallel: WS-B03-2/B
   - Depends: T016
   - Check: `pnpm exec vitest run tests/cloud/auth.test.ts`
   - Expect: 真实开发Supabase登录，非法密码/邮箱/过期session失败，注册不自动上传匿名正文。
 
-- [ ] T022 [P] `src/app/auth/callback/route.ts`, `src/app/reset-password/page.tsx`, `src/proxy.ts`, `src/server/mail.ts`, `tests/cloud/auth-recovery.test.ts` — 完成回调/密码重置/会话刷新 → AC-007
+- [x] T022 [P] `src/app/auth/callback/route.ts`, `src/app/reset-password/page.tsx`, `src/proxy.ts`, `src/server/mail.ts`, `tests/cloud/auth-recovery.test.ts` — 完成回调/密码重置/会话刷新 → AC-007
   - Batch: B03
   - Parallel: WS-B03-2/B
   - Depends: T021
   - Check: `pnpm exec vitest run tests/cloud/auth-recovery.test.ts`
   - Expect: 受信回调、Resend开发邮件、重置过期/重复链接与退出清理验证。
 
-- [ ] T023 [P] `src/server/projects.ts`, `src/app/api/v1/projects/route.ts`, `src/app/api/v1/projects/[id]/route.ts`, `src/features/editor/autosave.ts`, `tests/cloud/autosave.test.ts` — 实现项目API和可靠自动保存 → AC-003, AC-007
+- [x] T023 [P] `src/server/projects.ts`, `src/app/api/v1/projects/route.ts`, `src/app/api/v1/projects/[id]/route.ts`, `src/features/editor/autosave.ts`, `tests/cloud/autosave.test.ts` — 实现项目API和可靠自动保存 → AC-003, AC-007
   - Batch: B03
   - Parallel: WS-B03-3/A
   - Depends: T020, T022
   - Check: `pnpm exec vitest run tests/cloud/autosave.test.ts`
   - Expect: 实际写入才显示saved；断网重连/多标签冲突保留本地稿。
 
-- [ ] T024 [P] `src/server/jobs.ts`, `src/trigger/dispatch.ts`, `src/app/api/v1/jobs/[id]/route.ts`, `tests/cloud/dispatch.test.ts` — 实现事务outbox投递与任务状态API → AC-002, AC-006, AC-009
+- [x] T024 [P] `src/server/jobs.ts`, `src/trigger/dispatch.ts`, `src/app/api/v1/jobs/[id]/route.ts`, `tests/cloud/dispatch.test.ts` — 实现事务outbox投递与任务状态API → AC-002, AC-006, AC-009
   - Batch: B03
   - Parallel: WS-B03-3/B
   - Depends: T020, T022
   - Check: `pnpm exec vitest run tests/cloud/dispatch.test.ts`
   - Expect: 重复投递同jobId，投递超时可恢复，状态仅本人可见。
 
-- [ ] T025 [P] `src/app/api/v1/jobs/[id]/retry/route.ts`, `src/app/api/v1/jobs/[id]/cancel/route.ts`, `src/trigger/reconcile-jobs.ts`, `src/server/jobs.ts`, `tests/cloud/job-controls.test.ts` — 实现任务取消/重试与早期对账 → AC-002, AC-006, AC-009
+- [x] T025 [P] `src/app/api/v1/jobs/[id]/retry/route.ts`, `src/app/api/v1/jobs/[id]/cancel/route.ts`, `src/trigger/reconcile-jobs.ts`, `src/server/jobs.ts`, `tests/cloud/job-controls.test.ts` — 实现任务取消/重试与早期对账 → AC-002, AC-006, AC-009
   - Batch: B03
   - Parallel: WS-B03-3/B
   - Depends: T024
   - Check: `pnpm exec vitest run tests/cloud/job-controls.test.ts`
   - Expect: 取消状态持久化，心跳过期先查云任务；重复重试不双扣、不重放成功步骤。
 
-- [ ] T026 `tests/e2e/projects-save.spec.ts`, `tests/cloud/ownership-smoke.test.ts` — 完成账号与保存集成冒烟 → AC-001, AC-007, AC-008
+- [x] T026 `tests/e2e/projects-save.spec.ts`, `tests/cloud/ownership-smoke.test.ts` — 完成账号与保存集成冒烟 → AC-001, AC-007, AC-008
   - Batch: B03
   - Depends: T023, T025
   - Check: `pnpm exec playwright test tests/e2e/projects-save.spec.ts && pnpm exec vitest run tests/cloud/ownership-smoke.test.ts`

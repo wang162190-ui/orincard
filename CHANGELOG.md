@@ -6,6 +6,7 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Completed
 
+- 完成 B03 T021–T026：邮箱密码登录与恢复邮件、项目 API 和可靠自动保存、任务 outbox/状态/取消/重试，以及账号保存与 ownership 真实云端闭环全部通过。
 - 完成 B03 T017–T020：建立项目 CAS 与不可变版本、品牌/来源/素材和私有 Storage、任务 outbox 与用户额度/供应商成本双账，并生成可确定重放的首组数据库迁移。
 - 完成 B03 T016：在真实 `orincard-dev` Supabase 项目建立用户 profile、最小 GRANT、RLS、私有触发器函数及完整表/字段注释。
 - 完成 B03 T015：建立 Supabase browser/SSR/admin 客户端边界、真实用户重新验证和 Development/Preview/Production 环境隔离；开发与预览误指生产库时拒绝启动。
@@ -20,6 +21,9 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Verified
 
+- T021/T022 的认证套件 13/13 通过：真实开发 Supabase 测试账号登录成功，真实密码恢复请求经已配置自定义 SMTP 被接受；Google PKCE 入口仅完成契约验证，未记录为真实 Google OAuth 验收。
+- T023–T025 定向服务测试 19/19 通过；T026 使用 Playwright 1.57.0、Chromium 和单 worker 完成匿名稿显式迁移、登录保存、revision 1→2 与刷新恢复，1/1 通过（20.1 秒）；真实跨账号 ownership smoke 1/1 通过。
+- B03 最终门禁在 Node 22.23.2 下通过：类型检查、17 个非云测试文件（114 项通过、5 项按设计跳过）、19/19 规划检查及生产构建全部成功。
 - T017–T020 在临时本地 Supabase Postgres 17 栈完成干净 `db reset`、111/111 pgTAP 与 DB lint 0 项；同一迁移应用到真实开发云库后再次通过 111/111。云库 16/16 应用表启用 RLS、表/字段注释无缺失、安全顾问 0 项，测试事务回滚后无 profile、project 或 job 数据。
 - B03-2 汇合后在 Node 22.23.2 容器中非云测试 113 项通过、类型检查、19 项规划检查与生产构建通过；认证云套件保持显式关闭，未以本地结果冒充真实登录或邮件验收。
 - T016 在真实开发云库通过 18/18 pgTAP 行为验收；RLS、2 条 policy、2 个 trigger、表注释和 6/6 字段注释均存在，事务回滚后无测试数据；安全与性能顾问均为 0 项。Node 22.23.2 集成回归为非云测试 109 项通过、类型检查、19 项规划检查和生产构建通过。
@@ -38,8 +42,9 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Known limitations
 
-- Vercel 仍未初始化；T021/T022 的 Google provider、Redirect URL allowlist、Resend custom SMTP、真实测试账号与恢复邮件尚未配置/注入，因此认证任务未勾选。当前 Supabase CLI OAuth 对 `orincard-dev` 返回 403，但已授权 Supabase 连接可完成迁移和真实云库验证；Trigger.dev 部署仍只包含后台探针任务，不是 Orincard 网站。
-- 当前本机终端仍为 Node 24；精确 Node 22.23.2 已在隔离容器中验证，后续 Node/非云集成仍需在该版本复验。
+- Vercel 仍未初始化；Google provider 与真实 Google OAuth 尚未配置/验收。当前 Supabase CLI OAuth 对 `orincard-dev` 返回 403，但已授权 Supabase 连接可完成迁移和真实云库验证；Trigger.dev 部署仍只包含后台探针任务，不是 Orincard 网站。
+- Supabase Auth 的泄露密码保护当前未启用，安全顾问报告 1 项 WARN；它不影响本批次已定义验收，但需在正式生产发布前结合套餐能力启用并复核。
+- 系统默认 Node 仍为 24；本次验收通过 Homebrew Node 22.23.2 明确执行，后续 Node/非云集成继续使用该精确版本。
 
 ## [0.1.0] - 2026-09-04
 
