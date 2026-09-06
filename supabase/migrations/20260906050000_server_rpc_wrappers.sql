@@ -1,24 +1,115 @@
 -- Keep transaction internals in the unexposed private schema while making the
 -- narrow server operations reachable through the public Data API schema.
 
+create or replace function private.create_project(
+  p_owner_id uuid,
+  p_title text,
+  p_platform public.platform_preset,
+  p_document jsonb,
+  p_idempotency_key text,
+  p_request_hash text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  created public.projects;
+  receipt private.operation_receipts;
+  response jsonb;
+  operation_name text;
+begin
+  operation_name := 'create_project';
+  perform pg_advisory_xact_lock(
+    hashtextextended(p_owner_id::text || ':' || operation_name || ':' || p_idempotency_key, 0)
+  );
+
+  select * into receipt
+  from private.operation_receipts
+  where owner_id = p_owner_id
+    and operation = operation_name
+    and idempotency_key = p_idempotency_key;
+
+  if receipt.id is not null then
+    if receipt.request_hash <> p_request_hash then
+      raise exception using errcode = '23505', message = 'idempotency key request hash conflict';
+    end if;
+    if receipt.expires_at <= now() then
+      raise exception using errcode = '55000', message = 'operation receipt expired';
+    end if;
+    if not exists (
+      select 1 from public.projects
+      where id = (receipt.response_ref ->> 'projectId')::uuid
+        and owner_id = p_owner_id
+        and state in ('draft', 'archived')
+    ) then
+      raise exception using errcode = '42501', message = 'project is not accessible';
+    end if;
+    return receipt.response_ref;
+  end if;
+
+  created := private.create_project(p_owner_id, p_title, p_platform, p_document);
+  response := jsonb_build_object(
+    'projectId', created.id,
+    'revision', created.revision,
+    'state', created.state,
+    'httpStatus', 201
+  );
+  insert into private.operation_receipts (
+    owner_id,
+    operation,
+    idempotency_key,
+    request_hash,
+    status,
+    response_ref
+  )
+  values (
+    p_owner_id,
+    operation_name,
+    p_idempotency_key,
+    p_request_hash,
+    'completed',
+    response
+  );
+  return response;
+end;
+$$;
+
+comment on function private.create_project(uuid, text, public.platform_preset, jsonb, text, text)
+is '以幂等回执原子创建项目及首个快照';
+revoke execute on function private.create_project(uuid, text, public.platform_preset, jsonb, text, text)
+from public, anon, authenticated;
+grant execute on function private.create_project(uuid, text, public.platform_preset, jsonb, text, text)
+to service_role;
+
 create or replace function public.server_create_project(
   p_owner_id uuid,
   p_title text,
   p_platform public.platform_preset,
-  p_document jsonb
+  p_document jsonb,
+  p_idempotency_key text,
+  p_request_hash text
 )
-returns public.projects
+returns jsonb
 language sql
 set search_path = ''
 as $$
-  select private.create_project(p_owner_id, p_title, p_platform, p_document);
+  select private.create_project(
+    p_owner_id,
+    p_title,
+    p_platform,
+    p_document,
+    p_idempotency_key,
+    p_request_hash
+  );
 $$;
 
-comment on function public.server_create_project(uuid, text, public.platform_preset, jsonb)
+comment on function public.server_create_project(uuid, text, public.platform_preset, jsonb, text, text)
 is '服务端经 Data API 原子创建项目及首个快照的受限入口';
-revoke execute on function public.server_create_project(uuid, text, public.platform_preset, jsonb)
+revoke execute on function public.server_create_project(uuid, text, public.platform_preset, jsonb, text, text)
 from public, anon, authenticated;
-grant execute on function public.server_create_project(uuid, text, public.platform_preset, jsonb)
+grant execute on function public.server_create_project(uuid, text, public.platform_preset, jsonb, text, text)
 to service_role;
 
 create or replace function public.server_save_project(
