@@ -1,7 +1,7 @@
 import { task } from "@trigger.dev/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { renderDeck, BASIC_EXPORT_FORMATS, type BasicExportFormat } from "../render/render-deck";
+import { inspectDeckPreflight, renderDeck, BASIC_EXPORT_FORMATS, type BasicExportFormat } from "../render/render-deck";
 import type { SlideRenderAsset } from "../render/slide";
 import {
   BASIC_RENDERER_VERSION,
@@ -29,6 +29,7 @@ export function validateExportTaskPayload(payload: unknown): JobDispatchPayload 
 const inputRefSchema = z
   .object({
     projectVersionId: z.string().uuid(),
+    exportId: z.string().uuid(),
     format: z.enum(BASIC_EXPORT_FORMATS),
     rendererVersion: z.literal(BASIC_RENDERER_VERSION),
   })
@@ -43,7 +44,7 @@ type ExportJobRow = {
   cancel_requested_at: string | null;
 };
 
-async function failJob(client: SupabaseClient, jobId: string, code: string) {
+async function failJob(client: SupabaseClient, jobId: string, exportId: string, code: string) {
   await client
     .from("jobs")
     .update({
@@ -55,6 +56,12 @@ async function failJob(client: SupabaseClient, jobId: string, code: string) {
     })
     .eq("id", jobId)
     .eq("state", "running");
+  await client
+    .from("exports")
+    .update({ state: "failed" })
+    .eq("id", exportId)
+    .eq("job_id", jobId)
+    .eq("state", "pending");
 }
 
 async function loadRenderAssets(
@@ -153,6 +160,8 @@ export async function executePersistentExportJob(
       readonly assetRefs: readonly { readonly id: string; readonly kind: string; readonly rightsStatus: string }[];
     };
     const assets = await loadRenderAssets(client, job.owner_id, document);
+    const preflight = await inspectDeckPreflight({ document: version.document, assets });
+    if (!preflight.ok) throw new Error("EXPORT_PREFLIGHT_FAILED");
     const rendered = await renderDeck({
       document: version.document,
       assets,
@@ -191,7 +200,7 @@ export async function executePersistentExportJob(
     if (assetError || !asset) throw new Error("UPLOAD_FAILED");
     const finishedAt = new Date().toISOString();
     const resultRef = {
-      exportId: job.id,
+      exportId: inputRef.exportId,
       assetId: asset.id,
       projectVersionId: version.id,
       revision: version.revision,
@@ -199,29 +208,25 @@ export async function executePersistentExportJob(
       filename: packaged.filename,
       manifest: packaged.manifest,
     };
-    const { error: finishError } = await client
-      .from("jobs")
-      .update({
-        state: "succeeded",
-        stage: "upload",
-        progress: 100,
-        result_ref: resultRef,
-        error_code: null,
-        finished_at: finishedAt,
-        heartbeat_at: finishedAt,
-        updated_at: finishedAt,
-      })
-      .eq("id", job.id)
-      .eq("state", "running")
-      .is("cancel_requested_at", null);
-    if (finishError) throw new Error("UPLOAD_FAILED");
-    return { exportId: job.id, assetId: asset.id };
+    const { data: finalized, error: finishError } = await client.rpc("server_finalize_export", {
+      p_job_id: job.id,
+      p_export_id: inputRef.exportId,
+      p_asset_id: asset.id,
+      p_manifest: packaged.manifest,
+      p_result_ref: resultRef,
+      p_finished_at: finishedAt,
+    });
+    if (finishError || finalized !== true) throw new Error("UPLOAD_FAILED");
+    return { exportId: inputRef.exportId, assetId: asset.id };
   } catch (error) {
-    if (uploadedKey) await client.storage.from("exports").remove([uploadedKey]);
+    if (uploadedKey) {
+      await client.from("assets").delete().eq("bucket", "exports").eq("object_key", uploadedKey);
+      await client.storage.from("exports").remove([uploadedKey]);
+    }
     const code = error instanceof Error && /^[A-Z_]+$/.test(error.message)
       ? error.message
       : "PROVIDER_FAILED";
-    await failJob(client, job.id, code);
+    await failJob(client, job.id, inputRef.exportId, code);
     throw error;
   }
 }

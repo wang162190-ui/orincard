@@ -2,7 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseCarouselDocument, type CarouselDocument } from "@/domain/document";
-import { BASIC_EXPORT_FORMATS, type BasicExportFormat } from "@/render/render-deck";
+import { BASIC_EXPORT_FORMATS, inspectDeckPreflight, type BasicExportFormat } from "@/render/render-deck";
+import type { SlideRenderAsset } from "@/render/slide";
 import { readServerEnvironment } from "@/server/environment";
 import { assertTrustedWriteRequest } from "@/server/projects";
 import { createServerSupabaseClient, requireVerifiedUser } from "@/server/supabase";
@@ -111,16 +112,26 @@ export function createSupabaseExportPreflightStore(client: SupabaseClient): Expo
         }
       }
       const assetIds = document.assetRefs.map((asset) => asset.id).filter((id) => !id.startsWith("local-"));
+      const available = new Map<string, {
+        id: string;
+        state: string;
+        accepted_at: string | null;
+        bucket: string;
+        object_key: string;
+        mime: string;
+        width: number | null;
+        height: number | null;
+      }>();
       if (assetIds.length > 0) {
         const { data: assets, error: assetError } = await client
           .from("assets")
-          .select("id,state,accepted_at")
+          .select("id,state,accepted_at,bucket,object_key,mime,width,height")
           .eq("owner_id", input.ownerId)
           .in("id", assetIds);
         if (assetError) {
           throw new ExportPreflightError("SERVICE_UNAVAILABLE", "Export checks are temporarily unavailable.", 503, true);
         }
-        const available = new Map((assets ?? []).map((asset) => [asset.id, asset]));
+        for (const asset of assets ?? []) available.set(asset.id, asset);
         for (const ref of document.assetRefs) {
           const asset = available.get(ref.id);
           if (ref.id.startsWith("local-") || !asset || asset.state !== "ready" || (ref.kind === "generated" && !asset.accepted_at)) {
@@ -136,11 +147,31 @@ export function createSupabaseExportPreflightStore(client: SupabaseClient): Expo
           }
         }
       }
+      const renderAssets: Record<string, SlideRenderAsset> = {};
+      for (const ref of document.assetRefs) {
+        const asset = available.get(ref.id);
+        if (!asset || asset.state !== "ready" || (ref.kind === "generated" && !asset.accepted_at)) continue;
+        const { data: blob, error: downloadError } = await client.storage.from(asset.bucket).download(asset.object_key);
+        if (downloadError || !blob) continue;
+        renderAssets[ref.id] = {
+          id: ref.id,
+          src: `data:${asset.mime};base64,${Buffer.from(await blob.arrayBuffer()).toString("base64")}`,
+          state: "ready",
+          alt: "",
+          width: asset.width ?? undefined,
+          height: asset.height ?? undefined,
+        };
+      }
+      const measured = await inspectDeckPreflight({ document, assets: renderAssets });
+      issues.push(...measured.issues);
+      const uniqueIssues = issues.filter((issue, index, all) =>
+        all.findIndex((candidate) => candidate.code === issue.code && candidate.slideId === issue.slideId) === index,
+      );
       return {
         projectVersionId: version.id,
         revision: Number(version.revision),
         document,
-        issues,
+        issues: uniqueIssues,
       };
     },
   };

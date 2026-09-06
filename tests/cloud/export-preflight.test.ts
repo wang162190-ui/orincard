@@ -76,7 +76,7 @@ describe("T035 export preflight and history (AC-006, AC-007)", () => {
   it("uses trusted Chromium measurement to detect overflow on the authorized snapshot", async () => {
     const document = await fixture();
     const overflowing = structuredClone(document);
-    overflowing.slides[2]!.bodyBlocks = [{ kind: "paragraph", text: "Overflow ".repeat(2_000) }];
+    overflowing.slides[2]!.bodyBlocks = [{ kind: "paragraph", text: "Overflow ".repeat(2_000), emphasisRanges: [] }];
     const measured = await inspectDeckPreflight({ document: overflowing, assets: {} });
     const store: ExportPreflightStore = {
       load: vi.fn().mockResolvedValue({

@@ -63,6 +63,7 @@ describe("T034 basic visual export (AC-004, AC-006)", () => {
     overflowing.slides[1]!.bodyBlocks = [{
       kind: "paragraph",
       text: "Long content ".repeat(2_000),
+      emphasisRanges: [],
     }];
     const result = await inspectDeckPreflight({ document: overflowing, assets: {} });
     expect(result.issues).toEqual(expect.arrayContaining([

@@ -12,6 +12,7 @@ import {
   SlideRenderer,
   type SlideRenderAsset,
 } from "./slide";
+import { loadVerifiedFont } from "./fonts";
 
 export const BASIC_EXPORT_FORMATS = ["png_zip", "jpg_zip", "pdf"] as const;
 export type BasicExportFormat = (typeof BASIC_EXPORT_FORMATS)[number];
@@ -74,7 +75,20 @@ async function deckHtml(
   width: number,
   height: number,
 ): Promise<string> {
-  const slideCss = await readFile(new URL("./slide.css", import.meta.url), "utf8");
+  const [slideCss, inter, serif, noto] = await Promise.all([
+    readFile(new URL("./slide.css", import.meta.url), "utf8"),
+    loadVerifiedFont("inter-latin-variable"),
+    loadVerifiedFont("source-serif-4-latin-variable"),
+    loadVerifiedFont("noto-sans-sc-simplified-400"),
+  ]);
+  const fontCss = [
+    ["Inter Variable", inter],
+    ["Source Serif 4 Variable", serif],
+    ["Noto Sans SC", noto],
+  ].map(([family, font]) => {
+    const loaded = font as Awaited<ReturnType<typeof loadVerifiedFont>>;
+    return `@font-face{font-family:${family};font-style:${loaded.entry.style};font-weight:${loaded.entry.weight};font-display:block;src:url(data:font/woff2;base64,${loaded.bytes.toString("base64")}) format("woff2")}`;
+  }).join("\n");
   const slides = document.slides.map((slide, index) =>
     renderToStaticMarkup(
       createElement(
@@ -100,6 +114,7 @@ async function deckHtml(
 .orincard-export-page:last-child{break-after:auto;page-break-after:auto}
 .orincard-export-page>.orincard-slide{width:100%;height:100%;border-radius:0}
 @page{size:${width}px ${height}px;margin:0}
+${fontCss}
 ${slideCss}
 </style></head><body>${slides.join("")}</body></html>`;
 }
@@ -134,10 +149,11 @@ export const chromiumDeckRenderDriver: DeckRenderDriver = {
           printBackground: true,
           margin: { top: "0", right: "0", bottom: "0", left: "0" },
         });
+        const pdfPages = countPdfPages(pdf);
         return {
           pages: [],
           pdf,
-          pdfPages: input.slides.length,
+          pdfPages,
           inspectedHtml: input.html,
           width: input.width,
           height: input.height,
@@ -165,6 +181,82 @@ export const chromiumDeckRenderDriver: DeckRenderDriver = {
     }
   },
 };
+
+export function countPdfPages(pdf: Buffer): number {
+  if (pdf.subarray(0, 5).toString("ascii") !== "%PDF-") return 0;
+  return pdf.toString("latin1").match(/\/Type\s*\/Page\b/g)?.length ?? 0;
+}
+
+export type DeckPreflightIssue = {
+  readonly slideId: string;
+  readonly code: "FONT_NOT_READY" | "ASSET_MISSING" | "ASSET_NOT_READY" | "TEXT_OVERFLOW" | "MEASUREMENT_FAILED";
+  readonly repairAction: string;
+};
+
+export async function inspectDeckPreflight(input: {
+  readonly document: unknown;
+  readonly assets: Readonly<Record<string, SlideRenderAsset | undefined>>;
+}): Promise<{ readonly ok: boolean; readonly issues: readonly DeckPreflightIssue[] }> {
+  const document = parseCarouselDocument(input.document);
+  assertLocalAssets(input.assets);
+  const { width, height } = getPlatformDimensions(document.platform);
+  const html = await deckHtml(document, input.assets, width, height);
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
+    await page.setContent(html, { waitUntil: "load" });
+    const measured = await page.evaluate(async () => {
+      await globalThis.document.fonts.ready;
+      const fontsReady = ["Inter Variable", "Source Serif 4 Variable", "Noto Sans SC"]
+        .every((family) => globalThis.document.fonts.check(`16px "${family}"`));
+      return Array.from(globalThis.document.querySelectorAll<HTMLElement>("[data-slide-id]")).map((slide) => {
+        const images = Array.from(slide.querySelectorAll<HTMLImageElement>("img[data-asset-id]"));
+        const imagesReady = images.every((image) => image.complete && image.naturalWidth > 0);
+        const measuredContent = Array.from(
+          slide.querySelectorAll<HTMLElement>("[data-slide-content]"),
+        ).filter((element) => element !== slide);
+        return {
+          slideId: slide.dataset.slideId ?? "",
+          fontsReady,
+          imagesReady,
+          usable: measuredContent.length > 0 && measuredContent.every((element) => element.clientWidth > 0 && element.clientHeight > 0),
+          overflow: measuredContent.some((element) =>
+            element.scrollWidth > element.clientWidth || element.scrollHeight > element.clientHeight,
+          ),
+        };
+      });
+    });
+    const issues: DeckPreflightIssue[] = [];
+    for (const result of measured) {
+      const slide = document.slides.find((item) => item.id === result.slideId);
+      if (!slide) continue;
+      if (!result.fontsReady) {
+        issues.push({ slideId: slide.id, code: "FONT_NOT_READY", repairAction: "Wait for the selected font to finish loading, then retry." });
+      }
+      const requiredIds = [
+        ...(slide.mode === "text" ? [] : slide.assetSlots.map((slot) => slot.assetId)),
+        ...((slide.role === "intro" || slide.role === "outro")
+          ? [document.brandSnapshot?.headshotAssetId ?? document.brandSnapshot?.logoAssetId]
+          : []),
+      ].filter((id): id is string => Boolean(id));
+      if (slide.mode !== "text" && slide.assetSlots.length === 0) {
+        issues.push({ slideId: slide.id, code: "ASSET_MISSING", repairAction: "Choose or upload an available image for this slide." });
+      } else if (requiredIds.some((id) => !input.assets[id])) {
+        issues.push({ slideId: slide.id, code: "ASSET_MISSING", repairAction: "Choose or upload an available image for this slide." });
+      } else if (!result.imagesReady) {
+        issues.push({ slideId: slide.id, code: "ASSET_NOT_READY", repairAction: "Wait for the image to finish loading, then retry." });
+      }
+      if (!result.usable) {
+        issues.push({ slideId: slide.id, code: "MEASUREMENT_FAILED", repairAction: "Reload the slide preview, then retry the export check." });
+      } else if (result.overflow) {
+        issues.push({ slideId: slide.id, code: "TEXT_OVERFLOW", repairAction: "Shorten the text, split the slide, or choose a roomier layout." });
+      }
+    }
+    return { ok: issues.length === 0, issues };
+  } finally {
+    await browser.close();
+  }
+}
 
 export async function renderDeck(input: {
   readonly document: unknown;
