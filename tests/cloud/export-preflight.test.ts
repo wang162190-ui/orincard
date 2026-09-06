@@ -2,10 +2,13 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it, vi } from "vitest";
 import type { CarouselDocument } from "../../src/domain/document";
 import {
+  createPreflightPostHandler,
   evaluateProjectExportPreflight,
+  ExportPreflightError,
   type ExportPreflightStore,
 } from "../../src/app/api/v1/projects/[id]/preflight/route";
 import {
+  createExportHistoryGetHandler,
   listOwnedExportHistory,
   type ExportHistoryStore,
 } from "../../src/app/api/v1/exports/route";
@@ -104,5 +107,84 @@ describe("T035 export preflight and history (AC-006, AC-007)", () => {
     expect(result.items.map((item) => item.state)).toEqual(["ready", "expired"]);
     expect(result.items[1]?.canRegenerate).toBe(true);
     expect(JSON.stringify(result)).not.toContain("object_key");
+  });
+
+  it("derives the preflight owner from authentication and returns a private API envelope", async () => {
+    const document = await fixture();
+    const load = vi.fn().mockResolvedValue({
+      projectVersionId: "22222222-2222-4222-8222-222222222222",
+      revision: 3,
+      document,
+      issues: [],
+    });
+    const handler = createPreflightPostHandler({
+      authenticate: vi.fn().mockResolvedValue("authenticated-owner"),
+      assertOrigin: vi.fn(),
+      store: { load },
+    });
+    const response = await handler(
+      new Request("https://app.orincard.test/api/v1/projects/project-a/preflight", {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: "https://app.orincard.test" },
+        body: JSON.stringify({ ownerId: "attacker", expectedRevision: 3, format: "pdf", options: {} }),
+      }),
+      "project-a",
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(body).toEqual({ data: expect.objectContaining({ canExport: true }), requestId: expect.any(String) });
+    expect(load).toHaveBeenCalledWith(expect.objectContaining({ ownerId: "authenticated-owner" }));
+  });
+
+  it("rejects an untrusted preflight Origin and invalid JSON before reading a version", async () => {
+    const load = vi.fn();
+    const untrusted = createPreflightPostHandler({
+      authenticate: vi.fn().mockResolvedValue("owner-a"),
+      assertOrigin: () => {
+        throw new ExportPreflightError("INVALID_REQUEST", "Untrusted Origin.", 400);
+      },
+      store: { load },
+    });
+    const originResponse = await untrusted(
+      new Request("https://app.orincard.test/api/v1/projects/project-a/preflight", {
+        method: "POST",
+        body: "{}",
+      }),
+      "project-a",
+    );
+    expect(originResponse.status).toBe(400);
+    expect(load).not.toHaveBeenCalled();
+
+    const invalidJson = createPreflightPostHandler({
+      authenticate: vi.fn().mockResolvedValue("owner-a"),
+      assertOrigin: vi.fn(),
+      store: { load },
+    });
+    const jsonResponse = await invalidJson(
+      new Request("https://app.orincard.test/api/v1/projects/project-a/preflight", {
+        method: "POST",
+        body: "not-json",
+      }),
+      "project-a",
+    );
+    expect(jsonResponse.status).toBe(400);
+    expect((await jsonResponse.json()).error.code).toBe("INVALID_REQUEST");
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it("authenticates GET /exports and never accepts a caller-supplied owner", async () => {
+    const list = vi.fn().mockResolvedValue([]);
+    const handler = createExportHistoryGetHandler({
+      authenticate: vi.fn().mockResolvedValue("authenticated-owner"),
+      store: { list },
+    });
+    const response = await handler(
+      new Request("https://app.orincard.test/api/v1/exports?ownerId=attacker&projectId=project-a"),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(list).toHaveBeenCalledWith(expect.objectContaining({ ownerId: "authenticated-owner" }));
   });
 });
