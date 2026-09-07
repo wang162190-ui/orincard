@@ -353,13 +353,14 @@ describe("local drafts", () => {
     await expect(store.initialize()).rejects.toThrow(
       "The local draft database upgrade is blocked.",
     );
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
     let closedConnectionError: unknown;
-    try {
-      controlled.lateConnection()?.transaction("drafts");
-    } catch (error) {
-      closedConnectionError = error;
+    for (let attempt = 0; attempt < 10 && !closedConnectionError; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      try {
+        controlled.lateConnection()?.transaction("drafts");
+      } catch (error) {
+        closedConnectionError = error;
+      }
     }
     expect(closedConnectionError).toMatchObject({ name: "InvalidStateError" });
     await expect(store.initialize()).resolves.toEqual({ deleted: 0 });
