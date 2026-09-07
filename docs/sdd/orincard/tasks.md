@@ -260,11 +260,11 @@
   - Check: `pnpm exec vitest run tests/cloud/download.test.ts`
   - Expect: 固定revision导出、过期重导、带身份下载，删除后新请求失败。
 
-- [ ] T037 `tests/e2e/walking-skeleton.spec.ts`, `docs/acceptance/walking-skeleton.md` — 验收第一条真实小闭环集成冒烟 → AC-001, AC-002, AC-003, AC-006, AC-007
+- [ ] T037 `tests/e2e/walking-skeleton.spec.ts`, `docs/acceptance/walking-skeleton.md`, `supabase/definitions/b04.sql`, `supabase/tests/b04.sql`, `supabase/migrations/20260907002243_b04.sql` — 补齐并验收第一条真实小闭环的数据库事务与集成冒烟 → AC-001, AC-002, AC-003, AC-006, AC-007
   - Batch: B04
   - Depends: T031, T033, T036
-  - Check: `pnpm exec playwright test tests/e2e/walking-skeleton.spec.ts`
-  - Expect: Topic/Text→编辑→注册保存→刷新→真实PNG/PDF，禁止用mock代替供应商/Storage。
+  - Check: `pnpm exec supabase test db --linked supabase/tests/b04.sql && pnpm exec playwright test tests/e2e/walking-skeleton.spec.ts`
+  - Expect: B04原子事务、RLS和私有Storage通过真实开发库验证；Topic/Text→编辑→注册保存→刷新→真实PNG/PDF，禁止用mock代替供应商/Storage。
 
 ## B05
 
