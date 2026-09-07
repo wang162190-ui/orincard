@@ -25,7 +25,21 @@ export default defineConfig({
       // render-deck reads the slide stylesheet off disk at run time; the bundle only
       // carries JavaScript, so ship the file itself into the worker container.
       additionalFiles({ files: ["src/render/slide.css"] }),
-      aptGet({ packages: ["qpdf"] }),
+      // poppler-utils and tesseract cover the whole PDF source path as separate
+      // processes: pdfinfo reports encryption and page count, pdftotext reads the text
+      // layer, pdftoppm rasterises only the pages that turn out to be scans, tesseract
+      // reads those. Installing them here keeps the OCR model data out of git and out of
+      // the bundle, and nothing is fetched from a CDN while a task is running.
+      // See docs/licenses/parsers.md for the licence review and the rejected npm route.
+      aptGet({
+        packages: [
+          "qpdf",
+          "poppler-utils",
+          "tesseract-ocr",
+          "tesseract-ocr-eng",
+          "tesseract-ocr-chi-sim",
+        ],
+      }),
       additionalPackages({
         packages: [
           "@fontsource-variable/inter",
