@@ -22,6 +22,14 @@ async function fixture(): Promise<CarouselDocument> {
 }
 
 describe("T034 basic visual export (AC-004, AC-006)", () => {
+  it("installs licensed font packages in the Trigger image", async () => {
+    const config = await readFile(new URL("../../trigger.config.ts", import.meta.url), "utf8");
+    expect(config).toContain("additionalPackages");
+    expect(config).toContain('"@fontsource-variable/inter"');
+    expect(config).toContain('"@fontsource-variable/source-serif-4"');
+    expect(config).toContain('"@fontsource/noto-sans-sc"');
+  });
+
   it("produces real PNG, JPG, and PDF bytes with local Chromium", async () => {
     const document = await fixture();
     const rendered = await renderDeck({
