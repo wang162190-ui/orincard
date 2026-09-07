@@ -64,8 +64,10 @@ export function createSupabaseGenerationWorkerStore(
         p_job_id: jobId,
       });
       if (error) rpcFailure(error);
-      if (!data) return null;
-      const value = data as unknown as {
+      // server_claim_generation_job is set-returning, so supabase-js yields a row array.
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) return null;
+      const value = row as unknown as {
         job_id: string;
         owner_id: string;
         lease_token: string;

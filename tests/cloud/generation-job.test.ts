@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it, vi } from "vitest";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { parseCarouselDocument, type CarouselDocument } from "../../src/domain/document";
 import { createSupabaseJobStore, dispatchPendingJob, type JobRecord } from "../../src/server/jobs";
 import type { GenerationOptions } from "../../src/server/generation";
@@ -13,6 +13,7 @@ import {
   type GenerationSubmissionStore,
 } from "../../src/app/api/v1/generation/route";
 import {
+  createSupabaseGenerationWorkerStore,
   generationTriggerDispatcher,
   runGenerationJob,
   validateGenerationJobPayload,
@@ -373,6 +374,48 @@ describe("T029 durable generation worker", () => {
   });
 });
 
+describe("T029 Supabase generation worker store", () => {
+  const claimedRow = {
+    job_id: JOB_ID,
+    owner_id: OWNER_ID,
+    lease_token: "33333333-3333-4333-8333-333333333333",
+    source: {
+      id: SOURCE_ID,
+      ownerId: OWNER_ID,
+      kind: "topic",
+      metadata: { characterCount: 24 },
+      segments: [{ segmentId: "segment-1", text: "Build a calmer work week" }],
+      state: "ready",
+      expiresAt: "2026-09-13T00:00:00.000Z",
+    },
+    options,
+  };
+
+  it("maps the set-returning claim RPC row that Supabase returns as an array", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [claimedRow], error: null });
+    const work = await createSupabaseGenerationWorkerStore(
+      { rpc } as unknown as SupabaseClient,
+    ).claim(JOB_ID);
+
+    expect(rpc).toHaveBeenCalledWith("server_claim_generation_job", { p_job_id: JOB_ID });
+    expect(work).toMatchObject({
+      jobId: JOB_ID,
+      ownerId: OWNER_ID,
+      leaseToken: "33333333-3333-4333-8333-333333333333",
+      options,
+    });
+    expect(work?.source.ownerId).toBe(OWNER_ID);
+    expect(work?.source.state).toBe("ready");
+  });
+
+  it("treats an empty claim result as no claimable work", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [], error: null });
+    await expect(
+      createSupabaseGenerationWorkerStore({ rpc } as unknown as SupabaseClient).claim(JOB_ID),
+    ).resolves.toBeNull();
+  });
+});
+
 describe("T029 generation progress recovery", () => {
   it("reloads safe progress by jobId without provider details", async () => {
     const fetchJob = vi.fn().mockResolvedValue({
@@ -480,5 +523,5 @@ cloud("T029 real Supabase and Trigger generation job", () => {
     expect(parseCarouselDocument(generated).slides).toHaveLength(4);
     expect(JSON.stringify(terminal)).not.toContain("Create a concise carousel");
     await account.auth.signOut();
-  });
+  }, 300_000);
 });
