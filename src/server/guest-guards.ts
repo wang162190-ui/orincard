@@ -255,6 +255,8 @@ export function createGuestGenerationService(input: {
       }
       const parsed = parseBody(body);
       const requestedAt = now();
+      const windowStart = new Date(requestedAt);
+      windowStart.setUTCMinutes(0, 0, 0);
       let begun: GuestBeginOutcome;
       try {
         begun = await input.store.begin({
@@ -269,7 +271,7 @@ export function createGuestGenerationService(input: {
             text: parsed.source.segments[0]?.text,
             options: parsed.options,
           }),
-          windowStart: requestedAt.toISOString(),
+          windowStart: windowStart.toISOString(),
           expiresAt: new Date(requestedAt.getTime() + 24 * 60 * 60 * 1_000).toISOString(),
           environment,
           period: requestedAt.toISOString().slice(0, 7),
