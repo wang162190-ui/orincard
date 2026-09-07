@@ -5,6 +5,7 @@ import {
   createSupabaseGuestGuardStore,
   type GuestGuardStore,
 } from "../../src/server/guest-guards";
+import { resolveGuestNetworkSubject } from "../../src/app/api/v1/guest/generate/route";
 
 const body = {
   kind: "topic" as const,
@@ -30,6 +31,16 @@ function guardStore(overrides: Partial<GuestGuardStore> = {}): GuestGuardStore {
 }
 
 describe("T030 guest generation guard", () => {
+  it("uses a local-only subject for browser acceptance without weakening hosted environments", () => {
+    const localRequest = new Request("http://127.0.0.1:3000/api/v1/guest/generate");
+    expect(resolveGuestNetworkSubject(localRequest, "development")).toBe("local-development");
+    expect(resolveGuestNetworkSubject(localRequest, "preview")).toBe("");
+    expect(resolveGuestNetworkSubject(localRequest, "production")).toBe("");
+    expect(resolveGuestNetworkSubject(new Request(localRequest.url, {
+      headers: { "x-forwarded-for": "203.0.113.9, 10.0.0.1" },
+    }), "development")).toBe("203.0.113.9");
+  });
+
   it("persists only HMAC metadata and returns the generated document once", async () => {
     const begin = vi.fn().mockResolvedValue({
       outcome: "accepted",
