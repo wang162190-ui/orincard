@@ -36,7 +36,7 @@ test.describe("T031 real Topic/Text generation", () => {
 
     await expect(page).toHaveURL(/\/editor\/local-generated-/, { timeout: 60_000 });
     await expect(page.locator("[data-editor-slide-id]")).toHaveCount(4);
-    await expect(page.getByText("TikTok · 1080 × 1920")).toBeVisible();
+    await expect(page.getByRole("radio", { name: "TikTok" })).toBeChecked();
   });
 
   test("persists Text as a registered source, follows its job, and opens the result", async ({ page }) => {
@@ -59,7 +59,14 @@ test.describe("T031 real Topic/Text generation", () => {
     );
     await page.getByLabel("Number of slides").fill("4");
     await page.getByLabel("Instructions").fill("Use a clear educational sequence.");
+    const sourceRequest = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" && new URL(request.url()).pathname === "/api/v1/sources",
+    );
     await page.getByRole("button", { name: "Generate carousel" }).click();
+    const idempotencyKey = (await sourceRequest).headers()["idempotency-key"];
+
+    expect(idempotencyKey).toMatch(/^source-[0-9a-f-]{36}$/i);
 
     await expect(page.getByText(/Generating:/)).toBeVisible({ timeout: 15_000 });
     await expect(page).toHaveURL(/\/editor\/local-generated-/, { timeout: 120_000 });
