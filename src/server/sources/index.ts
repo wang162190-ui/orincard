@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 
 export type TextSourceKind = "topic" | "text";
 
@@ -17,7 +17,10 @@ export interface SourceRecord {
   readonly expiresAt: string;
 }
 
-export interface SourceWriteInput extends Omit<SourceRecord, "id"> {}
+export interface SourceWriteInput extends Omit<SourceRecord, "id"> {
+  readonly idempotencyKey: string;
+  readonly requestHash: string;
+}
 
 export interface SourceStore {
   create(input: SourceWriteInput): Promise<SourceRecord>;
@@ -27,6 +30,8 @@ export type SourceServiceErrorCode =
   | "INVALID_REQUEST"
   | "EMPTY_SOURCE"
   | "AUTH_REQUIRED"
+  | "IDEMPOTENCY_CONFLICT"
+  | "OPERATION_EXPIRED"
   | "SERVICE_UNAVAILABLE";
 
 export class SourceServiceError extends Error {
@@ -44,36 +49,11 @@ export class SourceServiceError extends Error {
   }
 }
 
-interface SourceRow {
-  readonly id: string;
-  readonly owner_id: string;
-  readonly kind: TextSourceKind;
-  readonly metadata: { readonly characterCount: number };
-  readonly segments: readonly SourceSegment[];
-  readonly state: "ready";
-  readonly expires_at: string;
-}
-
 interface SourceDatabaseClient {
-  from(table: string): {
-    insert(values: Record<string, unknown>): {
-      select(columns: string): {
-        single(): PromiseLike<{ readonly data: unknown; readonly error: unknown }>;
-      };
-    };
-  };
-}
-
-function fromRow(row: SourceRow): SourceRecord {
-  return {
-    id: row.id,
-    ownerId: row.owner_id,
-    kind: row.kind,
-    metadata: row.metadata,
-    segments: row.segments,
-    state: row.state,
-    expiresAt: row.expires_at,
-  };
+  rpc(
+    name: string,
+    parameters: Readonly<Record<string, unknown>>,
+  ): PromiseLike<{ readonly data: unknown; readonly error: unknown }>;
 }
 
 export function createSupabaseSourceStore(
@@ -81,22 +61,54 @@ export function createSupabaseSourceStore(
 ): SourceStore {
   return {
     async create(input) {
-      const { data, error } = await client
-        .from("sources")
-        .insert({
-          owner_id: input.ownerId,
-          kind: input.kind,
-          metadata: input.metadata,
-          segments: input.segments,
-          state: input.state,
-          expires_at: input.expiresAt,
-        })
-        .select("id,owner_id,kind,metadata,segments,state,expires_at")
-        .single();
+      const { data, error } = await client.rpc("server_create_text_source", {
+        p_owner_id: input.ownerId,
+        p_kind: input.kind,
+        p_metadata: input.metadata,
+        p_segments: input.segments,
+        p_expires_at: input.expiresAt,
+        p_idempotency_key: input.idempotencyKey,
+        p_request_hash: input.requestHash,
+      });
       if (error || !data) {
+        const code = typeof error === "object" && error !== null && "code" in error
+          ? String(error.code)
+          : "";
+        if (code === "23505") {
+          throw new SourceServiceError(
+            "IDEMPOTENCY_CONFLICT",
+            "This Idempotency-Key was already used for different source text.",
+            409,
+          );
+        }
+        if (code === "55000") {
+          throw new SourceServiceError(
+            "OPERATION_EXPIRED",
+            "This source operation has expired. Start a new request.",
+            410,
+          );
+        }
         throw error instanceof Error ? error : new Error("Source insert failed");
       }
-      return fromRow(data as SourceRow);
+      const value = Array.isArray(data) ? data[0] : data;
+      if (typeof value !== "object" || value === null) {
+        throw new Error("Source RPC returned no source");
+      }
+      const response = value as Record<string, unknown>;
+      const id = response.sourceId ?? response.source_id ?? response.id;
+      const expiresAt = response.expiresAt ?? response.expires_at;
+      if (typeof id !== "string" || typeof expiresAt !== "string") {
+        throw new Error("Source RPC returned an invalid source");
+      }
+      return {
+        id,
+        ownerId: input.ownerId,
+        kind: input.kind,
+        metadata: input.metadata,
+        segments: input.segments,
+        state: "ready",
+        expiresAt,
+      };
     },
   };
 }
@@ -143,9 +155,13 @@ function parseInput(body: {
 
 export function createTextSourceService(input: {
   readonly store: SourceStore;
+  readonly requestHashSecret: string;
   readonly now?: () => Date;
   readonly createId?: () => string;
 }) {
+  if (!input.requestHashSecret) {
+    throw new Error("A server-only request hash secret is required");
+  }
   const now = input.now ?? (() => new Date());
   const createId = input.createId ?? randomUUID;
 
@@ -153,6 +169,7 @@ export function createTextSourceService(input: {
     async create(
       ownerId: string,
       body: { readonly kind?: unknown; readonly text?: unknown },
+      idempotencyKey: string,
     ): Promise<SourceRecord> {
       if (!ownerId) {
         throw new SourceServiceError(
@@ -161,8 +178,18 @@ export function createTextSourceService(input: {
           401,
         );
       }
+      if (!/^[\x21-\x7e]{8,200}$/.test(idempotencyKey)) {
+        throw new SourceServiceError(
+          "INVALID_REQUEST",
+          "A valid Idempotency-Key is required.",
+          400,
+        );
+      }
       const source = parseInput(body);
       const expiresAt = new Date(now().getTime() + 7 * 24 * 60 * 60 * 1_000);
+      const requestHash = createHmac("sha256", input.requestHashSecret)
+        .update(JSON.stringify(source))
+        .digest("hex");
       try {
         return await input.store.create({
           ownerId,
@@ -171,6 +198,8 @@ export function createTextSourceService(input: {
           segments: [{ segmentId: createId(), text: source.text }],
           state: "ready",
           expiresAt: expiresAt.toISOString(),
+          idempotencyKey,
+          requestHash,
         });
       } catch (error) {
         if (error instanceof SourceServiceError) {

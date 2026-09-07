@@ -57,8 +57,13 @@ export async function POST(request: Request) {
     }
     const service = createTextSourceService({
       store: createSupabaseSourceStore(createAdminSupabaseClient()),
+      requestHashSecret: environment.supabaseSecretKey,
     });
-    const source = await service.create(ownerId, await body(request));
+    const source = await service.create(
+      ownerId,
+      await body(request),
+      request.headers.get("idempotency-key") ?? "",
+    );
     return Response.json(
       { data: { sourceId: source.id, expiresAt: source.expiresAt }, requestId },
       { status: 201 },
