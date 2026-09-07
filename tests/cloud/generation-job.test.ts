@@ -471,6 +471,15 @@ cloud("T029 real Supabase and Trigger generation job", () => {
     const ownerId = signedIn.data.user?.id;
     expect(ownerId).toBeTruthy();
 
+    // usage_ledger is append-only and jobs are referenced with on delete restrict, so a
+    // job row can never be deleted. Cleanup has to drive it terminal instead: the active
+    // states below are exactly what hasActiveGeneration counts, and one stuck job holds
+    // the per-user limit of 1 against every later run.
+    const ACTIVE = ["pending_dispatch", "queued", "running"];
+    const cleanupProblems: string[] = [];
+    let sourceId: string | undefined;
+    let jobId: string | undefined;
+
     const periodStart = new Date();
     periodStart.setUTCDate(1);
     periodStart.setUTCHours(0, 0, 0, 0);
@@ -487,41 +496,92 @@ cloud("T029 real Supabase and Trigger generation job", () => {
     }, { onConflict: "owner_id,period_start,resource" });
     expect(usage.error?.message).toBeUndefined();
 
-    const runId = crypto.randomUUID();
-    const source = await createTextSourceService({
-      store: createSupabaseSourceStore(admin),
-      requestHashSecret: secretKey,
-    }).create(ownerId!, {
-      kind: "topic",
-      text: "Create a concise carousel about reviewing a calm work week",
-    }, `cloud-source-${runId}`);
     const jobStore = createSupabaseJobStore(admin);
-    const service = createGenerationJobService({
-      store: createSupabaseGenerationSubmissionStore(admin),
-      requestHashSecret: secretKey,
-      environment: "development",
-      dispatch: (jobId, requestId) =>
-        dispatchPendingJob(jobStore, generationTriggerDispatcher, jobId, requestId).then(() => undefined),
-    });
-    const submitted = await service.submit(
-      ownerId!,
-      { sourceId: source.id, ...options, pageCount: 4 },
-      `cloud-generation-${runId}`,
-      `cloud-request-${runId}`,
-    );
+    const runId = crypto.randomUUID();
+    try {
+      const source = await createTextSourceService({
+        store: createSupabaseSourceStore(admin),
+        requestHashSecret: secretKey,
+      }).create(ownerId!, {
+        kind: "topic",
+        text: "Create a concise carousel about reviewing a calm work week",
+      }, `cloud-source-${runId}`);
+      sourceId = source.id;
+      const service = createGenerationJobService({
+        store: createSupabaseGenerationSubmissionStore(admin),
+        requestHashSecret: secretKey,
+        environment: "development",
+        dispatch: (jobId, requestId) =>
+          dispatchPendingJob(jobStore, generationTriggerDispatcher, jobId, requestId).then(() => undefined),
+      });
+      const submitted = await service.submit(
+        ownerId!,
+        { sourceId: source.id, ...options, pageCount: 4 },
+        `cloud-generation-${runId}`,
+        `cloud-request-${runId}`,
+      );
+      jobId = submitted.id;
 
-    let terminal: JobRecord | null = null;
-    for (let attempt = 0; attempt < 180; attempt += 1) {
-      terminal = await jobStore.findOwned(ownerId!, submitted.id);
-      if (terminal && ["succeeded", "failed", "partial", "canceled"].includes(terminal.state)) break;
-      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      let terminal: JobRecord | null = null;
+      for (let attempt = 0; attempt < 180; attempt += 1) {
+        terminal = await jobStore.findOwned(ownerId!, submitted.id);
+        if (terminal && ["succeeded", "failed", "partial", "canceled"].includes(terminal.state)) break;
+        await new Promise((resolve) => setTimeout(resolve, 1_000));
+      }
+      expect(terminal).toMatchObject({ state: "succeeded", stage: "layout", progress: 100 });
+      const generated = terminal?.resultRef && "document" in terminal.resultRef
+        ? terminal.resultRef.document
+        : terminal?.resultRef;
+      expect(parseCarouselDocument(generated).slides).toHaveLength(4);
+      expect(JSON.stringify(terminal)).not.toContain("Create a concise carousel");
+    } finally {
+      if (jobId) {
+        let job = await jobStore.findOwned(ownerId!, jobId);
+        if (job && ACTIVE.includes(job.state)) {
+          // Cancellation is the only supported way to release the reservation; hand
+          // editing the row would leave usage_accounts.reserved permanently inflated.
+          await jobStore.requestCancellation(ownerId!, jobId);
+          for (let attempt = 0; attempt < 60 && job && ACTIVE.includes(job.state); attempt += 1) {
+            await new Promise((resolve) => setTimeout(resolve, 1_000));
+            job = await jobStore.findOwned(ownerId!, jobId);
+          }
+        }
+        if (job && ACTIVE.includes(job.state)) {
+          cleanupProblems.push(
+            `Job ${jobId} stayed ${job.state} and now holds the per-user generation slot.`,
+          );
+        }
+        const ledger = await admin
+          .from("usage_ledger")
+          .select("kind, units")
+          .eq("job_id", jobId);
+        expect(ledger.error?.message).toBeUndefined();
+        const units = (kinds: string[]) =>
+          (ledger.data ?? [])
+            .filter((row) => kinds.includes(row.kind as string))
+            .reduce((total, row) => total + Number(row.units), 0);
+        if (job && !ACTIVE.includes(job.state) && units(["settle", "release"]) !== units(["reserve"])) {
+          cleanupProblems.push(
+            `Job ${jobId} reserved ${units(["reserve"])} units but settled or released ${units(["settle", "release"])}.`,
+          );
+        }
+      }
+      if (sourceId) {
+        const removed = await admin.from("sources").delete().eq("id", sourceId);
+        expect(removed.error?.message).toBeUndefined();
+      }
+      const usageAccount = await admin
+        .from("usage_accounts")
+        .select("reserved")
+        .eq("owner_id", ownerId!)
+        .eq("resource", "generation")
+        .eq("period_start", periodStart.toISOString())
+        .maybeSingle();
+      if (Number(usageAccount.data?.reserved ?? 0) !== 0) {
+        cleanupProblems.push(`usage_accounts.reserved stayed at ${usageAccount.data?.reserved}.`);
+      }
+      await account.auth.signOut();
     }
-    expect(terminal).toMatchObject({ state: "succeeded", stage: "layout", progress: 100 });
-    const generated = terminal?.resultRef && "document" in terminal.resultRef
-      ? terminal.resultRef.document
-      : terminal?.resultRef;
-    expect(parseCarouselDocument(generated).slides).toHaveLength(4);
-    expect(JSON.stringify(terminal)).not.toContain("Create a concise carousel");
-    await account.auth.signOut();
+    expect(cleanupProblems).toEqual([]);
   }, 300_000);
 });
