@@ -69,6 +69,28 @@ describe("T030 guest generation guard", () => {
     });
   });
 
+  it("uses a stable hourly rate window instead of one timestamp per request", async () => {
+    const begin = vi.fn().mockResolvedValue({
+      outcome: "accepted",
+      guardId: "00000000-0000-4000-8000-000000000030",
+    });
+    const service = createGuestGenerationService({
+      store: guardStore({ begin }),
+      generate: vi.fn().mockResolvedValue({ schemaVersion: 1, title: "Draft" }),
+      hashSecret: "test-only-guest-hmac-secret",
+      now: () => new Date("2026-09-06T12:34:56.789Z"),
+    });
+
+    await service.generate(body, {
+      operationKey: "guest-operation-window",
+      networkSubject: "203.0.113.9",
+    });
+
+    expect(begin).toHaveBeenCalledWith(
+      expect.objectContaining({ windowStart: "2026-09-06T12:00:00.000Z" }),
+    );
+  });
+
   it("returns 410 for a completed idempotency key without calling AI again", async () => {
     const generate = vi.fn();
     const service = createGuestGenerationService({
