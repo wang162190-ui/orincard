@@ -104,6 +104,10 @@ using (
   )
 );
 
+insert into private.cost_budgets (period, environment, limit_micro_usd)
+values (to_char(now() at time zone 'UTC', 'YYYY-MM'), 'development', 10000000)
+on conflict (period, environment) do nothing;
+
 create or replace function private.b04_finish_job_with_unknown_cost(
   p_job_id uuid,
   p_succeeded boolean,

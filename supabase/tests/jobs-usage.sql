@@ -27,7 +27,11 @@ reset role;
 insert into public.usage_accounts (owner_id, period_start, period_end, resource, granted)
 values ('51111111-1111-1111-1111-111111111111', date_trunc('month', now()), date_trunc('month', now()) + interval '1 month', 'generation', 1);
 insert into private.cost_budgets (period, environment, limit_micro_usd)
-values (to_char(now() at time zone 'utc', 'YYYY-MM'), 'development', 1000);
+values (to_char(now() at time zone 'utc', 'YYYY-MM'), 'development', 1000)
+on conflict (period, environment) do update
+set limit_micro_usd = excluded.limit_micro_usd,
+    reserved_micro_usd = 0,
+    spent_micro_usd = 0;
 
 set local role service_role;
 select lives_ok(

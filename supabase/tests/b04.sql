@@ -233,7 +233,11 @@ values (
   5
 );
 insert into private.cost_budgets (period, environment, limit_micro_usd)
-values (to_char(now() at time zone 'UTC', 'YYYY-MM'), 'development', 10000000);
+values (to_char(now() at time zone 'UTC', 'YYYY-MM'), 'development', 10000000)
+on conflict (period, environment) do update
+set limit_micro_usd = excluded.limit_micro_usd,
+    reserved_micro_usd = 0,
+    spent_micro_usd = 0;
 set local role service_role;
 select lives_ok(
   format(
