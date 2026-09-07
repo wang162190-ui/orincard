@@ -191,76 +191,76 @@
 
 ## B04
 
-- [ ] T027 [P] `src/server/sources/index.ts`, `src/app/api/v1/sources/route.ts`, `tests/cloud/text-source.test.ts` — 建立Topic/Text来源写入接口 → AC-002
+- [x] T027 [P] `src/server/sources/index.ts`, `src/app/api/v1/sources/route.ts`, `tests/cloud/text-source.test.ts` — 建立Topic/Text来源写入接口 → AC-002
   - Batch: B04
   - Parallel: WS-B04-1/A
   - Depends: T026
   - Check: `pnpm exec vitest run tests/cloud/text-source.test.ts`
   - Expect: 注册文本来源先验证后保存7天，匿名禁止持久化；sourceId可以供下一项生成使用。
 
-- [ ] T028 [P] `src/server/ai.ts`, `src/server/prompts.ts`, `src/server/generation.ts`, `tests/cloud/generation.test.ts` — 实现DeepSeek Responses适配与结构化生成 → AC-002, AC-003
+- [x] T028 [P] `src/server/ai.ts`, `src/server/prompts.ts`, `src/server/generation.ts`, `tests/cloud/generation.test.ts` — 实现DeepSeek Responses适配与结构化生成 → AC-002, AC-003
   - Batch: B04
   - Parallel: WS-B04-1/A
   - Depends: T027
   - Check: `pnpm exec vitest run tests/cloud/generation.test.ts`
   - Expect: 真实deepseek-v4-pro输出经本地schema校验有效，请求固定store:false，拒绝嵌入指令，一次修复失败不会返回空成功。
 
-- [ ] T029 [P] `src/trigger/generate.ts`, `src/app/api/v1/generation/route.ts`, `src/features/generation/progress.tsx`, `tests/cloud/generation-job.test.ts` — 连接注册生成任务与进度UI → AC-002, AC-003
+- [x] T029 [P] `src/trigger/generate.ts`, `src/app/api/v1/generation/route.ts`, `src/features/generation/progress.tsx`, `tests/cloud/generation-job.test.ts` — 连接注册生成任务与进度UI → AC-002, AC-003
   - Batch: B04
   - Parallel: WS-B04-2/A
   - Depends: T028
   - Check: `pnpm exec vitest run tests/cloud/generation-job.test.ts`
   - Expect: 关闭再开页面可按jobId恢复，完成前不结算，不覆盖旧稿。
 
-- [ ] T030 [P] `src/app/api/v1/guest/generate/route.ts`, `src/server/guest-guards.ts`, `tests/cloud/guest.test.ts` — 实现匿名临时生成和反滥用 → AC-001, AC-002
+- [x] T030 [P] `src/app/api/v1/guest/generate/route.ts`, `src/server/guest-guards.ts`, `tests/cloud/guest.test.ts` — 实现匿名临时生成和反滥用 → AC-001, AC-002
   - Batch: B04
   - Parallel: WS-B04-2/B
   - Depends: T028
   - Check: `pnpm exec vitest run tests/cloud/guest.test.ts`
   - Expect: 无正文持久化/日志，幂等元数据、预算、410结果不保留错误明确。
 
-- [ ] T031 `src/features/generation/source-input.tsx`, `src/features/generation/options.tsx`, `src/app/create/page.tsx`, `tests/e2e/text-generation.spec.ts` — 连接Topic/Text创建入口与生成结果 → AC-001, AC-002
+- [x] T031 `src/features/generation/source-input.tsx`, `src/features/generation/options.tsx`, `src/app/create/page.tsx`, `tests/e2e/text-generation.spec.ts` — 连接Topic/Text创建入口与生成结果 → AC-001, AC-002
   - Batch: B04
   - Depends: T029, T030
   - Check: `pnpm exec playwright test tests/e2e/text-generation.spec.ts`
   - Expect: 匿名短请求和注册source→job两条路径可编辑；默认6页/4–12页、语言和指令真实生效。
 
-- [ ] T032 [P] `src/server/rewrite.ts`, `src/features/editor/ai-proposal.tsx`, `src/app/api/v1/projects/[id]/rewrite/route.ts`, `src/app/api/v1/projects/[id]/apply-proposal/route.ts`, `tests/cloud/rewrite.test.ts` — 实现局部AI提案接受/拒绝 → AC-003
+- [x] T032 [P] `src/server/rewrite.ts`, `src/features/editor/ai-proposal.tsx`, `src/app/api/v1/projects/[id]/rewrite/route.ts`, `src/app/api/v1/projects/[id]/apply-proposal/route.ts`, `tests/cloud/rewrite.test.ts` — 实现局部AI提案接受/拒绝 → AC-003
   - Batch: B04
   - Parallel: WS-B04-2/B
   - Depends: T023, T028
   - Check: `pnpm exec vitest run tests/cloud/rewrite.test.ts`
   - Expect: 只改目标字段，人工编辑后旧提案409，不重复收费。
 
-- [ ] T033 [P] `src/app/api/v1/projects/[id]/regenerate/route.ts`, `src/features/generation/regenerate.tsx`, `src/server/generation.ts`, `tests/cloud/regenerate.test.ts` — 实现整套重新生成候选稿 → AC-003
+- [x] T033 [P] `src/app/api/v1/projects/[id]/regenerate/route.ts`, `src/features/generation/regenerate.tsx`, `src/server/generation.ts`, `tests/cloud/regenerate.test.ts` — 实现整套重新生成候选稿 → AC-003
   - Batch: B04
   - Parallel: WS-B04-2/B
   - Depends: T032
   - Check: `pnpm exec vitest run tests/cloud/regenerate.test.ts`
   - Expect: 原项目不被任务自动覆盖；替换/另存均经确认，版本冲突和重复请求不会丢稿。
 
-- [ ] T034 [P] `src/render/render-deck.ts`, `src/trigger/export.ts`, `src/server/export-package.ts`, `tests/cloud/basic-export.test.ts` — 实现PNG/JPG/PDF云端导出 → AC-004, AC-006
+- [x] T034 [P] `src/render/render-deck.ts`, `src/trigger/export.ts`, `src/server/export-package.ts`, `tests/cloud/basic-export.test.ts` — 实现PNG/JPG/PDF云端导出 → AC-004, AC-006
   - Batch: B04
   - Parallel: WS-B04-1/C
   - Depends: T026
   - Check: `pnpm exec vitest run tests/cloud/basic-export.test.ts`
   - Expect: 真实文件尺寸/页数/顺序正确，无隐藏原文；格式失败互不删除。
 
-- [ ] T035 [P] `src/app/api/v1/projects/[id]/preflight/route.ts`, `src/app/api/v1/exports/route.ts`, `tests/cloud/export-preflight.test.ts` — 接通导出预检与历史列表接口 → AC-006, AC-007
+- [x] T035 [P] `src/app/api/v1/projects/[id]/preflight/route.ts`, `src/app/api/v1/exports/route.ts`, `tests/cloud/export-preflight.test.ts` — 接通导出预检与历史列表接口 → AC-006, AC-007
   - Batch: B04
   - Parallel: WS-B04-1/C
   - Depends: T034
   - Check: `pnpm exec vitest run tests/cloud/export-preflight.test.ts`
   - Expect: 预检基于授权固定版本，溢出/缺资源明确；列表只读本人、到期可识别，不扣额度。
 
-- [ ] T036 [P] `src/features/exports/export-dialog.tsx`, `src/app/exports/page.tsx`, `src/app/api/v1/projects/[id]/exports/route.ts`, `src/app/api/v1/exports/[id]/download/route.ts`, `tests/cloud/download.test.ts` — 实现导出中心和授权下载 → AC-006, AC-007
+- [x] T036 [P] `src/features/exports/export-dialog.tsx`, `src/app/exports/page.tsx`, `src/app/api/v1/projects/[id]/exports/route.ts`, `src/app/api/v1/exports/[id]/download/route.ts`, `tests/cloud/download.test.ts` — 实现导出中心和授权下载 → AC-006, AC-007
   - Batch: B04
   - Parallel: WS-B04-1/C
   - Depends: T035
   - Check: `pnpm exec vitest run tests/cloud/download.test.ts`
   - Expect: 固定revision导出、过期重导、带身份下载，删除后新请求失败。
 
-- [ ] T037 `tests/e2e/walking-skeleton.spec.ts`, `docs/acceptance/walking-skeleton.md`, `supabase/definitions/b04.sql`, `supabase/tests/b04.sql`, `supabase/migrations/20260907002243_b04.sql` — 补齐并验收第一条真实小闭环的数据库事务与集成冒烟 → AC-001, AC-002, AC-003, AC-006, AC-007
+- [x] T037 `tests/e2e/walking-skeleton.spec.ts`, `docs/acceptance/walking-skeleton.md`, `supabase/definitions/b04.sql`, `supabase/tests/b04.sql`, `supabase/migrations/20260907002243_b04.sql` — 补齐并验收第一条真实小闭环的数据库事务与集成冒烟 → AC-001, AC-002, AC-003, AC-006, AC-007
   - Batch: B04
   - Depends: T031, T033, T036
   - Check: `pnpm exec supabase test db --linked supabase/tests/b04.sql && pnpm exec playwright test tests/e2e/walking-skeleton.spec.ts`

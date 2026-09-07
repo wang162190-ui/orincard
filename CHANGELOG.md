@@ -6,6 +6,9 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Completed
 
+- 完成 B04 T027–T037：Topic/Text 来源写入、DeepSeek Responses 结构化生成、注册生成任务与进度 UI、匿名临时生成与反滥用、局部 AI 提案与整套重新生成、PNG/JPG/PDF 云端导出、导出预检与授权下载，构成第一条真实可导出闭环。
+- 修复生成任务领取逻辑：`server_claim_generation_job` 为集合返回函数，supabase-js 返回行数组，`src/trigger/generate.ts` 原按对象读取导致全部任务失败为 `SOURCE_UNAVAILABLE`。
+- 修复导出渲染的资源解析：打包器会改写 `require.resolve` 的字面量说明符与 `import.meta.url`，导致字体与 `slide.css` 在 Next.js 路由和 Trigger 容器中均无法读取；改为按运行时工作目录解析，并把样式表打进 worker 容器。
 - 完成 B03 T021–T026：邮箱密码登录与恢复邮件、项目 API 和可靠自动保存、任务 outbox/状态/取消/重试，以及账号保存与 ownership 真实云端闭环全部通过。
 - 完成 B03 T017–T020：建立项目 CAS 与不可变版本、品牌/来源/素材和私有 Storage、任务 outbox 与用户额度/供应商成本双账，并生成可确定重放的首组数据库迁移。
 - 完成 B03 T016：在真实 `orincard-dev` Supabase 项目建立用户 profile、最小 GRANT、RLS、私有触发器函数及完整表/字段注释。
@@ -21,6 +24,10 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Verified
 
+- B04 的 5 条云测试在最终部署版本 `20260907.6` 上串行全部通过：`text-source` 10/10、`generation` 7/7、`generation-job` 19/19、`text-generation` 3/3、`walking-skeleton` 1/1。
+- 真实导出产物经字节层面复核：PDF `207581` 字节以 `%PDF-` 开头，ZIP 内 4 个 PNG 分别为 `142931`/`86199`/`84359`/`96507` 字节且首 8 字节均为 PNG 签名；下载字节数与授权接口返回一致，未认证下载被拒绝。产物 SHA-256 见 `docs/acceptance/walking-skeleton.md`。
+- DeepSeek 真实调用接受 `store:false`，该约束按原样保留；不发送 `strict`，结构合规由本地 Zod/domain 校验兜底，观察到的生成全部一次通过，未出现空成功。
+- B04 最终门禁在 Node 22.23.2 下通过：类型检查、17 个非云测试文件（114 项通过、5 项按设计跳过）、19/19 规划检查、生产构建及 191/191 pgTAP 全部成功。
 - T021/T022 的认证套件 13/13 通过：真实开发 Supabase 测试账号登录成功，真实密码恢复请求经已配置自定义 SMTP 被接受；Google PKCE 入口仅完成契约验证，未记录为真实 Google OAuth 验收。
 - T023–T025 定向服务测试 19/19 通过；T026 使用 Playwright 1.57.0、Chromium 和单 worker 完成匿名稿显式迁移、登录保存、revision 1→2 与刷新恢复，1/1 通过（20.1 秒）；真实跨账号 ownership smoke 1/1 通过。
 - B03 最终门禁在 Node 22.23.2 下通过：类型检查、17 个非云测试文件（114 项通过、5 项按设计跳过）、19/19 规划检查及生产构建全部成功。
@@ -42,6 +49,10 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Known limitations
 
+- `src/trigger/reconcile-jobs.ts` 向 `reconcileJobs` 传入的 `triggerDispatcher` 只会触发做校验即返回的 `orincard-job-dispatch`，停滞的生成任务无法被真正重新派发。该文件属 B03 任务基础设施、不在 T029 文件清单内，且不影响 B04 正常路径，登记为待办。
+- `tests/cloud/generation-job.test.ts` 创建的任务不做清理；在每用户并发上限为 1 的约束下，一次失败运行会持续占用名额，使后续运行返回 `CONCURRENCY_LIMIT`。
+- `tests/cloud/text-source.test.ts` 在最终复跑序列的首次执行中出现过 1 项失败，随后连续 10 次全部通过，未能复现，根因未确认。
+- DeepSeek 官方定价页在本环境被网络策略拦截，相关成本金额保留 `[UNVERIFIED-NUMBER]` 标注，待按真实用量复核。
 - Vercel 仍未初始化；Google provider 与真实 Google OAuth 尚未配置/验收。当前 Supabase CLI OAuth 对 `orincard-dev` 返回 403，但已授权 Supabase 连接可完成迁移和真实云库验证；Trigger.dev 部署仍只包含后台探针任务，不是 Orincard 网站。
 - Supabase Auth 的泄露密码保护当前未启用，安全顾问报告 1 项 WARN；它不影响本批次已定义验收，但需在正式生产发布前结合套餐能力启用并复核。
 - 系统默认 Node 仍为 24；本次验收通过 Homebrew Node 22.23.2 明确执行，后续 Node/非云集成继续使用该精确版本。
