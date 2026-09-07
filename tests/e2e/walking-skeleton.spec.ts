@@ -190,9 +190,13 @@ test("Topic to AI to edit to registered save to refresh to real PNG and PDF", as
 
     const restored = await page.request.get(`/api/v1/projects/${projectId}`);
     expect(restored.status(), await restored.text()).toBe(200);
-    await expect(restored.json()).resolves.toMatchObject({
-      data: { revision: 1, document: { slides: [{ title: editedHeadline }] } },
-    });
+    // toMatchObject compares arrays by length, so the deck has to be checked directly.
+    const restoredBody = await restored.json() as {
+      data: { revision: number; document: { slides: { title: string }[] } };
+    };
+    expect(restoredBody.data.revision).toBe(1);
+    expect(restoredBody.data.document.slides).toHaveLength(4);
+    expect(restoredBody.data.document.slides[0]?.title).toBe(editedHeadline);
 
     if (ownerId) {
       const foreign = createClient(supabaseUrl, publishableKey, {

@@ -407,5 +407,5 @@ cloud("T027 real development Supabase source", () => {
     const ttl = new Date(read.data!.expires_at).getTime() - Date.now();
     expect(ttl).toBeGreaterThan(6.99 * 24 * 60 * 60 * 1_000);
     expect(ttl).toBeLessThanOrEqual(7 * 24 * 60 * 60 * 1_000);
-  });
+  }, 60_000);
 });

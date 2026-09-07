@@ -25,6 +25,7 @@ test("offers Topic/Text generation with the approved defaults and limits", async
 
 test.describe("T031 real Topic/Text generation", () => {
   test.skip(!cloud, "Set ORINCARD_RUN_TEXT_GENERATION_E2E=1 for real generation acceptance.");
+  test.describe.configure({ timeout: 240_000 });
 
   test("opens an editable anonymous Topic result with requested options", async ({ page }) => {
     await page.goto("/create");
@@ -68,7 +69,12 @@ test.describe("T031 real Topic/Text generation", () => {
 
     expect(idempotencyKey).toMatch(/^source-[0-9a-f-]{36}$/i);
 
-    await expect(page.getByText(/Generating:/)).toBeVisible({ timeout: 15_000 });
+    // The job id only exists once POST /api/v1/generation returns, which against the
+    // real cloud costs a Supabase auth round trip, three queries/RPCs and a Trigger
+    // dispatch (~12s measured). Progress then needs one more poll to leave the
+    // "Starting generation…" state, so 15s could never hold. Generation itself runs
+    // well past a minute, so the progress state stays genuinely observable here.
+    await expect(page.getByText(/Generating:/)).toBeVisible({ timeout: 60_000 });
     await expect(page).toHaveURL(/\/editor\/local-generated-/, { timeout: 120_000 });
     await expect(page.locator("[data-editor-slide-id]")).toHaveCount(4);
     await expect(page.getByTestId("draft-status")).toHaveText("Saved locally.");
