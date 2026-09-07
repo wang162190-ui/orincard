@@ -61,7 +61,10 @@ export type RenderDeckResult = {
   }[];
 };
 
-const require = createRequire(import.meta.url);
+// Seeding createRequire with a run-time path stops Turbopack from recognising the
+// pattern and rewriting the resolved specifiers into bundle module ids, which
+// readFile cannot open. The fonts must come off disk so their hashes stay verifiable.
+const require = createRequire(join(process.cwd(), "package.json"));
 
 async function loadExportFont(
   id: string,
@@ -105,7 +108,10 @@ async function deckHtml(
   height: number,
 ): Promise<string> {
   const [slideCss, inter, serif, noto] = await Promise.all([
-    readFile(new URL("./slide.css", import.meta.url), "utf8"),
+    // Bundlers rewrite import.meta.url to the entry module, which in the deployed
+    // Trigger worker resolved to src/trigger/. Anchor on the working directory so the
+    // same path holds for the Next.js server and the worker container.
+    readFile(join(process.cwd(), "src/render/slide.css"), "utf8"),
     loadExportFont("inter-latin-variable", require.resolve("@fontsource-variable/inter/package.json")),
     loadExportFont("source-serif-4-latin-variable", require.resolve("@fontsource-variable/source-serif-4/package.json")),
     loadExportFont("noto-sans-sc-simplified-400", require.resolve("@fontsource/noto-sans-sc/package.json")),
