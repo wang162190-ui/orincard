@@ -6,7 +6,17 @@ import {
   type ResolvedAddress,
   type SafeFetchConnectionRequest,
   type SafeFetchConnectionResponse,
+  type SafeFetchResult,
 } from "../../src/server/sources/safe-fetch";
+import { createUrlSourceParser } from "../../src/server/sources/url";
+import type { SourceParseLimits } from "../../src/server/sources";
+
+const LIMITS: SourceParseLimits = {
+  maxBytes: 2_000_000,
+  maxSegments: 200,
+  maxCharacters: 40_000,
+  timeoutMs: 10_000,
+};
 
 function address(value: string, family: 4 | 6 = 4): ResolvedAddress {
   return { address: value, family };
@@ -453,5 +463,250 @@ describe("T039 response size and time limits", () => {
       timeoutMs: 1_000,
     });
     expect(result.ok).toBe(true);
+  });
+});
+
+function fetcherReturning(result: SafeFetchResult) {
+  return vi.fn(async () => result);
+}
+
+function html(body: string, head = "<title>Quiet weeks</title>"): SafeFetchResult {
+  return {
+    ok: true,
+    url: "https://docs.example.com/article",
+    status: 200,
+    contentType: "text/html; charset=utf-8",
+    body: `<!DOCTYPE html><html><head>${head}</head><body>${body}</body></html>`,
+    byteLength: 512,
+  };
+}
+
+let counter = 0;
+const createId = () => {
+  counter += 1;
+  return `segment-${counter}`;
+};
+
+describe("T039 URL source parser", () => {
+  it("extracts readable paragraphs and safe metadata from a real-looking page", async () => {
+    counter = 0;
+    const parser = createUrlSourceParser({
+      fetch: fetcherReturning(
+        html(
+          `<header><nav>Home About</nav></header>
+           <article>
+             <h1>Working a calmer week</h1>
+             <p>Batch the shallow work into <strong>one</strong> block.</p>
+             <p>Then protect a single deep block each morning.</p>
+             <ul><li>Silence alerts</li><li>Write the plan first</li></ul>
+           </article>
+           <script>window.tracker = "should never appear";</script>
+           <style>.x { content: "css should never appear"; }</style>
+           <noscript>noscript should never appear</noscript>`,
+        ),
+      ),
+      createId,
+    });
+
+    const result = await parser.parse("https://docs.example.com/article", LIMITS);
+
+    expect(parser.kind).toBe("url");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const text = result.segments.map((segment) => segment.text).join("\n");
+    expect(text).toContain("Working a calmer week");
+    expect(text).toContain("Batch the shallow work into one block.");
+    expect(text).toContain("Silence alerts");
+    expect(text).not.toContain("should never appear");
+    expect(text).not.toContain("<");
+    expect(result.metadata.title).toBe("Quiet weeks");
+    expect(result.metadata.publicUrl).toBe("https://docs.example.com/article");
+    expect(result.metadata.characterCount).toBeGreaterThan(40);
+    expect(result.segments.every((segment) => segment.segmentId.startsWith("segment-"))).toBe(true);
+  });
+
+  it("decodes the standard entities without ever expanding a declared one", async () => {
+    const parser = createUrlSourceParser({
+      fetch: fetcherReturning({
+        ok: true,
+        url: "https://docs.example.com/xxe",
+        status: 200,
+        contentType: "text/html",
+        body:
+          `<!DOCTYPE html [<!ENTITY xxe SYSTEM "file:///etc/passwd">` +
+          `<!ENTITY lol "boom">]>` +
+          `<html><body><p>Tom &amp; Jerry &lt;3 &#65;&#x42; &nbsp;fine</p>` +
+          `<p>injected: &xxe; &lol;</p></body></html>`,
+        byteLength: 256,
+      }),
+      createId,
+    });
+
+    const result = await parser.parse("https://docs.example.com/xxe", LIMITS);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const text = result.segments.map((segment) => segment.text).join("\n");
+    expect(text).toContain("Tom & Jerry <3 AB");
+    expect(text).not.toContain("/etc/passwd");
+    expect(text).not.toContain("boom");
+    expect(text).not.toContain("<!ENTITY");
+  });
+
+  it("keeps plain text responses and refuses binary content types", async () => {
+    const plain = createUrlSourceParser({
+      fetch: fetcherReturning({
+        ok: true,
+        url: "https://docs.example.com/notes.txt",
+        status: 200,
+        contentType: "text/plain; charset=utf-8",
+        body: "First paragraph.\n\nSecond paragraph.",
+        byteLength: 35,
+      }),
+      createId,
+    });
+    const plainResult = await plain.parse("https://docs.example.com/notes.txt", LIMITS);
+    expect(plainResult.ok).toBe(true);
+    if (plainResult.ok) expect(plainResult.segments).toHaveLength(2);
+
+    const binary = createUrlSourceParser({
+      fetch: fetcherReturning({
+        ok: true,
+        url: "https://docs.example.com/deck.pdf",
+        status: 200,
+        contentType: "application/pdf",
+        body: "%PDF-1.7",
+        byteLength: 8,
+      }),
+      createId,
+    });
+    const binaryResult = await binary.parse("https://docs.example.com/deck.pdf", LIMITS);
+    expect(binaryResult.ok).toBe(false);
+    if (binaryResult.ok) return;
+    expect(binaryResult.code).toBe("SOURCE_UNSUPPORTED_FORMAT");
+    expect(binaryResult.action).toBe("upload-file");
+  });
+
+  it("fails a page that has no readable body instead of returning an empty success", async () => {
+    const parser = createUrlSourceParser({
+      fetch: fetcherReturning(html(`<div><script>var a = 1;</script></div><p>   </p>`)),
+      createId,
+    });
+
+    const result = await parser.parse("https://docs.example.com/empty", LIMITS);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.code).toBe("SOURCE_EMPTY");
+    // AC-002: a rejected source has to name the next step.
+    expect(result.action).toBe("paste-text");
+  });
+
+  it("truncates a long page at the segment and character limits", async () => {
+    const paragraphs = Array.from({ length: 60 }, (_, index) => `<p>Paragraph ${index} body.</p>`);
+    const parser = createUrlSourceParser({
+      fetch: fetcherReturning(html(paragraphs.join(""))),
+      createId,
+    });
+
+    const result = await parser.parse("https://docs.example.com/long", {
+      ...LIMITS,
+      maxSegments: 5,
+      maxCharacters: 10_000,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.segments).toHaveLength(5);
+    expect(result.metadata.truncated).toBe(true);
+
+    const short = createUrlSourceParser({ fetch: fetcherReturning(html("<p>Only one.</p>")), createId });
+    const shortResult = await short.parse("https://docs.example.com/short", LIMITS);
+    expect(shortResult.ok).toBe(true);
+    if (shortResult.ok) expect(shortResult.metadata.truncated).toBeUndefined();
+  });
+
+  it("refuses to store a final URL that is not https, which the database also rejects", async () => {
+    const parser = createUrlSourceParser({
+      fetch: fetcherReturning({
+        ok: true,
+        url: "http://docs.example.com/article",
+        status: 200,
+        contentType: "text/html",
+        body: "<html><body><p>Plain http body.</p></body></html>",
+        byteLength: 48,
+      }),
+      createId,
+    });
+
+    const result = await parser.parse("http://docs.example.com/article", LIMITS);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.code).toBe("SOURCE_BLOCKED");
+    expect(result.action).toBe("use-public-url");
+  });
+
+  it("passes the caller limits down to the fetcher", async () => {
+    const fetch = fetcherReturning(html("<p>Bounded.</p>"));
+    const parser = createUrlSourceParser({ fetch, createId });
+    await parser.parse("https://docs.example.com/article", LIMITS);
+    expect(fetch).toHaveBeenCalledWith("https://docs.example.com/article", {
+      maxBytes: LIMITS.maxBytes,
+      timeoutMs: LIMITS.timeoutMs,
+    });
+  });
+
+  it("maps every fetch failure onto a typed code with a concrete alternative", async () => {
+    const expected = {
+      blocked: "SOURCE_BLOCKED",
+      "unsupported-scheme": "SOURCE_BLOCKED",
+      "too-many-redirects": "SOURCE_BLOCKED",
+      "too-large": "SOURCE_TOO_LARGE",
+      timeout: "SOURCE_TIMEOUT",
+      unavailable: "SOURCE_UNAVAILABLE",
+    } as const;
+
+    for (const [reason, code] of Object.entries(expected)) {
+      const parser = createUrlSourceParser({
+        fetch: fetcherReturning({ ok: false, reason } as SafeFetchResult),
+        createId,
+      });
+      const result = await parser.parse("https://docs.example.com/a", LIMITS);
+      expect(result.ok, reason).toBe(false);
+      if (result.ok) continue;
+      expect(result.code, reason).toBe(code);
+      expect(result.action.length).toBeGreaterThan(0);
+      expect(result.message).toMatch(/\.$/);
+    }
+  });
+
+  it("never leaks the resolved address, the host or the page text into a failure", async () => {
+    const parser = createUrlSourceParser({
+      fetch: fetcherReturning({ ok: false, reason: "blocked" }),
+      createId,
+    });
+
+    const result = await parser.parse("https://intranet.corp.example/wiki/salaries", LIMITS);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    const serialised = JSON.stringify(result);
+    expect(serialised).not.toContain("intranet.corp.example");
+    expect(serialised).not.toContain("10.1.2.3");
+    expect(serialised).not.toContain("salaries");
+  });
+
+  it("rejects an input that is not a usable absolute URL before any fetch", async () => {
+    const fetch = fetcherReturning(html("<p>never</p>"));
+    const parser = createUrlSourceParser({ fetch, createId });
+
+    for (const input of ["", "   ", "/relative/path", "javascript:alert(1)"]) {
+      const result = await parser.parse(input, LIMITS);
+      expect(result.ok, input).toBe(false);
+      if (result.ok) continue;
+      expect(result.code, input).toBe("SOURCE_BLOCKED");
+    }
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
