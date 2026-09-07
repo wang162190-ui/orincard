@@ -70,7 +70,7 @@ test("Topic to AI to edit to registered save to refresh to real PNG and PDF", as
   const secretKey = required("SUPABASE_SECRET_KEY");
   const email = required("ORINCARD_AUTH_TEST_EMAIL");
   const password = required("ORINCARD_AUTH_TEST_PASSWORD");
-  required("OPENAI_API_KEY");
+  required("DEEPSEEK_API_KEY");
   required("TRIGGER_SECRET_KEY");
 
   const runId = crypto.randomUUID();

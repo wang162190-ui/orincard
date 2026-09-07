@@ -2,8 +2,8 @@ import { idempotencyKeys, task, tasks } from "@trigger.dev/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CarouselDocument } from "../domain/document";
 import {
-  createOpenAIResponsesAdapter,
-  createOpenAIResponsesClient,
+  createDeepSeekResponsesAdapter,
+  createDeepSeekResponsesClient,
 } from "../server/ai";
 import {
   generateCarouselDocument,
@@ -150,10 +150,10 @@ export const generateCarouselTask = task({
   id: GENERATION_TASK_ID,
   maxDuration: 300,
   run: async (payload: unknown) => {
-    const apiKey = process.env.OPENAI_API_KEY?.trim();
-    if (!apiKey) throw new Error("OPENAI_API_KEY is not configured for the generation task");
+    const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
+    if (!apiKey) throw new Error("DEEPSEEK_API_KEY is not configured for the generation task");
     const store = createSupabaseGenerationWorkerStore(createAdminSupabaseClient());
-    const ai = createOpenAIResponsesAdapter(createOpenAIResponsesClient(apiKey));
+    const ai = createDeepSeekResponsesAdapter(createDeepSeekResponsesClient(apiKey));
     return runGenerationJob(
       store,
       (source, options) => generateCarouselDocument({ ai, source, options }),

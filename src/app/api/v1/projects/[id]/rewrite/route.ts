@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
-import { createOpenAIResponsesAdapter, createOpenAIResponsesClient } from "../../../../../../server/ai";
+import { createDeepSeekResponsesAdapter, createDeepSeekResponsesClient } from "../../../../../../server/ai";
 import { readServerEnvironment } from "../../../../../../server/environment";
 import { createProjectService, createSupabaseProjectStore } from "../../../../../../server/projects";
 import {
@@ -27,7 +27,7 @@ export async function POST(
     if (request.headers.get("origin") !== new URL(environment.appUrl).origin) {
       throw new RewriteError("INVALID_REQUEST", "Untrusted request origin.", 400);
     }
-    const apiKey = process.env.OPENAI_API_KEY?.trim();
+    const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
     if (!apiKey) throw new RewriteError("SERVICE_UNAVAILABLE", "AI rewrite is unavailable.", 503, true);
     const cookieStore = await cookies();
     const user = await requireVerifiedUser(createServerSupabaseClient({
@@ -54,7 +54,7 @@ export async function POST(
       idempotencyKey: request.headers.get("idempotency-key") ?? "",
       hashSecret: environment.supabaseSecretKey,
       environment: environment.appEnvironment,
-      ai: createOpenAIResponsesAdapter(createOpenAIResponsesClient(apiKey)),
+      ai: createDeepSeekResponsesAdapter(createDeepSeekResponsesClient(apiKey)),
       store: createSupabaseRewriteStore(admin),
     });
     return Response.json(

@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 
-export const AI_TEXT_MODEL = "gpt-5.6-luna" as const;
+export const DEEPSEEK_API_BASE_URL = "https://api.deepseek.com" as const;
+export const AI_TEXT_MODEL = "deepseek-v4-pro" as const;
 
 export interface StructuredOutputRequest {
   readonly instructions: string;
@@ -33,14 +34,14 @@ export class AIServiceError extends Error {
   }
 }
 
-export function createOpenAIResponsesClient(apiKey: string): ResponsesClient {
+export function createDeepSeekResponsesClient(apiKey: string): ResponsesClient {
   if (!apiKey.trim()) {
-    throw new Error("An OpenAI API key is required.");
+    throw new Error("A DeepSeek API key is required.");
   }
-  return new OpenAI({ apiKey }) as unknown as ResponsesClient;
+  return new OpenAI({ apiKey, baseURL: DEEPSEEK_API_BASE_URL }) as unknown as ResponsesClient;
 }
 
-export function createOpenAIResponsesAdapter(
+export function createDeepSeekResponsesAdapter(
   client: ResponsesClient,
 ): StructuredAI {
   return {
@@ -61,7 +62,6 @@ export function createOpenAIResponsesAdapter(
             format: {
               type: "json_schema",
               name: request.schemaName,
-              strict: true,
               schema: request.schema,
             },
           },

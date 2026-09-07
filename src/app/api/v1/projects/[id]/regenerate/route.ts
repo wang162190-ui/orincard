@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import type { CarouselDocument } from "../../../../../../domain/document";
-import { createOpenAIResponsesAdapter, createOpenAIResponsesClient } from "../../../../../../server/ai";
+import { createDeepSeekResponsesAdapter, createDeepSeekResponsesClient } from "../../../../../../server/ai";
 import { readServerEnvironment } from "../../../../../../server/environment";
 import {
   GenerationError,
@@ -101,7 +101,7 @@ export async function POST(
       );
     }
 
-    const apiKey = process.env.OPENAI_API_KEY?.trim();
+    const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
     if (!apiKey) {
       throw new GenerationError(
         "SERVICE_UNAVAILABLE",
@@ -118,7 +118,7 @@ export async function POST(
       throw new GenerationError("INVALID_REQUEST", "Generation options are invalid.", false, 400);
     }
     const options = body.options as unknown as GenerationOptions;
-    const ai = createOpenAIResponsesAdapter(createOpenAIResponsesClient(apiKey));
+    const ai = createDeepSeekResponsesAdapter(createDeepSeekResponsesClient(apiKey));
     const candidate = await createRegenerationCandidate({
       ownerId: user.id,
       projectId: id,

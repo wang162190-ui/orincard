@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createOpenAIResponsesAdapter, createOpenAIResponsesClient } from "../../../../../server/ai";
+import { createDeepSeekResponsesAdapter, createDeepSeekResponsesClient } from "../../../../../server/ai";
 import { readServerEnvironment, type AppEnvironment } from "../../../../../server/environment";
 import {
   GuestGenerationError,
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         false,
       );
     }
-    const apiKey = process.env.OPENAI_API_KEY?.trim();
+    const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
     if (!apiKey) {
       throw new GuestGenerationError(
         "SERVICE_UNAVAILABLE",
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         true,
       );
     }
-    const ai = createOpenAIResponsesAdapter(createOpenAIResponsesClient(apiKey));
+    const ai = createDeepSeekResponsesAdapter(createDeepSeekResponsesClient(apiKey));
     const service = createGuestGenerationService({
       store: createSupabaseGuestGuardStore(createAdminSupabaseClient()),
       hashSecret: environment.supabaseSecretKey,
