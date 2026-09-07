@@ -198,12 +198,12 @@
   - Check: `pnpm exec vitest run tests/cloud/text-source.test.ts`
   - Expect: 注册文本来源先验证后保存7天，匿名禁止持久化；sourceId可以供下一项生成使用。
 
-- [ ] T028 [P] `src/server/ai.ts`, `src/server/prompts.ts`, `src/server/generation.ts`, `tests/cloud/generation.test.ts` — 实现云AI适配与结构化生成 → AC-002, AC-003
+- [ ] T028 [P] `src/server/ai.ts`, `src/server/prompts.ts`, `src/server/generation.ts`, `tests/cloud/generation.test.ts` — 实现DeepSeek Responses适配与结构化生成 → AC-002, AC-003
   - Batch: B04
   - Parallel: WS-B04-1/A
   - Depends: T027
   - Check: `pnpm exec vitest run tests/cloud/generation.test.ts`
-  - Expect: 真实模型输出schema有效，拒绝嵌入指令，修复失败不会返回空成功。
+  - Expect: 真实deepseek-v4-pro输出经本地schema校验有效，请求固定store:false，拒绝嵌入指令，一次修复失败不会返回空成功。
 
 - [ ] T029 [P] `src/trigger/generate.ts`, `src/app/api/v1/generation/route.ts`, `src/features/generation/progress.tsx`, `tests/cloud/generation-job.test.ts` — 连接注册生成任务与进度UI → AC-002, AC-003
   - Batch: B04

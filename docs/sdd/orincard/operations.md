@@ -6,7 +6,7 @@
 
 开发、Preview 使用独立 Supabase 开发项目和已部署的云端开发worker；Production独立配置和数据。默认美国东部；不将用户真实数据复制到开发。Preview开启访问保护和noindex；公开私有Git仓库链接不等于站点有访问保护。
 
-本次未创建Supabase/Vercel/Trigger/Stripe/Resend资源，不读取或写入任何真实密钥。`.env.example`仅示例。`SUPABASE_SECRET_KEY`、OpenAI、Stripe、Resend、Trigger密钥永不使用NEXT_PUBLIC前缀。CI的Vercel/Supabase访问令牌在平台Secrets中配置，禁止写文档或任务payload。环境启动时检查secret类型、APP_ENV、项目ID和站点Origin；发现Preview指向生产则拒绝启动。
+本次未创建Supabase/Vercel/Trigger/Stripe/Resend资源，不读取或写入任何真实密钥。`.env.example`仅示例。`SUPABASE_SECRET_KEY`、DeepSeek、OpenAI、Stripe、Resend、Trigger密钥永不使用NEXT_PUBLIC前缀。CI的Vercel/Supabase访问令牌在平台Secrets中配置，禁止写文档或任务payload。环境启动时检查secret类型、APP_ENV、项目ID和站点Origin；发现Preview指向生产则拒绝启动。
 
 认证采用Supabase邮箱密码和Google OAuth；找回/验证邮件走Resend SMTP。只有服务端验证后的用户能操作自己的数据，不能依赖JWT里user_metadata的plan/role。删除账户先停用profiles并撤销session；敏感请求检查实时账户状态。
 

@@ -35,7 +35,7 @@ PptxGenJS最近push较其他主库早（2025-11），尚未超过12个月；列�
 | 匿名/认证/找回/账户删除 | supabase-js/Auth；[SSR](https://supabase.com/docs/guides/auth/server-side/creating-a-client) | 现成认证，匿名正文只临时处理；Free额度内$0 |
 | 项目/自动保存/版本/偏好 | Postgres/RPC；[RLS](https://supabase.com/docs/guides/database/postgres/row-level-security) | JSONB+CAS+快照，业务差异化自研；包含在Supabase费用 |
 | 六类来源 | Readability/PDF.js/Tesseract/FFmpeg/ZIP XML；[Trigger extensions](https://trigger.dev/docs/config/extensions/overview) | 原生解析优先，不额外买Unstructured；任务按秒计费 |
-| 生成/改写/文本工具 | Zod+云模型；[模型目录](https://developers.openai.com/api/docs/models/all) | 统一结构化契约，不引入agent工作流框架；按token计费 |
+| 生成/改写/文本工具 | Zod+DeepSeek；[Responses API](https://api-docs.deepseek.com/api/create-response/) | 统一结构化契约，不引入agent工作流框架；按token计费 |
 | 模板/品牌/逐页编辑 | React/dnd-kit/用户设计 | 自研文档操作和原创模板是产品核心，不引入自由画布；无额外SaaS费用 |
 | 图库/上传/Emoji/截图 | sharp/Playwright；[Pexels](https://www.pexels.com/api/documentation/)、[Storage](https://supabase.com/docs/guides/storage) | 用户授权和private bucket，截图独立沙箱；图库额度内$0、文件按用量 |
 | AI图片/Portrait | 云端Images；[OpenAI图像](https://developers.openai.com/api/docs/guides/image-generation) | 用户先确认再引用；按图像token/质量计费 |
@@ -52,7 +52,8 @@ PptxGenJS最近push较其他主库早（2025-11），尚未超过12个月；列�
 - [Vercel函数限制](https://vercel.com/docs/functions/limitations)：普通请求/响应4.5MB；Fluid标准内存2GB，Pro可4GB；长时长/大包有beta能力，不把beta当产品必需地基。
 - [Supabase价格](https://supabase.com/pricing)：Free 500MB数据库、1GB Storage、50MB文件上限、闲置暂停、无自动备份；Pro $25起。数据库备份不包含Storage对象。
 - [Trigger.dev价格](https://trigger.dev/pricing)：Free每月$5 credits，耗尽需升级；计算按机器秒+run计费；Medium1x 2GB为$0.000085/秒，Medium2x 4GB为$0.000170/秒。
-- [OpenAI价格](https://developers.openai.com/api/docs/pricing)：本次文本基线gpt-5.6-luna $0.20输入/$1.20输出每百万token；mini转录估算$0.003/分钟；图片按实际token，不保证统一每张价。
+- [DeepSeek价格](https://api-docs.deepseek.com/quick_start/pricing)：文本基线自2026-09-07起为deepseek-v4-pro。`[UNVERIFIED-NUMBER: 单价待复核]` DeepSeek官方定价页在本次核对环境被网络策略拦截，未能取得一手数字；第三方聚合站给出约$0.435输入/$0.87输出每百万token但互相矛盾，因此不写入已批准成本模型，须在首次真实用量后按账单复核。原gpt-5.6-luna $0.20输入/$1.20输出基线已作废。
+- [OpenAI价格](https://developers.openai.com/api/docs/pricing)：仅剩转录与图片使用；mini转录估算$0.003/分钟；图片按实际token，不保证统一每张价。文本生成已不再使用OpenAI。
 - [签名下载](https://supabase.com/docs/guides/storage/serving/downloads)：签名URL不能通过轮换Auth key立即撤销；因此不用于严格删除后的访问路径。
 - [Supabase changelog](https://supabase.com/changelog)：本轮核对2026-08备份修复、7月恢复凭据修复、Management API logs.all迁移（2026-09-23移除）、realtime schema禁止修改；本计划不写内部realtime表、不使用旧日志API。正式依赖安装前再次核对。
 

@@ -32,6 +32,7 @@
 | 卡片渲染 | 同一 HTML/CSS 渲染器 + Chromium | Satori、自由 Canvas | 现有设计含浏览器 CSS；Satori 受限 CSS 会产生第二套排版。AC-004/006 |
 | PPTX | PptxGenJS | 全页截图、复杂原生 Office 自动化 | 保留文字/图片可编辑，允许装饰栅格化；需要兼容性样本。AC-006 |
 | 恢复 PDF | qpdf 附件 + 校验后的恢复 ZIP | 从普通 PDF 猜测布局、pdf-lib 新依赖 | 普通 PDF 无法保证可逆；pdf-lib 最近维护不足，避免作主依赖。AC-007 |
+| 文本 AI | DeepSeek `deepseek-v4-pro` Responses API + 本地 Zod 校验 | OpenAI `gpt-5.6-luna`、自建 agent 编排框架 | 用户 2026-09-07 批准的供应商替换；结构化契约不变，但 schema 合规改由本地兜底。AC-002/003 |
 | 数据访问 | supabase-js + SQL RPC | Prisma 与第二套迁移源 | 原子事务在数据库；RLS/类型由同一 schema 推导。AC-007/009 |
 | 支付 | Stripe 托管 Checkout/Portal | 自收卡号、自建账单 | Sandbox 可开发；真实主体资格不推定。AC-009 |
 
@@ -62,6 +63,10 @@
 ### ADR-006：匿名短请求例外
 
 背景：匿名正文不能持久化，而托管后台任务会持久化载荷。决策：匿名 Topic/Text 通过 Vercel 短流式请求临时生成，仅存无正文请求元数据；不提交到 Trigger，不建匿名云项目。后果：匿名断网不能后台恢复；告知重试，注册后才启用持久化长任务。匿名源码和结果不进日志，供应商数据保留单独披露。关联 AC-001/002。
+
+### ADR-007：DeepSeek Responses 结构化生成
+
+背景：B04 需要第一条真实文本生成闭环，用户于 2026-09-07 批准将文本 AI 从 OpenAI `gpt-5.6-luna` 替换为 DeepSeek `deepseek-v4-pro`。产品范围、数据模型和公开 HTTP 契约不因此改变。决策：经 OpenAI Node SDK 指向 `https://api.deepseek.com` 调用 Responses API；固定 `store:false`，不在供应商侧留存会话；输出用 `text.format = {type:"json_schema", name, schema}` 约束。DeepSeek 的 `json_schema` 只接受 `name` 与 `schema`，**不发送 `strict`**，因此供应商侧不保证 schema 合规。后果：schema 合规的唯一判定点是本地 Zod/domain 校验；不合规时做且仅做一次既有 schema 修复，修复仍失败则显式失败，绝不返回空成功。结构约束由供应商侧移到本地，修复路径可能比原方案更常触发，token 成本与端到端延迟须按真实用量复核（该模型默认开启 thinking，输出 token 与耗时高于非思考模式）。匿名正文仍只在短请求中处理，不进入任务载荷与日志。关联 AC-002/003。
 
 ## 4. 业务约束与接口
 
@@ -102,12 +107,14 @@ definitions 不是第二套迁移历史：发布任务将经审查的 SQL 整理
 
 价格按 2026-09-03 官方快照，2026-09-04 整理，非永久报价。
 
+`[UNVERIFIED-NUMBER: AI 文本待重算]` 表中「AI 文本」区间由已作废的 `gpt-5.6-luna` 单价推导。2026-09-07 换用 `deepseek-v4-pro` 后单价与思考模式输出量均不同，且 DeepSeek 官方定价页在本次核对环境被网络策略拦截、未取得一手数字，故保留原区间仅作占位，须在首次真实用量与账单后重算，不得据此作商业承诺。
+
 | 服务 | 零业务用量 | 1000 DAU 示例月费用 | 升级触发 |
 |---|---|---|---|
 | Vercel | 本地开发 $0；商业线上 Pro $20 起 | $20–40 | 商业使用即 Pro；算力/流量告警 |
 | Supabase（数据/账号/文件） | 开发 Free $0；生产 Pro $25 起 | $35–90，含额外开发算力/容量与出口估算 | >50MB 文件、备份、容量/稳定性要求 |
 | Trigger.dev | Free $5/月用量抵扣 | $100–250 | 免费额耗尽、队列等待、媒体量 |
-| AI 文本 | 按量，零调用 $0 | $120–180 | 质量或成本实测 |
+| AI 文本 | 按量，零调用 $0 | `[UNVERIFIED-NUMBER]` $120–180 待重算 | 质量或成本实测 |
 | AI 图片/Portrait | 按量，零调用 $0 | $150–450 | 质量/尺寸/token 使用 |
 | AI 转录 | 按量，零调用 $0 | 约 $27 | 音频分钟数 |
 | Resend | Free $0，100封/日、3000封/月 | $0–20 | 邮件日/月限额 |
