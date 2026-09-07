@@ -54,9 +54,9 @@ select lives_ok(
   'duplicate submit returns the original job without a second reservation'
 );
 select results_eq($$select count(*)::bigint from public.jobs where owner_id = '51111111-1111-1111-1111-111111111111'$$, array[1::bigint], 'duplicate submit creates no second job');
-select results_eq($$select count(*)::bigint from public.usage_ledger where kind = 'reserve'$$, array[1::bigint], 'duplicate submit creates no second reserve ledger event');
+select results_eq($$select count(*)::bigint from public.usage_ledger where kind = 'reserve' and account_id in (select id from public.usage_accounts where owner_id = '51111111-1111-1111-1111-111111111111')$$, array[1::bigint], 'duplicate submit creates no second reserve ledger event');
 reset role;
-select results_eq($$select count(*)::bigint from private.cost_reservations$$, array[1::bigint], 'duplicate submit creates no second cost reservation');
+select results_eq($$select count(*)::bigint from private.cost_reservations where job_id in (select id from public.jobs where owner_id = '51111111-1111-1111-1111-111111111111')$$, array[1::bigint], 'duplicate submit creates no second cost reservation');
 set local role service_role;
 select throws_ok(
   format(
@@ -75,7 +75,7 @@ select throws_ok(
 select lives_ok($$select private.register_cost_attempt((select id from public.jobs where idempotency_key = 'submit-1'), 'job:submit-1:write:1')$$, 'a provider attempt is recorded before sending');
 select lives_ok($$select private.register_cost_attempt((select id from public.jobs where idempotency_key = 'submit-1'), 'job:submit-1:write:1')$$, 'provider attempt replay is idempotent');
 reset role;
-select results_eq($$select count(*)::bigint from private.cost_attempts$$, array[1::bigint], 'attempt replay creates one row');
+select results_eq($$select count(*)::bigint from private.cost_attempts where reservation_id in (select id from private.cost_reservations where job_id in (select id from public.jobs where owner_id = '51111111-1111-1111-1111-111111111111'))$$, array[1::bigint], 'attempt replay creates one row');
 set local role service_role;
 select lives_ok($$select private.settle_cost_attempt((select id from public.jobs where idempotency_key = 'submit-1'), 'job:submit-1:write:1', 'provider-operation-1', '{"inputTokens":10,"outputTokens":20}'::jsonb, 150)$$, 'a provider attempt records its actual cost');
 select lives_ok($$select private.settle_cost_attempt((select id from public.jobs where idempotency_key = 'submit-1'), 'job:submit-1:write:1', 'provider-operation-1', '{"inputTokens":10,"outputTokens":20}'::jsonb, 150)$$, 'the same attempt settlement replays idempotently');
