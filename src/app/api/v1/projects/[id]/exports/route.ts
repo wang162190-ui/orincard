@@ -3,8 +3,10 @@ import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { BASIC_EXPORT_FORMATS, type BasicExportFormat } from "@/render/render-deck";
 import { readServerEnvironment } from "@/server/environment";
+import { createSupabaseJobStore, dispatchPendingJob } from "@/server/jobs";
 import { assertTrustedWriteRequest } from "@/server/projects";
-import { createServerSupabaseClient, requireVerifiedUser } from "@/server/supabase";
+import { createAdminSupabaseClient, createServerSupabaseClient, requireVerifiedUser } from "@/server/supabase";
+import { basicExportTriggerDispatcher } from "@/trigger/export";
 
 export type CreatedProjectExport = {
   readonly exportId: string;
@@ -47,6 +49,7 @@ export async function createProjectExports(
     readonly confirmedWarnings: readonly string[];
     readonly idempotencyKey: string;
   },
+  dispatch: (jobId: string) => Promise<void>,
 ) {
   const formats = [...new Set(input.formats)];
   if (
@@ -59,6 +62,9 @@ export async function createProjectExports(
     throw new ProjectExportError("INVALID_REQUEST", "A revision, format, and Idempotency-Key are required.", 400);
   }
   const exports = await store.create({ ...input, formats });
+  for (const created of exports) {
+    await dispatch(created.jobId);
+  }
   return { revision: input.expectedRevision, exports };
 }
 
@@ -113,6 +119,7 @@ export function createProjectExportsPostHandler(dependencies: {
   readonly authenticate: () => Promise<string>;
   readonly assertOrigin: (request: Request) => void;
   readonly store: ProjectExportStore;
+  readonly dispatch: (jobId: string) => Promise<void>;
 }) {
   return async (request: Request, projectId: string) => {
     const requestId = randomUUID();
@@ -134,15 +141,19 @@ export function createProjectExportsPostHandler(dependencies: {
         throw new ProjectExportError("AUTH_REQUIRED", "Sign in to export saved projects.", 401);
       }
       const value = body as Record<string, unknown>;
-      const data = await createProjectExports(dependencies.store, {
-        ownerId,
-        projectId,
-        expectedRevision: Number(value.expectedRevision),
-        formats: Array.isArray(value.formats) ? value.formats as BasicExportFormat[] : [],
-        options: value.options && typeof value.options === "object" && !Array.isArray(value.options) ? value.options as Record<string, unknown> : {},
-        confirmedWarnings: Array.isArray(value.confirmedWarnings) ? value.confirmedWarnings.filter((item): item is string => typeof item === "string") : [],
-        idempotencyKey: request.headers.get("idempotency-key") ?? "",
-      });
+      const data = await createProjectExports(
+        dependencies.store,
+        {
+          ownerId,
+          projectId,
+          expectedRevision: Number(value.expectedRevision),
+          formats: Array.isArray(value.formats) ? value.formats as BasicExportFormat[] : [],
+          options: value.options && typeof value.options === "object" && !Array.isArray(value.options) ? value.options as Record<string, unknown> : {},
+          confirmedWarnings: Array.isArray(value.confirmedWarnings) ? value.confirmedWarnings.filter((item): item is string => typeof item === "string") : [],
+          idempotencyKey: request.headers.get("idempotency-key") ?? "",
+        },
+        dependencies.dispatch,
+      );
       return Response.json({ data, requestId }, { status: 202, headers: { "Cache-Control": "private, no-store" } });
     } catch (error) {
       return errorResponse(error, requestId);
@@ -158,11 +169,16 @@ export async function POST(request: Request, context: { readonly params: Promise
       getAll: () => cookieStore.getAll(),
       set: (name, value, options) => cookieStore.set(name, value, options),
     });
+    const admin = createAdminSupabaseClient();
+    const jobs = createSupabaseJobStore(admin);
     const { id } = await context.params;
     return createProjectExportsPostHandler({
       authenticate: async () => (await requireVerifiedUser(client)).id,
       assertOrigin: (input) => assertTrustedWriteRequest(input, environment.appUrl),
-      store: createSupabaseProjectExportStore(client),
+      store: createSupabaseProjectExportStore(admin),
+      dispatch: async (jobId) => {
+        await dispatchPendingJob(jobs, basicExportTriggerDispatcher, jobId, randomUUID());
+      },
     })(request, id);
   } catch (error) {
     return errorResponse(error, randomUUID());

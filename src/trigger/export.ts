@@ -1,4 +1,4 @@
-import { task } from "@trigger.dev/sdk";
+import { idempotencyKeys, task, tasks } from "@trigger.dev/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { inspectDeckPreflight, renderDeck, BASIC_EXPORT_FORMATS, type BasicExportFormat } from "../render/render-deck";
@@ -8,6 +8,7 @@ import {
   packageBasicExport,
 } from "../server/export-package";
 import type { JobDispatchPayload } from "../server/jobs";
+import type { TriggerDispatcher } from "../server/jobs";
 import { createAdminSupabaseClient } from "../server/supabase";
 
 const payloadSchema = z
@@ -17,6 +18,8 @@ const payloadSchema = z
     requestId: z.string().min(1).max(200),
   })
   .strict();
+
+export const BASIC_EXPORT_TASK_ID = "orincard-basic-export";
 
 export function validateExportTaskPayload(payload: unknown): JobDispatchPayload {
   const parsed = payloadSchema.safeParse(payload);
@@ -232,10 +235,17 @@ export async function executePersistentExportJob(
 }
 
 export const basicExportTask = task({
-  id: "orincard-basic-export",
+  id: BASIC_EXPORT_TASK_ID,
   maxDuration: 300,
   run: async (payload: unknown) => {
     const input = validateExportTaskPayload(payload);
     return executePersistentExportJob(input.jobId);
   },
 });
+
+export const basicExportTriggerDispatcher: TriggerDispatcher = {
+  async trigger(payload, key) {
+    const idempotencyKey = await idempotencyKeys.create(key, { scope: "global" });
+    return tasks.trigger(BASIC_EXPORT_TASK_ID, payload, { idempotencyKey });
+  },
+};
