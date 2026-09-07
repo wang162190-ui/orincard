@@ -210,6 +210,42 @@ describe("T027 Topic/Text source service", () => {
       expiresAt: "2026-09-13T00:00:00.000Z",
     });
   });
+
+  it("uses one atomic idempotent RPC instead of a direct source insert", async () => {
+    const row = {
+      id: SOURCE_ID,
+      owner_id: OWNER_ID,
+      kind: "text",
+      metadata: { characterCount: 12 },
+      segments: [{ segmentId: "segment-1", text: "Source text." }],
+      state: "ready",
+      expires_at: "2026-09-13T00:00:00.000Z",
+    };
+    const rpc = vi.fn().mockResolvedValue({ data: row, error: null });
+    const client = { rpc };
+
+    const created = await createSupabaseSourceStore(client as never).create({
+      ownerId: OWNER_ID,
+      kind: "text",
+      metadata: { characterCount: 12 },
+      segments: [{ segmentId: "segment-1", text: "Source text." }],
+      state: "ready",
+      expiresAt: "2026-09-13T00:00:00.000Z",
+      idempotencyKey: "source-operation-1",
+      requestHash: "a".repeat(64),
+    } as never);
+
+    expect(rpc).toHaveBeenCalledWith("server_create_text_source", {
+      p_owner_id: OWNER_ID,
+      p_kind: "text",
+      p_metadata: { characterCount: 12 },
+      p_segments: [{ segmentId: "segment-1", text: "Source text." }],
+      p_expires_at: "2026-09-13T00:00:00.000Z",
+      p_idempotency_key: "source-operation-1",
+      p_request_hash: "a".repeat(64),
+    });
+    expect(created.id).toBe(SOURCE_ID);
+  });
 });
 
 describe("T027 POST /api/v1/sources", () => {
@@ -242,6 +278,29 @@ describe("T027 POST /api/v1/sources", () => {
     expect(payload.data.expiresAt).toBe("2026-09-13T00:00:00.000Z");
     expect(payload.requestId).toMatch(/^[0-9a-f-]{36}$/i);
     expect(route.state.insert).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a write without an Idempotency-Key before persistence", async () => {
+    route.state.userId = OWNER_ID;
+    route.state.insert.mockClear();
+    const { POST } = await import("../../src/app/api/v1/sources/route");
+
+    const response = await POST(
+      new Request("https://orincard.test/api/v1/sources", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://orincard.test",
+        },
+        body: JSON.stringify({ kind: "topic", text: "Source topic" }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "INVALID_REQUEST", retryable: false },
+    });
+    expect(route.state.insert).not.toHaveBeenCalled();
   });
 
   it("returns AUTH_REQUIRED and performs no source write for an anonymous request", async () => {
