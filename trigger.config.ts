@@ -1,4 +1,4 @@
-import { aptGet } from "@trigger.dev/build/extensions/core";
+import { additionalPackages, aptGet } from "@trigger.dev/build/extensions/core";
 import { playwright } from "@trigger.dev/build/extensions/playwright";
 import { defineConfig } from "@trigger.dev/sdk";
 
@@ -23,6 +23,13 @@ export default defineConfig({
     extensions: [
       playwright({ browsers: ["chromium"], version: "1.57.0" }),
       aptGet({ packages: ["qpdf"] }),
+      additionalPackages({
+        packages: [
+          "@fontsource-variable/inter",
+          "@fontsource-variable/source-serif-4",
+          "@fontsource/noto-sans-sc",
+        ],
+      }),
     ],
   },
 });
