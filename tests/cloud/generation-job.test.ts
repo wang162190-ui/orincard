@@ -1,20 +1,24 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it, vi } from "vitest";
-import type { CarouselDocument } from "../../src/domain/document";
-import type { JobRecord } from "../../src/server/jobs";
+import { createClient } from "@supabase/supabase-js";
+import { parseCarouselDocument, type CarouselDocument } from "../../src/domain/document";
+import { createSupabaseJobStore, dispatchPendingJob, type JobRecord } from "../../src/server/jobs";
 import type { GenerationOptions } from "../../src/server/generation";
 import {
   GenerationJobError,
   createGenerationJobService,
+  createSupabaseGenerationSubmissionStore,
   handleGenerationPost,
   type GenerationSubmissionStore,
 } from "../../src/app/api/v1/generation/route";
 import {
+  generationTriggerDispatcher,
   runGenerationJob,
   validateGenerationJobPayload,
   type GenerationWorkerStore,
 } from "../../src/trigger/generate";
+import { createSupabaseSourceStore, createTextSourceService } from "../../src/server/sources";
 import { loadGenerationProgress } from "../../src/features/generation/progress";
 import fixture from "../fixtures/base-document.json";
 
@@ -404,12 +408,77 @@ cloud("T029 real Supabase and Trigger generation job", () => {
       "ORINCARD_AUTH_TEST_EMAIL",
       "ORINCARD_AUTH_TEST_PASSWORD",
       "TRIGGER_SECRET_KEY",
-      "OPENAI_API_KEY",
     ]) {
       expect(process.env[name], `missing ${name}`).toBeTruthy();
     }
-    throw new Error(
-      "T029 cloud acceptance requires the coordinated deployed generation task and worker RPC wrappers.",
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+    const secretKey = process.env.SUPABASE_SECRET_KEY!;
+    const admin = createClient(url, secretKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const account = createClient(url, publishableKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const signedIn = await account.auth.signInWithPassword({
+      email: process.env.ORINCARD_AUTH_TEST_EMAIL!,
+      password: process.env.ORINCARD_AUTH_TEST_PASSWORD!,
+    });
+    expect(signedIn.error?.message).toBeUndefined();
+    const ownerId = signedIn.data.user?.id;
+    expect(ownerId).toBeTruthy();
+
+    const periodStart = new Date();
+    periodStart.setUTCDate(1);
+    periodStart.setUTCHours(0, 0, 0, 0);
+    const periodEnd = new Date(periodStart);
+    periodEnd.setUTCMonth(periodEnd.getUTCMonth() + 1);
+    const usage = await admin.from("usage_accounts").upsert({
+      owner_id: ownerId!,
+      period_start: periodStart.toISOString(),
+      period_end: periodEnd.toISOString(),
+      resource: "generation",
+      granted: 20,
+      reserved: 0,
+      consumed: 0,
+    }, { onConflict: "owner_id,period_start,resource" });
+    expect(usage.error?.message).toBeUndefined();
+
+    const runId = crypto.randomUUID();
+    const source = await createTextSourceService({
+      store: createSupabaseSourceStore(admin),
+      requestHashSecret: secretKey,
+    }).create(ownerId!, {
+      kind: "topic",
+      text: "Create a concise carousel about reviewing a calm work week",
+    }, `cloud-source-${runId}`);
+    const jobStore = createSupabaseJobStore(admin);
+    const service = createGenerationJobService({
+      store: createSupabaseGenerationSubmissionStore(admin),
+      requestHashSecret: secretKey,
+      environment: "development",
+      dispatch: (jobId, requestId) =>
+        dispatchPendingJob(jobStore, generationTriggerDispatcher, jobId, requestId).then(() => undefined),
+    });
+    const submitted = await service.submit(
+      ownerId!,
+      { sourceId: source.id, ...options, pageCount: 4 },
+      `cloud-generation-${runId}`,
+      `cloud-request-${runId}`,
     );
+
+    let terminal: JobRecord | null = null;
+    for (let attempt = 0; attempt < 180; attempt += 1) {
+      terminal = await jobStore.findOwned(ownerId!, submitted.id);
+      if (terminal && ["succeeded", "failed", "partial", "canceled"].includes(terminal.state)) break;
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+    }
+    expect(terminal).toMatchObject({ state: "succeeded", stage: "layout", progress: 100 });
+    const generated = terminal?.resultRef && "document" in terminal.resultRef
+      ? terminal.resultRef.document
+      : terminal?.resultRef;
+    expect(parseCarouselDocument(generated).slides).toHaveLength(4);
+    expect(JSON.stringify(terminal)).not.toContain("Create a concise carousel");
+    await account.auth.signOut();
   });
 });
