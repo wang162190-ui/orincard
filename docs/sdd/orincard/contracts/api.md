@@ -58,7 +58,7 @@ guest结果不持久化意味着无法从服务器再次取回。重复已完成
 | 方法/路径 | 请求 | 响应/契约 |
 |---|---|---|
 | POST /assets/upload-intent | originalName、declaredMime、size、purpose、rightsConfirmation | 指定assetId和上传授权；服务端选bucket/key，过期可刷新但不能覆盖已有对象 |
-| POST /assets/:id/complete | 无 | 202验证jobId；按实际字节/MIME/大小校验后才ready |
+| POST /assets/:id/complete | 无 | 202与assetId/state，客户端经RLS轮询assets行；按实际字节/MIME/大小校验后才ready。不为素材验证建job：每用户并发名额为1，占用它会让上传期间无法生成 |
 | GET /assets | cursor、kind | 本人可用素材及候选列表；不返回source原件或他人内容 |
 | POST /assets/:id/accept | rightsConfirmation、keepInLibrary boolean | 记录accepted_at；无确认不能将AI候选放入项目或导出 |
 | GET /assets/search | Pexels query/orientation/cursor | 缩略图、作者、来源及许可信息；导入需用户选择 |
