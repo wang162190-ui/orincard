@@ -1,16 +1,17 @@
+"use client";
+
+import { useState } from "react";
 import { Panel, PanelBody, PanelHeader } from "../../components/ui";
 import { WorkspaceShell } from "../../components/workspace-shell";
-
-const sourceTypes = [
-  ["Topic", "Begin with a focused idea or working title."],
-  ["Text", "Bring a draft, newsletter, or set of notes."],
-  ["URL", "Use a public article or web page."],
-  ["Video", "Prepare a public video you have the right to use."],
-  ["PDF", "Bring a readable document for source extraction."],
-  ["Slides", "Start from an existing PPTX presentation."],
-] as const;
+import { SourceInput } from "../../features/generation/source-input";
+import {
+  DEFAULT_GENERATION_OPTIONS,
+  GenerationOptionsFields,
+} from "../../features/generation/options";
 
 export default function CreatePage() {
+  const [options, setOptions] = useState(DEFAULT_GENERATION_OPTIONS);
+
   return (
     <WorkspaceShell current="create" title="New carousel">
       <div className="stack" data-page="create" style={{ maxWidth: 900 }}>
@@ -27,25 +28,18 @@ export default function CreatePage() {
             <h2 className="h3">Choose a source</h2>
           </PanelHeader>
           <PanelBody>
-            <div className="grid-2">
-              {sourceTypes.map(([name, description]) => (
-                <article
-                  id={name.toLowerCase()}
-                  key={name}
-                  style={{
-                    padding: 16,
-                    border: "1px solid var(--border)",
-                    borderRadius: "var(--radius)",
-                    background: "var(--surface-2)",
-                  }}
-                >
-                  <h3 className="h3">{name}</h3>
-                  <p style={{ margin: "6px 0 0", color: "var(--muted)" }}>
-                    {description}
-                  </p>
-                </article>
-              ))}
-            </div>
+            <SourceInput
+              options={options}
+              optionsFields={(
+                <GenerationOptionsFields
+                  value={options}
+                  onChange={setOptions}
+                />
+              )}
+            />
+            <p className="meta">
+              URL, Video, PDF, and Slides sources are not available in this preview yet.
+            </p>
           </PanelBody>
         </Panel>
       </div>
