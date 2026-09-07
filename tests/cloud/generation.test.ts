@@ -3,8 +3,9 @@ import { parseCarouselDocument } from "../../src/domain/document";
 import type { SourceRecord } from "../../src/server/sources";
 import {
   AI_TEXT_MODEL,
-  createOpenAIResponsesAdapter,
-  createOpenAIResponsesClient,
+  DEEPSEEK_API_BASE_URL,
+  createDeepSeekResponsesAdapter,
+  createDeepSeekResponsesClient,
 } from "../../src/server/ai";
 import {
   GenerationError,
@@ -78,12 +79,12 @@ function ids() {
   return () => `local-generated-${++next}`;
 }
 
-describe("T028 OpenAI Responses adapter", () => {
-  it("uses Luna, Responses Structured Outputs, and explicit store:false", async () => {
+describe("T028 DeepSeek Responses adapter", () => {
+  it("uses DeepSeek V4 Pro, Responses Structured Outputs, and explicit store:false", async () => {
     const create = vi.fn().mockResolvedValue({
       output_text: JSON.stringify(validOutput),
     });
-    const adapter = createOpenAIResponsesAdapter({ responses: { create } });
+    const adapter = createDeepSeekResponsesAdapter({ responses: { create } });
 
     const result = await adapter.generateStructured({
       instructions: "Fixed system instructions",
@@ -93,10 +94,11 @@ describe("T028 OpenAI Responses adapter", () => {
     });
 
     expect(result).toEqual(validOutput);
-    expect(AI_TEXT_MODEL).toBe("gpt-5.6-luna");
+    expect(DEEPSEEK_API_BASE_URL).toBe("https://api.deepseek.com");
+    expect(AI_TEXT_MODEL).toBe("deepseek-v4-pro");
     expect(create).toHaveBeenCalledTimes(1);
     expect(create).toHaveBeenCalledWith({
-      model: "gpt-5.6-luna",
+      model: "deepseek-v4-pro",
       store: false,
       instructions: "Fixed system instructions",
       input: [
@@ -109,7 +111,6 @@ describe("T028 OpenAI Responses adapter", () => {
         format: {
           type: "json_schema",
           name: "orincard_carousel",
-          strict: true,
           schema: generationJsonSchema,
         },
       },
@@ -117,7 +118,7 @@ describe("T028 OpenAI Responses adapter", () => {
   });
 
   it("fails closed when a response has no parseable structured output", async () => {
-    const adapter = createOpenAIResponsesAdapter({
+    const adapter = createDeepSeekResponsesAdapter({
       responses: {
         create: vi.fn().mockResolvedValue({ output_text: "not json" }),
       },
@@ -253,12 +254,12 @@ describe("T028 structured carousel generation", () => {
 const cloud =
   process.env.ORINCARD_RUN_GENERATION_CLOUD === "1" ? describe : describe.skip;
 
-cloud("T028 real OpenAI structured generation", () => {
+cloud("T028 real DeepSeek structured generation", () => {
   it("returns a schema-valid draft without obeying an embedded source instruction", async () => {
-    const apiKey = process.env.OPENAI_API_KEY?.trim();
+    const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
     if (!apiKey) {
       throw new Error(
-        "ORINCARD_RUN_GENERATION_CLOUD=1 requires OPENAI_API_KEY in the test process.",
+        "ORINCARD_RUN_GENERATION_CLOUD=1 requires DEEPSEEK_API_KEY in the test process.",
       );
     }
     const adversarialSource: SourceRecord = {
@@ -271,7 +272,7 @@ cloud("T028 real OpenAI structured generation", () => {
       ],
     };
     const document = await generateCarouselDocument({
-      ai: createOpenAIResponsesAdapter(createOpenAIResponsesClient(apiKey)),
+      ai: createDeepSeekResponsesAdapter(createDeepSeekResponsesClient(apiKey)),
       source: adversarialSource,
       options,
       createId: ids(),
