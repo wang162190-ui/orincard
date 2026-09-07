@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { createOpenAIResponsesAdapter, createOpenAIResponsesClient } from "../../../../../server/ai";
-import { readServerEnvironment } from "../../../../../server/environment";
+import { readServerEnvironment, type AppEnvironment } from "../../../../../server/environment";
 import {
   GuestGenerationError,
   createGuestGenerationService,
@@ -28,13 +28,16 @@ async function jsonBody(request: Request): Promise<GuestGenerationBody> {
   }
 }
 
-function networkSubject(request: Request): string {
-  return (
+export function resolveGuestNetworkSubject(
+  request: Request,
+  environment: AppEnvironment,
+): string {
+  const forwarded =
     request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip")?.trim() ||
-    ""
-  );
+    "";
+  return forwarded || (environment === "development" ? "local-development" : "");
 }
 
 export async function POST(request: Request) {
@@ -67,7 +70,7 @@ export async function POST(request: Request) {
     });
     const document = await service.generate(await jsonBody(request), {
       operationKey: request.headers.get("idempotency-key") ?? "",
-      networkSubject: networkSubject(request),
+      networkSubject: resolveGuestNetworkSubject(request, environment.appEnvironment),
     });
     const payload = [
       JSON.stringify({ stage: "write", progress: 100 }),
