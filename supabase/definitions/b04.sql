@@ -272,16 +272,20 @@ set search_path = ''
 as $$
 declare target public.jobs; source_row public.sources; claimed_lease uuid := gen_random_uuid(); reservation_id uuid;
 begin
-  select * into target from public.jobs where id = p_job_id and kind = 'generation' for update;
+  select * into target from public.jobs as job_row
+  where job_row.id = p_job_id and job_row.kind = 'generation' for update;
   if target.id is null or target.state not in ('pending_dispatch', 'queued') or target.cancel_requested_at is not null then return; end if;
-  select * into source_row from public.sources
-  where id = (target.input_ref ->> 'sourceId')::uuid and owner_id = target.owner_id
-    and state = 'ready' and expires_at > now();
+  select * into source_row from public.sources as source_candidate
+  where source_candidate.id = (target.input_ref ->> 'sourceId')::uuid
+    and source_candidate.owner_id = target.owner_id
+    and source_candidate.state = 'ready' and source_candidate.expires_at > now();
   if source_row.id is null or not exists (select 1 from public.profiles where id = target.owner_id and status = 'active') then return; end if;
   update public.jobs set state = 'running', stage = 'validate', progress = 2, attempt = attempt + 1,
     lease_token = claimed_lease, heartbeat_at = now(), updated_at = now()
-  where id = target.id;
-  select id into reservation_id from private.cost_reservations where private.cost_reservations.job_id = target.id for update;
+  where public.jobs.id = target.id;
+  select reservation_row.id into reservation_id
+  from private.cost_reservations as reservation_row
+  where reservation_row.job_id = target.id for update;
   if reservation_id is null then raise exception using errcode = '22023', message = 'cost reservation not found'; end if;
   insert into private.cost_attempts (reservation_id, attempt_key, state)
   values (reservation_id, 'job:' || target.id::text || ':generation:' || (target.attempt + 1)::text, 'sent')
