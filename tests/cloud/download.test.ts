@@ -21,15 +21,20 @@ describe("T036 export center and authenticated download (AC-006, AC-007)", () =>
       { exportId: "export-pdf", jobId: "job-pdf", format: "pdf" },
     ]);
     const store: ProjectExportStore = { create };
-    const result = await createProjectExports(store, {
-      ownerId: "owner-a",
-      projectId: "11111111-1111-4111-8111-111111111111",
-      expectedRevision: 4,
-      formats: ["png_zip", "pdf"],
-      options: {},
-      confirmedWarnings: [],
-      idempotencyKey: "export-operation-1",
-    });
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const result = await createProjectExports(
+      store,
+      {
+        ownerId: "owner-a",
+        projectId: "11111111-1111-4111-8111-111111111111",
+        expectedRevision: 4,
+        formats: ["png_zip", "pdf"],
+        options: {},
+        confirmedWarnings: [],
+        idempotencyKey: "export-operation-1",
+      },
+      dispatch,
+    );
 
     expect(create).toHaveBeenCalledWith(expect.objectContaining({
       ownerId: "owner-a",
@@ -41,6 +46,7 @@ describe("T036 export center and authenticated download (AC-006, AC-007)", () =>
       { exportId: "export-png", jobId: "job-png", format: "png_zip" },
       { exportId: "export-pdf", jobId: "job-pdf", format: "pdf" },
     ]);
+    expect(dispatch.mock.calls).toEqual([["job-png"], ["job-pdf"]]);
   });
 
   it("streams a ready artifact with private headers only after owner authorization", async () => {
