@@ -12,8 +12,9 @@ import {
 import type { JobDispatchPayload, TriggerDispatcher } from "../server/jobs";
 import type { SourceRecord } from "../server/sources";
 import { createAdminSupabaseClient } from "../server/supabase";
+import { GENERATION_TASK_ID } from "./dispatch";
 
-export const GENERATION_TASK_ID = "orincard-generate-carousel";
+export { GENERATION_TASK_ID };
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 

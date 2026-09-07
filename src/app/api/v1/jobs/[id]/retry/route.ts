@@ -10,7 +10,7 @@ import {
   createServerSupabaseClient,
   requireVerifiedUser,
 } from "@/server/supabase";
-import { triggerDispatcher } from "@/trigger/dispatch";
+import { resolveTriggerDispatcher } from "@/trigger/dispatch";
 
 function json(body: unknown, status: number): Response {
   return Response.json(body, {
@@ -73,7 +73,7 @@ export async function POST(
     const data = await retryOwnedJob(
       createSupabaseJobStore(createAdminSupabaseClient()),
       triggerRunController,
-      triggerDispatcher,
+      resolveTriggerDispatcher,
       ownerId,
       id,
       requestId,

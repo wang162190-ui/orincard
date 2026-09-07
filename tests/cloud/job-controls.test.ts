@@ -150,7 +150,7 @@ describe("T025 bounded retry and reconciliation", () => {
       retryOwnedJob(
         jobs,
         runs,
-        trigger,
+        () => trigger,
         queuedJob.ownerId,
         queuedJob.id,
         "request-active",
@@ -178,7 +178,7 @@ describe("T025 bounded retry and reconciliation", () => {
       retryOwnedJob(
         jobs,
         runs,
-        trigger,
+        () => trigger,
         queuedJob.ownerId,
         queuedJob.id,
         "request-timeout",
@@ -187,7 +187,7 @@ describe("T025 bounded retry and reconciliation", () => {
     await retryOwnedJob(
       jobs,
       runs,
-      trigger,
+      () => trigger,
       queuedJob.ownerId,
       queuedJob.id,
       "request-recover",
@@ -218,7 +218,7 @@ describe("T025 bounded retry and reconciliation", () => {
     const result = await reconcileJobs(
       jobs,
       runs,
-      trigger,
+      () => trigger,
       "2026-09-06T00:10:00.000Z",
     );
 
@@ -226,5 +226,73 @@ describe("T025 bounded retry and reconciliation", () => {
     expect(runs.cancel).toHaveBeenCalledWith("run_original");
     expect(runs.retrieve).not.toHaveBeenCalled();
     expect(trigger.trigger).not.toHaveBeenCalled();
+  });
+});
+
+describe("T025 job kind routing", () => {
+  // The acknowledgement task only validates the payload and returns { accepted: true }.
+  // Routing recovery through it looks successful while the real work never restarts.
+  function dispatchers() {
+    const generation: TriggerDispatcher = {
+      trigger: vi.fn().mockResolvedValue({ id: "run_generation" }),
+    };
+    const basicExport: TriggerDispatcher = {
+      trigger: vi.fn().mockResolvedValue({ id: "run_export" }),
+    };
+    const acknowledge: TriggerDispatcher = { trigger: vi.fn() };
+    const resolve = vi.fn((kind: string) =>
+      kind === "generation" ? generation : kind === "export" ? basicExport : acknowledge,
+    );
+    return { generation, basicExport, acknowledge, resolve };
+  }
+
+  it("re-dispatches a stalled job to the task that owns its kind", async () => {
+    const jobs = store({ ...queuedJob, state: "pending_dispatch", providerRunId: null });
+    const runs = controller();
+    const { generation, acknowledge, resolve } = dispatchers();
+
+    const result = await reconcileJobs(jobs, runs, resolve, "2026-09-06T00:10:00.000Z");
+
+    expect(resolve).toHaveBeenCalledWith("generation");
+    expect(generation.trigger).toHaveBeenCalledTimes(1);
+    expect(acknowledge.trigger).not.toHaveBeenCalled();
+    expect(result.dispatched).toBe(1);
+    expect(jobs.current.providerRunId).toBe("run_generation");
+  });
+
+  it("routes an export job to the export task rather than the generation task", async () => {
+    const jobs = store({
+      ...queuedJob,
+      kind: "export",
+      state: "pending_dispatch",
+      providerRunId: null,
+    });
+    const runs = controller();
+    const { generation, basicExport, resolve } = dispatchers();
+
+    await reconcileJobs(jobs, runs, resolve, "2026-09-06T00:10:00.000Z");
+
+    expect(resolve).toHaveBeenCalledWith("export");
+    expect(basicExport.trigger).toHaveBeenCalledTimes(1);
+    expect(generation.trigger).not.toHaveBeenCalled();
+    expect(jobs.current.providerRunId).toBe("run_export");
+  });
+
+  it("retries an owned job through its own task", async () => {
+    const jobs = store(queuedJob);
+    const runs = controller({
+      retrieve: vi.fn().mockResolvedValue({ failed: true, completed: false }),
+    });
+    const { generation, acknowledge, resolve } = dispatchers();
+
+    await retryOwnedJob(jobs, runs, resolve, queuedJob.ownerId, queuedJob.id, "request-retry");
+
+    expect(resolve).toHaveBeenCalledWith("generation");
+    expect(generation.trigger).toHaveBeenCalledWith(
+      { jobId: queuedJob.id, schemaVersion: 1, requestId: "request-retry" },
+      `${queuedJob.id}:1`,
+    );
+    expect(acknowledge.trigger).not.toHaveBeenCalled();
+    expect(jobs.current.providerRunId).toBe("run_generation");
   });
 });

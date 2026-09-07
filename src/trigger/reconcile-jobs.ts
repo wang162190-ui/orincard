@@ -5,7 +5,7 @@ import {
   triggerRunController,
 } from "../server/jobs";
 import { createAdminSupabaseClient } from "../server/supabase";
-import { triggerDispatcher } from "./dispatch";
+import { resolveTriggerDispatcher } from "./dispatch";
 
 const STALE_AFTER_MS = 5 * 60 * 1_000;
 
@@ -18,7 +18,7 @@ export const reconcileJobsTask = schedules.task({
     return reconcileJobs(
       createSupabaseJobStore(createAdminSupabaseClient()),
       triggerRunController,
-      triggerDispatcher,
+      resolveTriggerDispatcher,
       before,
     );
   },

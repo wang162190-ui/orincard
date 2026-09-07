@@ -72,6 +72,11 @@ export interface TriggerDispatcher {
   ): Promise<{ readonly id: string }>;
 }
 
+// The dispatch payload carries no kind, so recovery has to resolve the owning task
+// from the job record itself. Injecting the resolver keeps heavy task modules out of
+// the callers' bundles.
+export type TriggerDispatcherResolver = (kind: string) => TriggerDispatcher;
+
 export interface TriggerRunController {
   cancel(runId: string): Promise<void>;
   retrieve(
@@ -353,10 +358,11 @@ export async function requestOwnedJobCancellation(
 
 async function dispatchClaimedRetry(
   store: JobStore,
-  trigger: TriggerDispatcher,
+  resolve: TriggerDispatcherResolver,
   job: JobRecord,
   requestId: string,
 ): Promise<JobRecord> {
+  const trigger = resolve(job.kind);
   if (!job.providerRunId) {
     return dispatchPendingJob(store, trigger, job.id, requestId);
   }
@@ -378,7 +384,7 @@ async function dispatchClaimedRetry(
 export async function retryOwnedJob(
   store: JobStore,
   runs: TriggerRunController,
-  trigger: TriggerDispatcher,
+  resolve: TriggerDispatcherResolver,
   ownerId: string,
   jobId: string,
   requestId: string,
@@ -394,7 +400,7 @@ export async function retryOwnedJob(
     throw invalidRequest("A canceled job cannot be retried.");
   }
   if (job.state === "pending_dispatch") {
-    return toJobStatus(await dispatchClaimedRetry(store, trigger, job, requestId));
+    return toJobStatus(await dispatchClaimedRetry(store, resolve, job, requestId));
   }
   if (!job.providerRunId) {
     throw invalidRequest("The job has no provider run to reconcile.");
@@ -418,11 +424,11 @@ export async function retryOwnedJob(
       return toJobStatus(latest);
     }
     return toJobStatus(
-      await dispatchClaimedRetry(store, trigger, latest, requestId),
+      await dispatchClaimedRetry(store, resolve, latest, requestId),
     );
   }
   return toJobStatus(
-    await dispatchClaimedRetry(store, trigger, claimed, requestId),
+    await dispatchClaimedRetry(store, resolve, claimed, requestId),
   );
 }
 
@@ -436,7 +442,7 @@ export interface ReconciliationSummary {
 export async function reconcileJobs(
   store: JobStore,
   runs: TriggerRunController,
-  trigger: TriggerDispatcher,
+  resolve: TriggerDispatcherResolver,
   before: string,
 ): Promise<ReconciliationSummary> {
   const candidates = await store.listReconciliationCandidates(before, 50);
@@ -462,7 +468,7 @@ export async function reconcileJobs(
 
     try {
       if (job.state === "pending_dispatch" && !job.providerRunId) {
-        await dispatchPendingJob(store, trigger, job.id, crypto.randomUUID());
+        await dispatchPendingJob(store, resolve(job.kind), job.id, crypto.randomUUID());
         summary.dispatched += 1;
         continue;
       }
@@ -470,7 +476,7 @@ export async function reconcileJobs(
         await retryOwnedJob(
           store,
           runs,
-          trigger,
+          resolve,
           job.ownerId,
           job.id,
           crypto.randomUUID(),

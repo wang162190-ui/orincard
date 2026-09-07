@@ -10,6 +10,7 @@ import {
 import type { JobDispatchPayload } from "../server/jobs";
 import type { TriggerDispatcher } from "../server/jobs";
 import { createAdminSupabaseClient } from "../server/supabase";
+import { BASIC_EXPORT_TASK_ID } from "./dispatch";
 
 const payloadSchema = z
   .object({
@@ -19,7 +20,7 @@ const payloadSchema = z
   })
   .strict();
 
-export const BASIC_EXPORT_TASK_ID = "orincard-basic-export";
+export { BASIC_EXPORT_TASK_ID };
 
 export function validateExportTaskPayload(payload: unknown): JobDispatchPayload {
   const parsed = payloadSchema.safeParse(payload);
