@@ -268,28 +268,28 @@
 
 ## B05
 
-- [ ] T038 [P] `src/server/assets/upload.ts`, `src/trigger/validate-asset.ts`, `src/app/api/v1/assets/upload-intent/route.ts`, `src/app/api/v1/assets/[id]/complete/route.ts`, `tests/cloud/uploads.test.ts` — 实现直传与文件验证状态 → AC-005, AC-008
+- [x] T038 [P] `src/server/assets/upload.ts`, `src/trigger/validate-asset.ts`, `src/app/api/v1/assets/upload-intent/route.ts`, `src/app/api/v1/assets/[id]/complete/route.ts`, `tests/cloud/uploads.test.ts` — 实现直传与文件验证状态 → AC-005, AC-008
   - Batch: B05
   - Parallel: B05-SRC/A
   - Depends: T037
   - Check: `pnpm exec vitest run tests/cloud/uploads.test.ts`
   - Expect: 实际MIME/字节/owner校验；pending不能导出；不走Vercel大文件body。
 
-- [ ] T039 [P] `src/server/sources/safe-fetch.ts`, `src/server/sources/url.ts`, `tests/unit/ssrf.test.ts`, `tests/cloud/url.test.ts` — 实现安全URL抓取与正文提取 → AC-002
+- [x] T039 [P] `src/server/sources/safe-fetch.ts`, `src/server/sources/url.ts`, `tests/unit/ssrf.test.ts`, `tests/cloud/url.test.ts` — 实现安全URL抓取与正文提取 → AC-002
   - Batch: B05
   - Parallel: B05-SRC/B
   - Depends: T037
   - Check: `pnpm exec vitest run tests/unit/ssrf.test.ts tests/cloud/url.test.ts`
   - Expect: 私网/IPv6/DNS重绑定/每跳重定向/超大响应被拦截，合法正文可用。
 
-- [ ] T040 [P] `src/server/sources/pdf.ts`, `src/server/sources/ocr.ts`, `tests/cloud/pdf.test.ts` — 实现PDF文字层和受限OCR → AC-002
+- [x] T040 [P] `src/server/sources/pdf.ts`, `src/server/sources/ocr.ts`, `tests/cloud/pdf.test.ts` — 实现PDF文字层和受限OCR → AC-002
   - Batch: B05
   - Parallel: B05-SRC/C
   - Depends: T037
   - Check: `pnpm exec vitest run tests/cloud/pdf.test.ts`
   - Expect: 文字/扫描/空白/加密/超页PDF正确区分，不生成假空结果。
 
-- [ ] T041 [P] `src/server/sources/slides.ts`, `src/server/sources/archive.ts`, `tests/cloud/slides.test.ts` — 实现PPTX来源解析 → AC-002
+- [x] T041 [P] `src/server/sources/slides.ts`, `src/server/sources/archive.ts`, `tests/cloud/slides.test.ts` — 实现PPTX来源解析 → AC-002
   - Batch: B05
   - Parallel: B05-SRC/C
   - Depends: T040
