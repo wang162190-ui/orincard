@@ -6,7 +6,7 @@ const ASSET = "22222222-2222-4222-8222-222222222222";
 const ROW = { id: "33333333-3333-4333-8333-333333333333", name: "Personal", settings: DEFAULT_BRAND_SETTINGS, revision: 1, updated_at: "2026-09-09T00:00:00.000Z" };
 
 function store(overrides: Partial<BrandStore> = {}): BrandStore {
-  return { list: vi.fn().mockResolvedValue([ROW]), create: vi.fn().mockResolvedValue(ROW), update: vi.fn().mockResolvedValue({ ...ROW, revision: 2 }), availableAssetIds: vi.fn().mockResolvedValue([ASSET]), ...overrides };
+  return { list: vi.fn().mockResolvedValue([ROW]), get: vi.fn().mockResolvedValue(ROW), create: vi.fn().mockResolvedValue(ROW), update: vi.fn().mockResolvedValue({ ...ROW, revision: 2 }), availableAssetIds: vi.fn().mockResolvedValue([ASSET]), ...overrides };
 }
 
 describe("T050 Brand Kit foundation", () => {

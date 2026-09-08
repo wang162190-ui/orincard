@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ProjectServiceError, type ProjectService } from "./projects";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const COLOUR_PATTERN = /^#[0-9a-f]{6}$/i;
@@ -40,6 +41,7 @@ type BrandRow = Readonly<{ id: string; name: string; settings: unknown; revision
 
 export interface BrandStore {
   list(ownerId: string, limit: number): Promise<readonly BrandRow[]>;
+  get(ownerId: string, brandKitId: string): Promise<BrandRow | null>;
   create(input: Readonly<{ ownerId: string; name: string; settings: BrandSettings }>): Promise<BrandRow>;
   update(input: Readonly<{ ownerId: string; brandKitId: string; expectedRevision: number; name: string; settings: BrandSettings }>): Promise<BrandRow | null>;
   availableAssetIds(ownerId: string, assetIds: readonly string[]): Promise<readonly string[]>;
@@ -125,6 +127,15 @@ function brandFromRow(row: BrandRow): BrandKit {
   return { id: row.id, name: row.name, settings: parseBrandSettings(row.settings), revision: Number(row.revision), updatedAt: row.updated_at };
 }
 
+export function brandSnapshotFromKit(kit: BrandKit) {
+  return {
+    kitId: kit.id,
+    kitVersion: kit.revision,
+    name: kit.name,
+    ...kit.settings,
+  };
+}
+
 async function assertOwnedAssets(store: BrandStore, ownerId: string, settings: BrandSettings): Promise<void> {
   const requested = [settings.logoAssetId, settings.headshotAssetId].filter((id): id is string => id !== null);
   if (requested.length === 0) return;
@@ -134,7 +145,19 @@ async function assertOwnedAssets(store: BrandStore, ownerId: string, settings: B
   }
 }
 
-export function createBrandService(store: BrandStore) {
+export function createBrandService(store: BrandStore, projectService?: Pick<ProjectService, "get" | "save">) {
+  async function ownedKit(ownerId: string, brandKitId: string): Promise<BrandKit> {
+    if (!UUID_PATTERN.test(brandKitId)) throw new BrandServiceError("NOT_FOUND", "Brand Kit not found.", 404);
+    try {
+      const row = await store.get(ownerId, brandKitId);
+      if (!row) throw new BrandServiceError("NOT_FOUND", "Brand Kit not found.", 404);
+      return brandFromRow(row);
+    } catch (error) {
+      if (error instanceof BrandServiceError) throw error;
+      throw new BrandServiceError("SERVICE_UNAVAILABLE", "Brand Kits are temporarily unavailable.", 503, true);
+    }
+  }
+
   return {
     async list(ownerId: string, limit?: unknown): Promise<readonly BrandKit[]> {
       const requested = Number(limit ?? 20);
@@ -159,6 +182,42 @@ export function createBrandService(store: BrandStore) {
         return brandFromRow(result);
       } catch (error) { if (error instanceof BrandServiceError) throw error; throw new BrandServiceError("SERVICE_UNAVAILABLE", "Brand Kit could not be saved.", 503, true); }
     },
+    async duplicate(ownerId: string, brandKitId: string, input: Readonly<{ expectedRevision: unknown; name: unknown }>): Promise<BrandKit> {
+      if (!Number.isSafeInteger(input.expectedRevision) || Number(input.expectedRevision) < 1) throw new BrandServiceError("INVALID_REQUEST", "expectedRevision must be a positive integer.", 422);
+      const original = await ownedKit(ownerId, brandKitId);
+      if (original.revision !== Number(input.expectedRevision)) throw new BrandServiceError("VERSION_CONFLICT", "This Brand Kit changed in another tab. Reload it before copying.", 409);
+      await assertOwnedAssets(store, ownerId, original.settings);
+      try {
+        return brandFromRow(await store.create({ ownerId, name: name(input.name), settings: original.settings }));
+      } catch (error) { if (error instanceof BrandServiceError) throw error; throw new BrandServiceError("SERVICE_UNAVAILABLE", "Brand Kit could not be copied.", 503, true); }
+    },
+    async apply(ownerId: string, brandKitId: string, input: Readonly<{ projectId: string; expectedProjectRevision: unknown; previewConfirmed: unknown; idempotencyKey: string }>) {
+      if (input.previewConfirmed !== true) throw new BrandServiceError("INVALID_REQUEST", "Review the Brand Kit preview before applying it.", 400);
+      if (!projectService) throw new BrandServiceError("SERVICE_UNAVAILABLE", "Brand Kit application is temporarily unavailable.", 503, true);
+      const kit = await ownedKit(ownerId, brandKitId);
+      try {
+        const project = await projectService.get(ownerId, input.projectId);
+        const document = {
+          ...project.document,
+          theme: {
+            ...project.document.theme,
+            colors: [...kit.settings.colors],
+            fontPairId: kit.settings.fontPairId,
+            counterStyle: kit.settings.counterDefaults.visible ? kit.settings.counterDefaults.style : "none",
+          },
+          brandSnapshot: brandSnapshotFromKit(kit),
+        };
+        const saved = await projectService.save(ownerId, input.projectId, { expectedRevision: input.expectedProjectRevision, document }, input.idempotencyKey);
+        return { projectId: saved.id, revision: saved.revision, brandSnapshot: document.brandSnapshot };
+      } catch (error) {
+        if (error instanceof ProjectServiceError) {
+          const code = error.code === "NOT_FOUND" ? "NOT_FOUND" : error.code === "VERSION_CONFLICT" ? "VERSION_CONFLICT" : error.code === "SERVICE_UNAVAILABLE" ? "SERVICE_UNAVAILABLE" : "INVALID_REQUEST";
+          throw new BrandServiceError(code, error.message, error.status, error.retryable);
+        }
+        if (error instanceof BrandServiceError) throw error;
+        throw new BrandServiceError("SERVICE_UNAVAILABLE", "Brand Kit could not be applied. Your project is unchanged.", 503, true);
+      }
+    },
   };
 }
 
@@ -168,6 +227,11 @@ export function createSupabaseBrandStore(client: SupabaseClient): BrandStore {
       const { data, error } = await client.from("brand_kits").select("id,name,settings,revision,updated_at").eq("owner_id", ownerId).eq("state", "active").order("updated_at", { ascending: false }).order("id", { ascending: false }).limit(limit);
       if (error) throw error;
       return (data ?? []) as BrandRow[];
+    },
+    async get(ownerId, brandKitId) {
+      const { data, error } = await client.from("brand_kits").select("id,name,settings,revision,updated_at").eq("owner_id", ownerId).eq("id", brandKitId).eq("state", "active").maybeSingle();
+      if (error) throw error;
+      return data as BrandRow | null;
     },
     async create(input) {
       const { data, error } = await client.from("brand_kits").insert({ owner_id: input.ownerId, name: input.name, settings: input.settings }).select("id,name,settings,revision,updated_at").single();
