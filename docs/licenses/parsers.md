@@ -17,7 +17,16 @@
 | 视频时长与流探测 | `ffprobe` | [FFmpeg](https://ffmpeg.org/) | 见第 2 节 | 本机 8.1.1 |
 | 字幕轨提取与音轨切段 | `ffmpeg` | 同上 | 见第 2 节 | 同上 |
 
-Debian 包的确切版本由镜像构建固定，首次部署后从构建日志回填，不在此预先填写。
+Trigger.dev `node-22`（Debian bookworm）镜像在 2026-09-08 的 B05 构建日志中安装了以下确切版本：
+
+| Debian 包 | 构建版本 |
+|---|---|
+| `poppler-utils` | `22.12.0-2+deb12u3` |
+| `tesseract-ocr` | `5.3.0-2` |
+| `tesseract-ocr-eng` | `1:4.1.0-2` |
+| `tesseract-ocr-chi-sim` | `1:4.1.0-2` |
+| `qpdf` | `11.3.0-1+deb12u1` |
+| `ffmpeg` | `7:5.1.9-0+deb12u1` |
 
 ## 2. copyleft 审查（poppler 与 ffmpeg）
 
