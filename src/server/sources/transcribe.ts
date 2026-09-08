@@ -238,6 +238,7 @@ export function cuesFromProviderResponse(
 }
 
 export interface OpenAiTranscriptionOptions {
+  readonly beforeRequest?: (chunk: TranscriptionChunk) => Promise<void>;
   readonly apiKey?: string;
   readonly model?: string;
   readonly baseUrl?: string;
@@ -291,6 +292,8 @@ export function createOpenAiTranscriptionClient(
       form.append("response_format", "json");
       if (chunk.language) form.append("language", chunk.language);
 
+      // The worker persists its budget/attempt guard before any provider request.
+      await options.beforeRequest?.(chunk);
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       let response: Response;

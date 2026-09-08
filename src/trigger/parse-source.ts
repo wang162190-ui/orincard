@@ -8,6 +8,7 @@ import { PDF_PARSE_LIMITS, createPdfSourceParser } from "../server/sources/pdf";
 import { SLIDES_PARSE_LIMITS, createSlidesSourceParser } from "../server/sources/slides";
 import { VIDEO_PARSE_LIMITS, createVideoSourceParser } from "../server/sources/video";
 import type { SourceParseResult } from "../server/sources/index";
+import { createOpenAiTranscriptionClient } from "../server/sources/transcribe";
 import { createAdminSupabaseClient } from "../server/supabase";
 import { PARSE_SOURCE_TASK_ID } from "./dispatch";
 
@@ -41,6 +42,8 @@ const FILE_SOURCE_KINDS = ["pdf", "slides", "video"] as const;
 type FileSourceKind = (typeof FILE_SOURCE_KINDS)[number];
 
 interface SourceRow {
+  jobId: string;
+  leaseToken: string;
   id: string;
   owner_id: string;
   kind: string;
@@ -60,15 +63,23 @@ export type SourceParseOutcome = {
   readonly state: "ready" | "failed" | "skipped";
 };
 
+class SourceParseFinalizationError extends Error {
+  constructor() {
+    super("Source parse could not be finalized.");
+    this.name = "SourceParseFinalizationError";
+  }
+}
+
 async function finalize(
   client: SupabaseClient,
   source: SourceRow,
   result: SourceParseResult,
 ): Promise<SourceParseOutcome> {
   const base = (source.metadata ?? {}) as Record<string, unknown>;
-  const { error } = await client.rpc("server_finalize_source_parse", {
+  const { data, error } = await client.rpc("server_finalize_source_parse_job", {
     p_source_id: source.id,
-    p_owner_id: source.owner_id,
+    p_job_id: source.jobId,
+    p_lease_token: source.leaseToken,
     p_segments: result.ok ? result.segments : [],
     // On failure the metadata keeps the alternative action and its message so the page can
     // offer the user a way forward. Neither carries any of the parsed text.
@@ -77,23 +88,43 @@ async function finalize(
       : { ...base, action: result.action, message: result.message },
     p_error_code: result.ok ? null : result.code,
   });
-  if (error) throw new Error("Source parse could not be finalized.");
-  return { sourceId: source.id, state: result.ok ? "ready" : "failed" };
+  if (error || !data || !["ready", "failed", "skipped"].includes(data.state)) {
+    throw new SourceParseFinalizationError();
+  }
+  return { sourceId: source.id, state: data.state };
 }
 
 export async function executeSourceParse(
   sourceId: string,
   client: SupabaseClient = createAdminSupabaseClient(),
+  environment = process.env.APP_ENV,
 ): Promise<SourceParseOutcome> {
-  const { data: source, error } = await client
-    .from("sources")
-    .select("id, owner_id, kind, asset_id, state, metadata")
-    .eq("id", sourceId)
-    .maybeSingle<SourceRow>();
-  if (error) throw new Error("Source could not be read.");
-  // A missing row or one that already reached a terminal state is the normal outcome of a
-  // retried run. Re-parsing it would spend the transcription budget a second time.
-  if (!source || source.state !== "parsing") return { sourceId, state: "skipped" };
+  if (!environment || !["development", "preview", "production"].includes(environment)) {
+    throw new Error("APP_ENV must be configured for source parsing.");
+  }
+  const { data, error } = await client.rpc("server_claim_source_parse", {
+    p_source_id: sourceId, p_environment: environment,
+  });
+  if (error || !data) throw new Error("Source parse could not be claimed.");
+  if (data.state === "failed" || data.state === "skipped") return { sourceId, state: data.state };
+  if (data.state !== "claimed" || data.source?.id !== sourceId || !data.jobId || !data.leaseToken) {
+    throw new Error("Source parse could not be claimed.");
+  }
+  const source: SourceRow = { ...data.source, jobId: data.jobId, leaseToken: data.leaseToken };
+  try {
+    return await executeClaimedParse(client, source);
+  } catch (error) {
+    if (error instanceof SourceParseFinalizationError) throw error;
+    // Parser and database exceptions may include input or provider details. Only this
+    // fixed failure may leave the worker; finalization retains any sent/unknown cost.
+    return finalize(client, source, {
+      ok: false, code: "SOURCE_UNAVAILABLE", action: "retry-later",
+      message: "The source could not be processed. Try again later or paste its text.",
+    });
+  }
+}
+
+async function executeClaimedParse(client: SupabaseClient, source: SourceRow): Promise<SourceParseOutcome> {
   if (!FILE_SOURCE_KINDS.includes(source.kind as FileSourceKind) || !source.asset_id) {
     return finalize(client, source, {
       ok: false,
@@ -159,7 +190,17 @@ export async function executeSourceParse(
     const result =
       source.kind === "pdf"
         ? await createPdfSourceParser().parse(input, PDF_PARSE_LIMITS)
-        : await createVideoSourceParser().parse(
+        : await createVideoSourceParser({
+            transcription: createOpenAiTranscriptionClient({
+              async beforeRequest(chunk) {
+                const { error } = await client.rpc("server_start_source_transcription", {
+                  p_source_id: source.id, p_job_id: source.jobId, p_lease_token: source.leaseToken,
+                  p_offset_seconds: chunk.offsetSeconds, p_duration_seconds: chunk.durationSeconds,
+                });
+                if (error) throw new Error("Source transcription could not be authorized.");
+              },
+            }),
+          }).parse(
             { ...input, ...readVideoHints(source.metadata) },
             VIDEO_PARSE_LIMITS,
           );

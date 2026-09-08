@@ -308,11 +308,12 @@
   - Check: `pnpm exec vitest run tests/ui/source-input.test.tsx`
   - Expect: 六标签、限制、OCR告知、重复提交、页数/语言/指令全部连接真实服务。
 
-- [ ] T044 `tests/e2e/sources.spec.ts`, `tests/cloud/source-failures.test.ts`, `docs/acceptance/sources.md`, `supabase/tests/b05.sql`, `supabase/migrations/20260907171424_b05.sql` — 验收多来源集成与失败恢复 → AC-002, AC-009
+- [ ] T044 `tests/e2e/sources.spec.ts`, `tests/cloud/source-failures.test.ts`, `docs/acceptance/sources.md`, `supabase/tests/b05.sql`, `supabase/migrations/20260908110457_b05_parse_budget.sql` — 验收多来源集成与失败恢复 → AC-002, AC-009
   - Batch: B05
   - Depends: T043
   - Check: `pnpm exec supabase test db --linked supabase/tests/b05.sql && pnpm exec playwright test tests/e2e/sources.spec.ts && pnpm exec vitest run tests/cloud/source-failures.test.ts`
   - Expect: 合法六来源成功，安全错误/额度/上游故障不消耗用户额度。
+  - Migration history: `supabase/migrations/20260907171424_b05.sql` 已应用且不可修改；本项新增迁移账本匹配的 `20260908110457_b05_parse_budget.sql`，T042 原有 worker/转录文件补齐成本闸门，T044 验证预算、lease 与失败结算。
 
 ## B06
 

@@ -1,6 +1,6 @@
 begin;
 set local search_path = extensions, public, pg_catalog;
-select plan(55);
+select plan(72);
 
 select has_function('public', 'server_create_upload_intent', array['uuid', 'public.asset_kind', 'public.asset_purpose', 'text', 'text', 'text', 'bigint', 'text', 'text', 'text'], 'upload intent RPC exists');
 select has_function('public', 'server_claim_asset_validation', array['uuid'], 'asset validation claim RPC exists');
@@ -9,6 +9,9 @@ select has_function('public', 'server_create_url_source', array['uuid', 'jsonb',
 select has_function('public', 'server_create_file_source', array['uuid', 'public.source_kind', 'uuid', 'jsonb', 'timestamp with time zone', 'text', 'text'], 'file source RPC exists');
 select has_function('public', 'server_finalize_source_parse', array['uuid', 'uuid', 'jsonb', 'jsonb', 'text'], 'source parse finalization RPC exists');
 select has_function('public', 'server_terminate_undispatched_job', array['uuid'], 'undispatched job termination RPC exists');
+select has_function('public', 'server_claim_source_parse', array['uuid', 'text'], 'budgeted source parse claim RPC exists');
+select has_function('public', 'server_start_source_transcription', array['uuid', 'uuid', 'uuid', 'numeric', 'numeric'], 'transcription attempt guard RPC exists');
+select has_function('public', 'server_finalize_source_parse_job', array['uuid', 'uuid', 'uuid', 'jsonb', 'jsonb', 'text'], 'budgeted source parse finalization RPC exists');
 
 select is(
   (
@@ -17,11 +20,12 @@ select is(
       and proname = any(array[
         'server_create_upload_intent', 'server_claim_asset_validation', 'server_finalize_asset_validation',
         'server_create_url_source', 'server_create_file_source', 'server_finalize_source_parse',
-        'server_terminate_undispatched_job'
+        'server_terminate_undispatched_job', 'server_claim_source_parse',
+        'server_start_source_transcription', 'server_finalize_source_parse_job'
       ])
       and obj_description(oid, 'pg_proc') is not null
   ),
-  7,
+  10,
   'every B05 server RPC is commented'
 );
 select is(
@@ -31,12 +35,13 @@ select is(
       and proname = any(array[
         'server_create_upload_intent', 'server_claim_asset_validation', 'server_finalize_asset_validation',
         'server_create_url_source', 'server_create_file_source', 'server_finalize_source_parse',
-        'server_terminate_undispatched_job'
+        'server_terminate_undispatched_job', 'server_claim_source_parse',
+        'server_start_source_transcription', 'server_finalize_source_parse_job'
       ])
       and prosecdef
       and proconfig @> array['search_path=""']::text[]
   ),
-  7,
+  10,
   'every B05 server RPC uses a fixed empty search path under definer rights'
 );
 select is(
@@ -46,12 +51,21 @@ select is(
       and proname = any(array[
         'server_create_upload_intent', 'server_claim_asset_validation', 'server_finalize_asset_validation',
         'server_create_url_source', 'server_create_file_source', 'server_finalize_source_parse',
-        'server_terminate_undispatched_job'
+        'server_terminate_undispatched_job', 'server_claim_source_parse',
+        'server_start_source_transcription', 'server_finalize_source_parse_job'
       ])
       and has_function_privilege('service_role', oid, 'execute')
   ),
-  7,
-  'service role can execute every B05 server RPC'
+  9,
+  'service role can execute every current B05 server RPC'
+);
+select ok(
+  not has_function_privilege(
+    'service_role',
+    'public.server_finalize_source_parse(uuid, uuid, jsonb, jsonb, text)',
+    'execute'
+  ),
+  'the unbudgeted legacy source finalizer is no longer callable'
 );
 select is(
   (
@@ -60,7 +74,8 @@ select is(
       and proname = any(array[
         'server_create_upload_intent', 'server_claim_asset_validation', 'server_finalize_asset_validation',
         'server_create_url_source', 'server_create_file_source', 'server_finalize_source_parse',
-        'server_terminate_undispatched_job'
+        'server_terminate_undispatched_job', 'server_claim_source_parse',
+        'server_start_source_transcription', 'server_finalize_source_parse_job'
       ])
       and has_function_privilege('authenticated', oid, 'execute')
   ),
@@ -74,7 +89,8 @@ select is(
       and proname = any(array[
         'server_create_upload_intent', 'server_claim_asset_validation', 'server_finalize_asset_validation',
         'server_create_url_source', 'server_create_file_source', 'server_finalize_source_parse',
-        'server_terminate_undispatched_job'
+        'server_terminate_undispatched_job', 'server_claim_source_parse',
+        'server_start_source_transcription', 'server_finalize_source_parse_job'
       ])
       and has_function_privilege('anon', oid, 'execute')
   ),
@@ -299,19 +315,27 @@ select results_eq(
   'an unparsed file source holds no segments and is not ready'
 );
 
+select is(
+  public.server_claim_source_parse((select id from public.sources where kind = 'pdf'), 'development') ->> 'state',
+  'claimed',
+  'the PDF parser first claims a lease and zero-cost reservation'
+);
 select throws_ok(
-  $$select public.server_finalize_source_parse(
+  $$select public.server_finalize_source_parse_job(
     (select id from public.sources where kind = 'pdf'),
-    '81111111-1111-4111-8111-111111111111', '[]'::jsonb, '{"characterCount":0,"pageCount":12}'::jsonb, null
+    (select id from public.jobs where kind = 'parse' and input_ref ->> 'sourceId' = (select id::text from public.sources where kind = 'pdf')),
+    (select lease_token from public.jobs where kind = 'parse' and input_ref ->> 'sourceId' = (select id::text from public.sources where kind = 'pdf')),
+    '[]'::jsonb, '{"characterCount":0,"pageCount":12}'::jsonb, null
   )$$,
   '22023',
   'a parsed source needs at least one segment',
   'a scan with no text layer cannot be marked ready with an empty result'
 );
 select lives_ok(
-  $$select public.server_finalize_source_parse(
+  $$select public.server_finalize_source_parse_job(
     (select id from public.sources where kind = 'pdf'),
-    '81111111-1111-4111-8111-111111111111',
+    (select id from public.jobs where kind = 'parse' and input_ref ->> 'sourceId' = (select id::text from public.sources where kind = 'pdf')),
+    (select lease_token from public.jobs where kind = 'parse' and input_ref ->> 'sourceId' = (select id::text from public.sources where kind = 'pdf')),
     '[{"segmentId":"segment-1","text":"Page one text","locator":{"kind":"page","page":1}}]'::jsonb,
     '{"characterCount":13,"pageCount":12}'::jsonb, null
   )$$,
@@ -323,9 +347,10 @@ select results_eq(
   'the parsed source carries its segments'
 );
 select results_eq(
-  $$select (public.server_finalize_source_parse(
+  $$select (public.server_finalize_source_parse_job(
     (select id from public.sources where kind = 'pdf'),
-    '81111111-1111-4111-8111-111111111111', '[]'::jsonb, '{}'::jsonb, 'SOURCE_EMPTY'
+    (select id from public.jobs where kind = 'parse' and input_ref ->> 'sourceId' = (select id::text from public.sources where kind = 'pdf')),
+    null, '[]'::jsonb, '{}'::jsonb, 'SOURCE_EMPTY'
   ) ->> 'state')$$,
   array['ready'],
   'finalizing an already parsed source does not erase it'
@@ -340,9 +365,15 @@ select lives_ok(
   'a second file source is registered for the failure path'
 );
 select lives_ok(
-  $$select public.server_finalize_source_parse(
+  $$select public.server_claim_source_parse((select id from public.sources where kind = 'slides'), 'development')$$,
+  'the Slides parser claims its own lease and zero-cost reservation'
+);
+select lives_ok(
+  $$select public.server_finalize_source_parse_job(
     (select id from public.sources where kind = 'slides'),
-    '81111111-1111-4111-8111-111111111111', '[]'::jsonb, '{"characterCount":0}'::jsonb, 'SOURCE_NO_TEXT_LAYER'
+    (select id from public.jobs where kind = 'parse' and input_ref ->> 'sourceId' = (select id::text from public.sources where kind = 'slides')),
+    (select lease_token from public.jobs where kind = 'parse' and input_ref ->> 'sourceId' = (select id::text from public.sources where kind = 'slides')),
+    '[]'::jsonb, '{"characterCount":0}'::jsonb, 'SOURCE_NO_TEXT_LAYER'
   )$$,
   'a source that could not be parsed is recorded as failed'
 );
@@ -350,6 +381,90 @@ select results_eq(
   $$select state::text, metadata ->> 'errorCode', jsonb_array_length(segments) from public.sources where kind = 'slides'$$,
   $$values ('failed', 'SOURCE_NO_TEXT_LAYER', 0)$$,
   'the failed source keeps a safe reason and no extracted text'
+);
+
+reset role;
+insert into private.cost_budgets (period, environment, limit_micro_usd)
+values (to_char(now() at time zone 'utc', 'YYYY-MM'), 'development', 2000000)
+on conflict (period, environment) do update
+set limit_micro_usd = excluded.limit_micro_usd, reserved_micro_usd = 0, spent_micro_usd = 0;
+insert into public.sources (id, owner_id, kind, asset_id, metadata, segments, state, expires_at)
+values
+  ('83333333-3333-4333-8333-333333333331', '81111111-1111-4111-8111-111111111111', 'video',
+    (select id from public.assets where object_key = '81111111-1111-4111-8111-111111111111/deck.pdf'),
+    '{}'::jsonb, '[]'::jsonb, 'parsing', now() + interval '1 day'),
+  ('83333333-3333-4333-8333-333333333332', '81111111-1111-4111-8111-111111111111', 'video',
+    (select id from public.assets where object_key = '81111111-1111-4111-8111-111111111111/deck.pdf'),
+    '{}'::jsonb, '[]'::jsonb, 'parsing', now() + interval '1 day');
+set local role service_role;
+
+select is(public.server_claim_source_parse('83333333-3333-4333-8333-333333333331', 'development') ->> 'state',
+  'claimed', 'a video receives a budgeted parse lease');
+select is(public.server_claim_source_parse('83333333-3333-4333-8333-333333333331', 'development') ->> 'state',
+  'skipped', 'a duplicate worker cannot reclaim the video');
+select results_eq(
+  $$select input_ref from public.jobs where input_ref ->> 'sourceId' = '83333333-3333-4333-8333-333333333331'$$,
+  $$values ('{"sourceId":"83333333-3333-4333-8333-333333333331"}'::jsonb)$$,
+  'the parse job stores only its source reference'
+);
+select is(
+  (select count(*)::integer from public.usage_ledger where job_id =
+    (select id from public.jobs where input_ref ->> 'sourceId' = '83333333-3333-4333-8333-333333333331')),
+  0,
+  'claiming a parser never reserves user generation quota'
+);
+select lives_ok(
+  $$select public.server_start_source_transcription(
+    '83333333-3333-4333-8333-333333333331', id, lease_token, 0, 15
+  ) from public.jobs where input_ref ->> 'sourceId' = '83333333-3333-4333-8333-333333333331'$$,
+  'the first provider request is recorded against its reserved cost'
+);
+select throws_ok(
+  $$select public.server_start_source_transcription(
+    '83333333-3333-4333-8333-333333333331', id, lease_token, 0, 15
+  ) from public.jobs where input_ref ->> 'sourceId' = '83333333-3333-4333-8333-333333333331'$$,
+  '23505', null,
+  'the same audio chunk cannot be sent twice as an untracked retry'
+);
+select is(
+  (select public.server_finalize_source_parse_job(
+    '83333333-3333-4333-8333-333333333331', id, lease_token,
+    '[]'::jsonb, '{"action":"paste-text"}'::jsonb, 'SOURCE_TIMEOUT'
+  ) ->> 'state' from public.jobs where input_ref ->> 'sourceId' = '83333333-3333-4333-8333-333333333331'),
+  'failed',
+  'a provider timeout fails without fabricating a transcript'
+);
+reset role;
+select results_eq(
+  $$select state::text, released_micro_usd from private.cost_reservations where job_id =
+    (select id from public.jobs where input_ref ->> 'sourceId' = '83333333-3333-4333-8333-333333333331')$$,
+  $$values ('unknown', 0::bigint)$$,
+  'an unknown provider charge remains reserved for reconciliation'
+);
+select results_eq(
+  $$select attempt.state::text, attempt.usage
+    from private.cost_attempts attempt
+    join private.cost_reservations reservation on reservation.id = attempt.reservation_id
+    join public.jobs job on job.id = reservation.job_id
+    where job.input_ref ->> 'sourceId' = '83333333-3333-4333-8333-333333333331'$$,
+  $$values ('unknown', '{"offsetSeconds":0,"durationSeconds":15}'::jsonb)$$,
+  'cost audit retains numeric duration and no transcript'
+);
+update private.cost_budgets
+set limit_micro_usd = reserved_micro_usd + spent_micro_usd
+where period = to_char(now() at time zone 'utc', 'YYYY-MM') and environment = 'development';
+set local role service_role;
+select is(
+  public.server_claim_source_parse('83333333-3333-4333-8333-333333333332', 'development') ->> 'state',
+  'failed',
+  'budget exhaustion rejects paid parsing'
+);
+select results_eq(
+  $$select metadata ->> 'errorCode',
+      (select count(*)::text from public.jobs where input_ref ->> 'sourceId' = source.id::text)
+    from public.sources source where id = '83333333-3333-4333-8333-333333333332'$$,
+  $$values ('BUDGET_EXCEEDED', '0')$$,
+  'budget exhaustion fails before a job or provider attempt exists'
 );
 
 reset role;
