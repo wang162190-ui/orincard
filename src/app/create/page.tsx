@@ -37,9 +37,6 @@ export default function CreatePage() {
                 />
               )}
             />
-            <p className="meta">
-              URL, Video, PDF, and Slides sources are not available in this preview yet.
-            </p>
           </PanelBody>
         </Panel>
       </div>

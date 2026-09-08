@@ -302,7 +302,7 @@
   - Check: `pnpm exec vitest run tests/cloud/video.test.ts`
   - Expect: 真实音轨/字幕/偏移，无权URL给替代入口；转录失败不伪造。
 
-- [ ] T043 `src/features/generation/source-input.tsx`, `src/app/api/v1/sources/route.ts`, `src/features/generation/options.tsx`, `src/server/sources/index.ts`, `tests/ui/source-input.test.tsx` — 完成六输入页面和来源API → AC-001, AC-002
+- [ ] T043 `src/features/generation/source-input.tsx`, `src/app/api/v1/sources/route.ts`, `src/app/create/page.tsx`, `src/server/sources/index.ts`, `tests/ui/source-input.test.tsx` — 完成六输入页面和来源API → AC-001, AC-002
   - Batch: B05
   - Depends: T042
   - Check: `pnpm exec vitest run tests/ui/source-input.test.tsx`
