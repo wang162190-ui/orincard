@@ -317,7 +317,7 @@
 
 ## B06
 
-- [ ] T045 `src/server/assets/pexels.ts`, `src/features/assets/gallery.tsx`, `src/app/api/v1/assets/search/route.ts`, `tests/cloud/gallery.test.ts`, `src/app/api/v1/assets/import-stock/route.ts` — 实现授权图库搜索与导入 → AC-005
+- [x] T045 `src/server/assets/pexels.ts`, `src/features/assets/gallery.tsx`, `src/app/api/v1/assets/search/route.ts`, `tests/cloud/gallery.test.ts`, `src/app/api/v1/assets/import-stock/route.ts` — 实现授权图库搜索与导入 → AC-005
   - Batch: B06
   - Depends: T044
   - Check: `pnpm exec vitest run tests/cloud/gallery.test.ts`

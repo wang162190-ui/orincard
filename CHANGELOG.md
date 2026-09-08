@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-09
+
+- Added Pexels stock-image search and provider-verified import. Imported images are copied into private Storage and preserve author, source, license confirmation, and quota metadata.
+
 Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 格式。
 
 ## [Unreleased]
