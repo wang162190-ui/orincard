@@ -1,0 +1,43 @@
+import { task } from "@trigger.dev/sdk";
+import { createOpenAiImageProvider, generatedMetadata, type AiImageKind } from "../server/assets/ai-image";
+import { createAdminSupabaseClient } from "../server/supabase";
+
+export const GENERATE_IMAGE_TASK_ID = "orincard-generate-image";
+
+export function validateImageGenerationPayload(payload: unknown): { readonly assetId: string; readonly schemaVersion: 1 } {
+  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) throw new Error("Invalid image generation payload");
+  const value = payload as Record<string, unknown>;
+  if (Object.keys(value).sort().join(",") !== "assetId,schemaVersion" || typeof value.assetId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.assetId) || value.schemaVersion !== 1) throw new Error("Invalid image generation payload");
+  return { assetId: value.assetId, schemaVersion: 1 };
+}
+
+export async function executeImageGeneration(assetId: string, provider = createOpenAiImageProvider(process.env.OPENAI_API_KEY?.trim() ?? "")) {
+  const client = createAdminSupabaseClient();
+  const { data: asset } = await client.from("assets").select("id,owner_id,kind,rights,state").eq("id", assetId).in("kind", ["ai_image", "portrait"]).eq("state", "pending_upload").maybeSingle();
+  if (!asset) return { assetId, state: "skipped" as const };
+  const rights = asset.rights as Record<string, unknown>;
+  const prompt = typeof rights.prompt === "string" ? rights.prompt : "";
+  const referenceAssetId = typeof rights.referenceAssetId === "string" ? rights.referenceAssetId : null;
+  const fail = async (code: string) => { await client.from("assets").update({ state: "failed", error_code: code }).eq("id", asset.id).eq("owner_id", asset.owner_id).eq("state", "pending_upload"); return { assetId, state: "failed" as const }; };
+  try {
+    let reference: Uint8Array | undefined;
+    if (asset.kind === "portrait") {
+      if (!referenceAssetId) return fail("REFERENCE_UNAVAILABLE");
+      const { data: source } = await client.from("assets").select("bucket,object_key,mime,state,owner_id").eq("id", referenceAssetId).eq("owner_id", asset.owner_id).eq("state", "ready").maybeSingle();
+      if (!source || source.bucket !== "assets" || !["image/png", "image/jpeg", "image/webp"].includes(source.mime)) return fail("REFERENCE_UNAVAILABLE");
+      const { data, error } = await client.storage.from(source.bucket).download(source.object_key);
+      if (error || !data) return fail("REFERENCE_UNAVAILABLE");
+      reference = new Uint8Array(await data.arrayBuffer());
+    }
+    const image = await provider.generate({ kind: asset.kind as AiImageKind, prompt, reference });
+    const metadata = generatedMetadata(image.bytes);
+    const objectKey = `${asset.owner_id}/${asset.id}/generated.png`;
+    const { error: uploadError } = await client.storage.from("assets").upload(objectKey, image.bytes, { contentType: image.mime, upsert: false });
+    if (uploadError) return fail("ASSET_UPLOAD_FAILED");
+    const { error: updateError } = await client.from("assets").update({ object_key: objectKey, mime: image.mime, ...metadata, state: "ready", error_code: null }).eq("id", asset.id).eq("owner_id", asset.owner_id).eq("state", "pending_upload");
+    if (updateError) { await client.storage.from("assets").remove([objectKey]); return fail("ASSET_UPLOAD_FAILED"); }
+    return { assetId, state: "ready" as const };
+  } catch { return fail("PROVIDER_FAILED"); }
+}
+
+export const generateImageTask = task({ id: GENERATE_IMAGE_TASK_ID, maxDuration: 120, run: async (payload: unknown) => executeImageGeneration(validateImageGenerationPayload(payload).assetId) });
