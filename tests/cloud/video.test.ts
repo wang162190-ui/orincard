@@ -15,8 +15,8 @@ import {
 } from "../../src/server/sources/video";
 import {
   TranscriptionError,
-  createOpenAiTranscriptionClient,
-  cuesFromProviderResponse,
+  createVolcengineTranscriptionClient,
+  cuesFromVolcengineResponse,
   groupCues,
   parseSubtitleCues,
   type TranscriptCue,
@@ -198,8 +198,8 @@ describe("provider responses", () => {
 
   it("shifts per-segment timings by the chunk offset", () => {
     expect(
-      cuesFromProviderResponse(
-        { segments: [{ start: 1.5, end: 4, text: " hello " }, { start: 4, end: 5, text: "world" }] },
+      cuesFromVolcengineResponse(
+        { result: { utterances: [{ start_time: 1_500, end_time: 4_000, text: " hello " }, { start_time: 4_000, end_time: 5_000, text: "world" }] } },
         chunk,
       ),
     ).toEqual([
@@ -209,14 +209,14 @@ describe("provider responses", () => {
   });
 
   it("spans the chunk when the model returns text without timings", () => {
-    expect(cuesFromProviderResponse({ text: "a whole chunk" }, chunk)).toEqual([
+    expect(cuesFromVolcengineResponse({ result: { text: "a whole chunk" } }, chunk)).toEqual([
       { startSeconds: 600, endSeconds: 1_200, text: "a whole chunk" },
     ]);
   });
 
   it("returns nothing rather than an empty cue", () => {
-    expect(cuesFromProviderResponse({ text: "   " }, chunk)).toEqual([]);
-    expect(cuesFromProviderResponse({}, chunk)).toEqual([]);
+    expect(cuesFromVolcengineResponse({ result: { text: "   " } }, chunk)).toEqual([]);
+    expect(cuesFromVolcengineResponse({}, chunk)).toEqual([]);
   });
 });
 
@@ -466,7 +466,7 @@ describe("video source parser", () => {
 
 describe("transcription client prerequisites", () => {
   it("names the missing credential instead of returning nothing", async () => {
-    const client = createOpenAiTranscriptionClient({ apiKey: "", model: "m" });
+    const client = createVolcengineTranscriptionClient({ apiKey: "", resourceId: "m" });
     await expect(
       client.transcribe({
         audio: new Uint8Array(8),
@@ -479,7 +479,7 @@ describe("transcription client prerequisites", () => {
   });
 
   it("names the missing model as well", async () => {
-    const client = createOpenAiTranscriptionClient({ apiKey: "k", model: "" });
+    const client = createVolcengineTranscriptionClient({ apiKey: "k", resourceId: "" });
     await expect(
       client.transcribe({
         audio: new Uint8Array(8),
@@ -499,9 +499,10 @@ describe("transcription client prerequisites", () => {
       { status: 413, reason: "too-large" },
     ] as const;
     for (const expected of statuses) {
-      const client = createOpenAiTranscriptionClient({
+      const client = createVolcengineTranscriptionClient({
         apiKey: "k",
-        model: "m",
+        resourceId: "m",
+        publishAudio: async () => ({ url: "https://example.com/audio.mp3", cleanup: async () => {} }),
         fetchImpl: (async () =>
           new Response("{}", { status: expected.status })) as typeof fetch,
       });
@@ -566,9 +567,9 @@ live("video source against real tools and a real provider", () => {
           `Install them with "brew install ffmpeg" (expected: ${VIDEO_EXECUTABLES.join(", ")}).`,
       );
     }
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.VOLCENGINE_SPEECH_API_KEY) {
       throw new Error(
-        "ORINCARD_RUN_VIDEO_CLOUD=1 requires OPENAI_API_KEY, which transcribes the audio track. " +
+        "ORINCARD_RUN_VIDEO_CLOUD=1 requires VOLCENGINE_SPEECH_API_KEY, which transcribes the audio track. " +
           "Set it in .env.local; this suite must not pass without a real transcription.",
       );
     }
@@ -634,14 +635,34 @@ live("video source against real tools and a real provider", () => {
       "-shortest", filePath,
     ]);
 
-    const parsed = await createVideoSourceParser().parse({ filePath }, VIDEO_PARSE_LIMITS);
+    const { createAdminSupabaseClient } = await import("../../src/server/supabase");
+    const store = createAdminSupabaseClient().storage.from("sources");
+    const transcription = createVolcengineTranscriptionClient({
+      async publishAudio(chunk) {
+        const objectKey = `cloud-tests/transcription/${crypto.randomUUID()}.mp3`;
+        const uploaded = await store.upload(objectKey, chunk.audio, { contentType: chunk.mimeType });
+        if (uploaded.error) throw uploaded.error;
+        const signed = await store.createSignedUrl(objectKey, 10 * 60);
+        if (signed.error) throw signed.error;
+        return {
+          url: signed.data.signedUrl,
+          cleanup: async () => { await store.remove([objectKey]); },
+        };
+      },
+    });
+    const parsed = await createVideoSourceParser({ transcription }).parse({ filePath }, VIDEO_PARSE_LIMITS);
     expect(parsed).toMatchObject({ ok: true });
     if (!parsed.ok) return;
     const text = parsed.segments.map((segment) => segment.text).join(" ").toLowerCase();
-    expect(text).toMatch(/carousel/);
+    // The macOS voice pronounces the product name and "carousel" variably across
+    // providers. The stable middle of the spoken sentence still proves real ASR.
+    expect(text).toMatch(/documents/);
     expect(parsed.metadata.durationSeconds).toBeGreaterThan(1);
     const locator = parsed.segments[0]?.locator;
-    expect(locator).toMatchObject({ kind: "time", startSeconds: 0 });
+    expect(locator).toMatchObject({ kind: "time" });
+    if (locator?.kind !== "time") return;
+    expect(locator.startSeconds).toBeGreaterThanOrEqual(0);
+    expect(locator.startSeconds).toBeLessThan(1);
   }, 300_000);
 
   it("refuses a file with no audio and no subtitles instead of inventing text", async () => {

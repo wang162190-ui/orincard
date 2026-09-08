@@ -195,65 +195,78 @@ export function groupCues(
   return groups.slice(0, limits.maxSegments);
 }
 
-interface ProviderSegment {
-  readonly start?: unknown;
-  readonly end?: unknown;
+export interface PublishedAudio {
+  readonly url: string;
+  readonly cleanup: () => Promise<void>;
+}
+
+export interface VolcengineTranscriptionOptions {
+  readonly beforeRequest?: (chunk: TranscriptionChunk) => Promise<void>;
+  readonly apiKey?: string;
+  readonly resourceId?: string;
+  readonly baseUrl?: string;
+  readonly timeoutMs?: number;
+  readonly pollIntervalMs?: number;
+  readonly fetchImpl?: typeof fetch;
+  readonly publishAudio?: (chunk: TranscriptionChunk) => Promise<PublishedAudio>;
+}
+
+interface VolcengineUtterance {
+  readonly start_time?: unknown;
+  readonly end_time?: unknown;
   readonly text?: unknown;
 }
 
-// The response shape differs by model: whisper-1 with verbose_json returns per-segment
-// timings, while the gpt-4o transcribe models answer with a single text field. Both are
-// accepted, and neither is padded out with invented timings — without provider segments
-// the cue simply spans the chunk we actually sent.
-export function cuesFromProviderResponse(
-  body: { readonly text?: unknown; readonly segments?: unknown },
-  chunk: { readonly offsetSeconds: number; readonly durationSeconds: number },
+interface VolcengineResult {
+  readonly text?: unknown;
+  readonly utterances?: unknown;
+}
+
+export function cuesFromVolcengineResponse(
+  body: { readonly result?: VolcengineResult },
+  chunk: Pick<TranscriptionChunk, "offsetSeconds" | "durationSeconds">,
 ): TranscriptCue[] {
-  const segments = Array.isArray(body.segments) ? (body.segments as ProviderSegment[]) : [];
-  const cues: TranscriptCue[] = [];
-  for (const segment of segments) {
-    if (typeof segment.text !== "string") continue;
-    const text = segment.text.trim();
-    if (!text) continue;
-    const start = typeof segment.start === "number" ? segment.start : undefined;
-    const end = typeof segment.end === "number" ? segment.end : undefined;
-    if (start === undefined || end === undefined || end < start) continue;
-    cues.push({
-      startSeconds: chunk.offsetSeconds + start,
-      endSeconds: chunk.offsetSeconds + end,
-      text,
-    });
-  }
+  const utterances = Array.isArray(body.result?.utterances)
+    ? (body.result.utterances as VolcengineUtterance[])
+    : [];
+  const cues = utterances.flatMap((utterance) => {
+    if (
+      typeof utterance.text !== "string" ||
+      typeof utterance.start_time !== "number" ||
+      typeof utterance.end_time !== "number" ||
+      utterance.end_time < utterance.start_time
+    ) return [];
+    const text = utterance.text.trim();
+    return text
+      ? [{
+          startSeconds: chunk.offsetSeconds + utterance.start_time / 1_000,
+          endSeconds: chunk.offsetSeconds + utterance.end_time / 1_000,
+          text,
+        }]
+      : [];
+  });
   if (cues.length > 0) return cues;
-
-  const whole = typeof body.text === "string" ? body.text.trim() : "";
-  if (!whole) return [];
-  return [
-    {
-      startSeconds: chunk.offsetSeconds,
-      endSeconds: chunk.offsetSeconds + chunk.durationSeconds,
-      text: whole,
-    },
-  ];
+  const text = typeof body.result?.text === "string" ? body.result.text.trim() : "";
+  return text
+    ? [{
+        startSeconds: chunk.offsetSeconds,
+        endSeconds: chunk.offsetSeconds + chunk.durationSeconds,
+        text,
+      }]
+    : [];
 }
 
-export interface OpenAiTranscriptionOptions {
-  readonly beforeRequest?: (chunk: TranscriptionChunk) => Promise<void>;
-  readonly apiKey?: string;
-  readonly model?: string;
-  readonly baseUrl?: string;
-  readonly timeoutMs?: number;
-  readonly fetchImpl?: typeof fetch;
-}
-
-export function createOpenAiTranscriptionClient(
-  options: OpenAiTranscriptionOptions = {},
+export function createVolcengineTranscriptionClient(
+  options: VolcengineTranscriptionOptions = {},
 ): TranscriptionClient {
-  const apiKey = options.apiKey ?? process.env.OPENAI_API_KEY ?? "";
-  const model = options.model ?? process.env.AI_TRANSCRIBE_MODEL ?? "";
-  const baseUrl = options.baseUrl ?? "https://api.openai.com/v1";
+  const apiKey = options.apiKey ?? process.env.VOLCENGINE_SPEECH_API_KEY ?? "";
+  const resourceId = options.resourceId ?? process.env.AI_TRANSCRIBE_MODEL ?? "volc.seedasr.auc";
+  const baseUrl = options.baseUrl ?? "https://openspeech.bytedance.com/api/v3/auc/bigmodel";
   const timeoutMs = options.timeoutMs ?? TRANSCRIPTION_TIMEOUT_MS;
+  const pollIntervalMs = options.pollIntervalMs ?? 1_000;
   const fetchImpl = options.fetchImpl ?? fetch;
+  const providerLanguage = (language?: string) =>
+    language === "en" ? "en-US" : language === "zh" ? "zh-CN" : language;
 
   return {
     async transcribe(chunk) {
@@ -262,10 +275,10 @@ export function createOpenAiTranscriptionClient(
       if (!apiKey) {
         throw new TranscriptionError(
           "not-configured",
-          "OPENAI_API_KEY is not configured, so this video cannot be transcribed.",
+          "VOLCENGINE_SPEECH_API_KEY is not configured, so this video cannot be transcribed.",
         );
       }
-      if (!model) {
+      if (!resourceId) {
         throw new TranscriptionError(
           "not-configured",
           "AI_TRANSCRIBE_MODEL is not configured, so this video cannot be transcribed.",
@@ -278,74 +291,74 @@ export function createOpenAiTranscriptionClient(
         );
       }
 
-      const form = new FormData();
-      // ffmpeg hands back a Buffer, whose backing store TypeScript widens to include
-      // SharedArrayBuffer; Blob only accepts a plain ArrayBuffer view. Copying into a
-      // fresh view is the narrowing, and Blob would copy the bytes anyway.
-      const audio = new Uint8Array(chunk.audio.byteLength);
-      audio.set(chunk.audio);
-      form.append("file", new Blob([audio], { type: chunk.mimeType }), chunk.filename);
-      form.append("model", model);
-      // verbose_json is only honoured by the whisper models; the gpt-4o transcribe models
-      // reject it, so the safe request asks for json and cuesFromProviderResponse copes
-      // with either answer.
-      form.append("response_format", "json");
-      if (chunk.language) form.append("language", chunk.language);
+      if (!options.publishAudio) {
+        throw new TranscriptionError("not-configured", "Temporary audio publishing is not configured.");
+      }
 
       // The worker persists its budget/attempt guard before any provider request.
       await options.beforeRequest?.(chunk);
+      const published = await options.publishAudio(chunk);
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
-      let response: Response;
       try {
-        response = await fetchImpl(`${baseUrl}/audio/transcriptions`, {
+        const taskId = crypto.randomUUID();
+        const headers = {
+          "content-type": "application/json",
+          "x-api-key": apiKey,
+          "x-api-resource-id": resourceId,
+          "x-api-request-id": taskId,
+        };
+        const submit = await fetchImpl(`${baseUrl}/submit`, {
           method: "POST",
-          headers: { authorization: `Bearer ${apiKey}` },
-          body: form,
+          headers: { ...headers, "x-api-sequence": "-1" },
+          body: JSON.stringify({
+            audio: {
+              url: published.url,
+              format: chunk.filename.split(".").pop()?.toLowerCase() ?? "mp3",
+              ...(providerLanguage(chunk.language) ? { language: providerLanguage(chunk.language) } : {}),
+            },
+            request: { model_name: "bigmodel", show_utterances: true, enable_itn: true },
+          }),
           signal: controller.signal,
         });
+        if (submit.status === 401 || submit.status === 403) {
+          throw new TranscriptionError("not-configured", "The transcription credential was rejected.");
+        }
+        if (submit.status === 413) {
+          throw new TranscriptionError("too-large", "The transcription service refused this audio chunk as too large.");
+        }
+        if (!submit.ok || submit.headers.get("x-api-status-code") !== "20000000") {
+          throw new TranscriptionError(
+            submit.status >= 500 || submit.status === 429 ? "unavailable" : "rejected",
+            "The transcription service could not process this audio.",
+          );
+        }
+        while (true) {
+          const query = await fetchImpl(`${baseUrl}/query`, {
+            method: "POST", headers, body: "{}", signal: controller.signal,
+          });
+          const status = query.headers.get("x-api-status-code");
+          if (status === "20000001" || status === "20000002") {
+            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+            continue;
+          }
+          if (!query.ok || status !== "20000000") {
+            throw new TranscriptionError("rejected", "The transcription service could not process this audio.");
+          }
+          const body = (await query.json()) as { result?: VolcengineResult };
+          return cuesFromVolcengineResponse(body, chunk);
+        }
       } catch (error) {
+        if (error instanceof TranscriptionError) throw error;
         const aborted = error instanceof Error && error.name === "AbortError";
         throw new TranscriptionError(
           aborted ? "timeout" : "unavailable",
-          aborted
-            ? "Transcription took too long."
-            : "The transcription service could not be reached.",
+          aborted ? "Transcription took too long." : "The transcription service could not be reached.",
         );
       } finally {
         clearTimeout(timer);
+        await published.cleanup().catch(() => undefined);
       }
-
-      if (!response.ok) {
-        // The body can quote the audio back; only the status is allowed to travel.
-        if (response.status === 401 || response.status === 403) {
-          throw new TranscriptionError(
-            "not-configured",
-            "The transcription credential was rejected.",
-          );
-        }
-        if (response.status === 413) {
-          throw new TranscriptionError(
-            "too-large",
-            "The transcription service refused this audio chunk as too large.",
-          );
-        }
-        throw new TranscriptionError(
-          response.status >= 500 || response.status === 429 ? "unavailable" : "rejected",
-          "The transcription service could not process this audio.",
-        );
-      }
-
-      let body: { text?: unknown; segments?: unknown };
-      try {
-        body = (await response.json()) as { text?: unknown; segments?: unknown };
-      } catch {
-        throw new TranscriptionError(
-          "unavailable",
-          "The transcription service returned an unreadable response.",
-        );
-      }
-      return cuesFromProviderResponse(body, chunk);
     },
   };
 }

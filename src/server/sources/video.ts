@@ -11,7 +11,7 @@ import { SourceToolError, missingExecutables, runCommand, type CommandRunner } f
 import {
   CUE_GROUPING,
   TranscriptionError,
-  createOpenAiTranscriptionClient,
+  createVolcengineTranscriptionClient,
   groupCues,
   parseSubtitleCues,
   type TranscriptCue,
@@ -197,7 +197,7 @@ export function createVideoSourceParser(options: {
   const runner = options.runner ?? runCommand;
   const transcription =
     options.transcription === undefined
-      ? createOpenAiTranscriptionClient()
+      ? createVolcengineTranscriptionClient()
       : options.transcription;
   const createId = options.createId ?? randomUUID;
   const now = options.now ?? (() => Date.now());

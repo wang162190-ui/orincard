@@ -8,7 +8,7 @@ import { PDF_PARSE_LIMITS, createPdfSourceParser } from "../server/sources/pdf";
 import { SLIDES_PARSE_LIMITS, createSlidesSourceParser } from "../server/sources/slides";
 import { VIDEO_PARSE_LIMITS, createVideoSourceParser } from "../server/sources/video";
 import type { SourceParseResult } from "../server/sources/index";
-import { createOpenAiTranscriptionClient } from "../server/sources/transcribe";
+import { createVolcengineTranscriptionClient } from "../server/sources/transcribe";
 import { createAdminSupabaseClient } from "../server/supabase";
 import { PARSE_SOURCE_TASK_ID } from "./dispatch";
 
@@ -191,13 +191,31 @@ async function executeClaimedParse(client: SupabaseClient, source: SourceRow): P
       source.kind === "pdf"
         ? await createPdfSourceParser().parse(input, PDF_PARSE_LIMITS)
         : await createVideoSourceParser({
-            transcription: createOpenAiTranscriptionClient({
+            transcription: createVolcengineTranscriptionClient({
               async beforeRequest(chunk) {
                 const { error } = await client.rpc("server_start_source_transcription", {
                   p_source_id: source.id, p_job_id: source.jobId, p_lease_token: source.leaseToken,
                   p_offset_seconds: chunk.offsetSeconds, p_duration_seconds: chunk.durationSeconds,
                 });
                 if (error) throw new Error("Source transcription could not be authorized.");
+              },
+              async publishAudio(chunk) {
+                const objectKey = `${source.owner_id}/transcription/${source.id}/${crypto.randomUUID()}.mp3`;
+                const store = client.storage.from("sources");
+                const uploaded = await store.upload(objectKey, chunk.audio, {
+                  contentType: chunk.mimeType,
+                  upsert: false,
+                });
+                if (uploaded.error) throw new Error("Audio could not be prepared for transcription.");
+                const signed = await store.createSignedUrl(objectKey, 10 * 60);
+                if (signed.error || !signed.data.signedUrl) {
+                  await store.remove([objectKey]);
+                  throw new Error("Audio could not be prepared for transcription.");
+                }
+                return {
+                  url: signed.data.signedUrl,
+                  cleanup: async () => { await store.remove([objectKey]); },
+                };
               },
             }),
           }).parse(

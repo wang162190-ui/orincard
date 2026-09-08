@@ -2,7 +2,7 @@
 
 状态：B05 依赖基线，2026-09-08。适用任务 T040（PDF 文字层与受限 OCR）、T041（PPTX 来源解析）、T042（合法视频与分段转录）。
 
-结论先行：**B05 的来源解析没有新增任何 npm 依赖。** PDF/OCR 与视频走容器内的系统可执行文件，PPTX 走仓库里已有的 `jszip@3.10.1` 加一个手写的受限 XML 读取器，转录直接用 `fetch` 调 OpenAI 的 HTTP 接口而非再装一个 SDK。`pnpm-lock.yaml` 在本批次不变。
+结论先行：**B05 的来源解析没有新增任何 npm 依赖。** PDF/OCR 与视频走容器内的系统可执行文件，PPTX 走仓库里已有的 `jszip@3.10.1` 加一个手写的受限 XML 读取器，转录直接用 `fetch` 调豆包录音文件识别模型 2.0 的 HTTP 接口而非再装一个 SDK。`pnpm-lock.yaml` 在本批次不变。
 
 ## 1. 系统可执行文件（`trigger.config.ts` 的 `aptGet`）
 
@@ -55,6 +55,6 @@ ffmpeg 的许可取决于构建选项而非项目本身：库默认 LGPL-2.1+，
 
 `pdftotext`、`pdfinfo`、`pdftoppm`、`tesseract` 在容器里由 apt 提供，在开发机上不会自动出现。缺失时 `tests/cloud/pdf.test.ts` 必须显式失败并报出缺少的可执行文件名，**不得 skip 后当作通过**——与 tasks.md 对缺少云端凭据的处理规则一致。
 
-`tests/cloud/video.test.ts` 同理，且门槛更高：除了 `ffprobe`、`ffmpeg`，它还点名 `OPENAI_API_KEY` 与 `AI_TRANSCRIBE_MODEL`，缺任一项都在 `beforeAll` 抛错。这条用例用 macOS 的 `say` 合成一句真实语音、经 ffmpeg 封进 mp4，再走真实转录断言识别结果里含 "carousel"——用静音文件顶替就成了「转录从未发生却记为通过」，正是 processing.md 禁止的那种事实。
+`tests/cloud/video.test.ts` 同理，且门槛更高：除了 `ffprobe`、`ffmpeg`，它还点名 `VOLCENGINE_SPEECH_API_KEY` 与 `AI_TRANSCRIBE_MODEL`，缺任一项都在 `beforeAll` 抛错。这条用例用 macOS 的 `say` 合成一句真实语音、经 ffmpeg 封进 mp4，再把临时音频通过短时签名 URL 交给豆包录音文件识别模型 2.0，断言识别结果包含真实句子主体和毫秒级时间定位。临时对象在完成或失败后删除。
 
 macOS 安装：`brew install poppler tesseract tesseract-lang ffmpeg`。当前开发机已具备 `pdftotext 26.04.0`、`tesseract 5.5.2` 与 `ffmpeg/ffprobe 8.1.1`。`qpdf` 本机缺失但仅被容器内的 `src/trigger/probe.ts` 使用，因此 PDF 来源解析刻意用 `pdfinfo` 而非 `qpdf` 判定加密，避免新增一项本机先决条件。

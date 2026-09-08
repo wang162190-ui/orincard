@@ -6,6 +6,7 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Completed
 
+- 完成 B05 T038–T044：六类来源、私有直传与实际文件验证、安全 URL 抓取、PDF/OCR、PPTX、视频解析，以及成本闸门和失败恢复形成真实云端闭环；无字幕视频使用豆包录音文件识别模型 2.0 异步转写。
 - 完成 B04 T027–T037：Topic/Text 来源写入、DeepSeek Responses 结构化生成、注册生成任务与进度 UI、匿名临时生成与反滥用、局部 AI 提案与整套重新生成、PNG/JPG/PDF 云端导出、导出预检与授权下载，构成第一条真实可导出闭环。
 - 修复生成任务领取逻辑：`server_claim_generation_job` 为集合返回函数，supabase-js 返回行数组，`src/trigger/generate.ts` 原按对象读取导致全部任务失败为 `SOURCE_UNAVAILABLE`。
 - 修复导出渲染的资源解析：打包器会改写 `require.resolve` 的字面量说明符与 `import.meta.url`，导致字体与 `slide.css` 在 Next.js 路由和 Trigger 容器中均无法读取；改为按运行时工作目录解析，并把样式表打进 worker 容器。
@@ -24,6 +25,7 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Verified
 
+- B05 最终门禁通过：豆包真实视频转写 34/34、六来源 Playwright E2E 2/2、远程 pgTAP 72/72、规划检查 19/19；Trigger 开发部署 `20260908.7` 已同步加密转写变量。
 - B04 的 5 条云测试在最终部署版本 `20260907.6` 上串行全部通过：`text-source` 10/10、`generation` 7/7、`generation-job` 19/19、`text-generation` 3/3、`walking-skeleton` 1/1。
 - 真实导出产物经字节层面复核：PDF `207581` 字节以 `%PDF-` 开头，ZIP 内 4 个 PNG 分别为 `142931`/`86199`/`84359`/`96507` 字节且首 8 字节均为 PNG 签名；下载字节数与授权接口返回一致，未认证下载被拒绝。产物 SHA-256 见 `docs/acceptance/walking-skeleton.md`。
 - DeepSeek 真实调用接受 `store:false`，该约束按原样保留；不发送 `strict`，结构合规由本地 Zod/domain 校验兜底，观察到的生成全部一次通过，未出现空成功。

@@ -1,4 +1,4 @@
-import { additionalFiles, additionalPackages, aptGet } from "@trigger.dev/build/extensions/core";
+import { additionalFiles, additionalPackages, aptGet, syncEnvVars } from "@trigger.dev/build/extensions/core";
 import { playwright } from "@trigger.dev/build/extensions/playwright";
 import { defineConfig } from "@trigger.dev/sdk";
 
@@ -21,6 +21,11 @@ export default defineConfig({
   },
   build: {
     extensions: [
+      syncEnvVars(() =>
+        ["VOLCENGINE_SPEECH_API_KEY", "AI_TRANSCRIBE_MODEL"].flatMap((name) =>
+          process.env[name] ? [{ name, value: process.env[name], isSecret: true }] : [],
+        ),
+      ),
       playwright({ browsers: ["chromium"], version: "1.57.0" }),
       // render-deck reads the slide stylesheet off disk at run time; the bundle only
       // carries JavaScript, so ship the file itself into the worker container.

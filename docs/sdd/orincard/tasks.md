@@ -296,19 +296,19 @@
   - Check: `pnpm exec vitest run tests/cloud/slides.test.ts`
   - Expect: 页序/文字/图片保留；zip bomb/XXE/外链被拒绝；key给转换说明。
 
-- [ ] T042 `src/server/sources/video.ts`, `src/server/sources/transcribe.ts`, `src/trigger/parse-source.ts`, `tests/cloud/video.test.ts` — 实现合法视频与分段转录 → AC-002
+- [x] T042 `src/server/sources/video.ts`, `src/server/sources/transcribe.ts`, `src/trigger/parse-source.ts`, `tests/cloud/video.test.ts` — 实现合法视频与分段转录 → AC-002
   - Batch: B05
   - Depends: T041
   - Check: `pnpm exec vitest run tests/cloud/video.test.ts`
   - Expect: 真实音轨/字幕/偏移，无权URL给替代入口；转录失败不伪造。
 
-- [ ] T043 `src/features/generation/source-input.tsx`, `src/app/api/v1/sources/route.ts`, `src/app/create/page.tsx`, `src/server/sources/index.ts`, `tests/ui/source-input.test.tsx` — 完成六输入页面和来源API → AC-001, AC-002
+- [x] T043 `src/features/generation/source-input.tsx`, `src/app/api/v1/sources/route.ts`, `src/app/create/page.tsx`, `src/server/sources/index.ts`, `tests/ui/source-input.test.tsx` — 完成六输入页面和来源API → AC-001, AC-002
   - Batch: B05
   - Depends: T042
   - Check: `pnpm exec vitest run tests/ui/source-input.test.tsx`
   - Expect: 六标签、限制、OCR告知、重复提交、页数/语言/指令全部连接真实服务。
 
-- [ ] T044 `tests/e2e/sources.spec.ts`, `tests/cloud/source-failures.test.ts`, `docs/acceptance/sources.md`, `supabase/tests/b05.sql`, `supabase/migrations/20260908110457_b05_parse_budget.sql` — 验收多来源集成与失败恢复 → AC-002, AC-009
+- [x] T044 `tests/e2e/sources.spec.ts`, `tests/cloud/source-failures.test.ts`, `docs/acceptance/sources.md`, `supabase/tests/b05.sql`, `supabase/migrations/20260908110457_b05_parse_budget.sql` — 验收多来源集成与失败恢复 → AC-002, AC-009
   - Batch: B05
   - Depends: T043
   - Check: `pnpm exec supabase test db --linked supabase/tests/b05.sql && pnpm exec playwright test tests/e2e/sources.spec.ts && pnpm exec vitest run tests/cloud/source-failures.test.ts`

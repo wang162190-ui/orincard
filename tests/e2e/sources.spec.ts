@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -84,11 +84,11 @@ async function slideDeck(): Promise<Buffer> {
   return zip.generateAsync({ type: "nodebuffer" });
 }
 
-async function captionedVideo(directory: string): Promise<Buffer> {
-  const subtitle = join(directory, "caption.srt");
-  const output = join(directory, "captioned.mp4");
-  await writeFile(subtitle, "1\n00:00:00,000 --> 00:00:01,500\nOrincard video source acceptance\n");
-  await run("ffmpeg", ["-y", "-f", "lavfi", "-i", "color=c=black:s=320x240:r=1", "-f", "lavfi", "-i", "anullsrc=r=16000:cl=mono", "-i", subtitle, "-t", "2", "-c:v", "mpeg4", "-c:a", "aac", "-c:s", "mov_text", output]);
+async function spokenVideo(directory: string): Promise<Buffer> {
+  const speech = join(directory, "speech.aiff");
+  const output = join(directory, "spoken.mp4");
+  await run("say", ["-o", speech, "Orincard turns long documents into useful summaries"]);
+  await run("ffmpeg", ["-y", "-f", "lavfi", "-i", "color=c=black:s=320x240:r=10:d=10", "-i", speech, "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", "-shortest", output]);
   return readFile(output);
 }
 
@@ -134,7 +134,7 @@ test.describe("T044 real six-source development acceptance", () => {
       const completed = await page.request.post(`/api/v1/assets/${registered.assetId}/complete`, { headers: { origin: appOrigin } });
       expect([200, 202], await completed.text()).toContain(completed.status());
       expect((await waitForRow(admin, "assets", registered.assetId, ["ready", "failed"])).state).toBe("ready");
-      const sourceId = await createSource(page.request, appOrigin, { kind, assetId: registered.assetId, title: name, ...(kind === "video" ? { language: "en" } : {}) });
+      const sourceId = await createSource(page.request, appOrigin, { kind, assetId: registered.assetId, title: name, ...(kind === "video" ? { language: "en-US" } : {}) });
       sourceIds.push(sourceId);
       return waitForRow(admin, "sources", sourceId, ["ready", "failed"]);
     }
@@ -148,7 +148,7 @@ test.describe("T044 real six-source development acceptance", () => {
       sourceIds.push(await createSource(page.request, appOrigin, { kind: "url", url: probeUrl }));
       expect((await fileSource("pdf", "acceptance.pdf", "application/pdf", textPdf())).state).toBe("ready");
       expect((await fileSource("slides", "acceptance.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", await slideDeck())).state).toBe("ready");
-      expect((await fileSource("video", "acceptance.mp4", "video/mp4", await captionedVideo(directory))).state).toBe("ready");
+      expect((await fileSource("video", "acceptance.mp4", "video/mp4", await spokenVideo(directory))).state).toBe("ready");
 
       const stored = await admin.from("sources").select("id,kind,state,segments,metadata").in("id", sourceIds);
       expect(stored.error?.message).toBeUndefined();
