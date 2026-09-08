@@ -31,6 +31,11 @@ export default defineConfig({
       // reads those. Installing them here keeps the OCR model data out of git and out of
       // the bundle, and nothing is fetched from a CDN while a task is running.
       // See docs/licenses/parsers.md for the licence review and the rejected npm route.
+      //
+      // ffmpeg joins them for the video source: ffprobe reports duration and which streams
+      // exist, ffmpeg lifts an embedded subtitle track or cuts the audio into chunks on
+      // exact second boundaries. Debian's build is the plain ffmpeg package, not the
+      // -full/-nonfree variants, which keeps the container on redistributable codecs.
       aptGet({
         packages: [
           "qpdf",
@@ -38,6 +43,7 @@ export default defineConfig({
           "tesseract-ocr",
           "tesseract-ocr-eng",
           "tesseract-ocr-chi-sim",
+          "ffmpeg",
         ],
       }),
       additionalPackages({

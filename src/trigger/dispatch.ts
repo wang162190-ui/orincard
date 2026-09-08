@@ -10,6 +10,9 @@ export const JOB_DISPATCH_TASK_ID = "orincard-job-dispatch";
 // dispatching never pulls the renderer, Playwright or the AI client into a caller.
 export const GENERATION_TASK_ID = "orincard-generate-carousel";
 export const BASIC_EXPORT_TASK_ID = "orincard-basic-export";
+// T042. The source parsers pull poppler, tesseract and ffmpeg wrappers behind them, so the
+// id lives here and the API route that dispatches a parse never imports the task module.
+export const PARSE_SOURCE_TASK_ID = "orincard-parse-source";
 
 function dispatcherFor(taskId: string): TriggerDispatcher {
   return {
