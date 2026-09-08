@@ -329,37 +329,37 @@
   - Check: `pnpm exec vitest run tests/cloud/screenshot.test.ts`
   - Expect: 导航和子资源均防SSRF，用户cookie不传入，无权限页面不绕过。
 
-- [ ] T047 `src/server/assets/ai-image.ts`, `src/trigger/generate-image.ts`, `src/app/api/v1/assets/generate/route.ts`, `tests/cloud/ai-assets.test.ts` — 实现AI图片与Portrait候选素材 → AC-005
+- [x] T047 `src/server/assets/ai-image.ts`, `src/trigger/generate-image.ts`, `src/app/api/v1/assets/generate/route.ts`, `tests/cloud/ai-assets.test.ts` — 实现AI图片与Portrait候选素材 → AC-005
   - Batch: B06
   - Depends: T046
   - Check: `pnpm exec vitest run tests/cloud/ai-assets.test.ts`
   - Expect: 真实调用、授权参考人像、预算、拒绝/接受状态与图片权利记录完整。
 
-- [ ] T048 `src/features/assets/media-panel.tsx`, `src/features/assets/crop.ts`, `tests/ui/media.test.tsx` — 实现素材面板/Emoji/裁切/透明度 → AC-005
+- [x] T048 `src/features/assets/media-panel.tsx`, `src/features/assets/crop.ts`, `tests/ui/media.test.tsx` — 实现素材面板/Emoji/裁切/透明度 → AC-005
   - Batch: B06
   - Depends: T047
   - Check: `pnpm exec vitest run tests/ui/media.test.tsx`
   - Expect: 四页面模式、六素材来源、跨页复用，删一页不删其他素材。
 
-- [ ] T049 `src/app/api/v1/assets/route.ts`, `src/app/api/v1/assets/[id]/accept/route.ts`, `src/app/api/v1/assets/[id]/route.ts`, `src/server/assets/library.ts`, `tests/cloud/asset-lifecycle.test.ts` — 实现素材列表/候选接受/引用保护删除 → AC-005, AC-007
+- [x] T049 `src/app/api/v1/assets/route.ts`, `src/app/api/v1/assets/[id]/accept/route.ts`, `src/app/api/v1/assets/[id]/route.ts`, `src/server/assets/library.ts`, `tests/cloud/asset-lifecycle.test.ts` — 实现素材列表/候选接受/引用保护删除 → AC-005, AC-007
   - Batch: B06
   - Depends: T048
   - Check: `pnpm exec vitest run tests/cloud/asset-lifecycle.test.ts`
   - Expect: ready但未接受的AI图不能导出；活引用删除409；删除资源不影响他人或其他页。
 
-- [ ] T050 `src/server/brands.ts`, `src/features/brands/brand-editor.tsx`, `src/app/brand-kits/page.tsx`, `src/app/api/v1/brand-kits/route.ts`, `tests/cloud/brands.test.ts` — 实现Brand Kit创建复制入口与编辑 → AC-008
+- [x] T050 `src/server/brands.ts`, `src/features/brands/brand-editor.tsx`, `src/app/brand-kits/page.tsx`, `src/app/api/v1/brand-kits/route.ts`, `tests/cloud/brands.test.ts` — 实现Brand Kit创建复制入口与编辑 → AC-008
   - Batch: B06
   - Depends: T049
   - Check: `pnpm exec vitest run tests/cloud/brands.test.ts`
   - Expect: 多kit隔离、创建/重命名与版本冲突正确；应用与复制动作在后续同批接口项接通。
 
-- [ ] T051 `src/app/api/v1/brand-kits/[id]/apply/route.ts`, `src/app/api/v1/brand-kits/[id]/duplicate/route.ts`, `src/server/brands.ts`, `tests/cloud/brand-apply.test.ts` — 实现Brand Kit应用与复制接口 → AC-004, AC-008
+- [x] T051 `src/app/api/v1/brand-kits/[id]/apply/route.ts`, `src/app/api/v1/brand-kits/[id]/duplicate/route.ts`, `src/server/brands.ts`, `tests/cloud/brand-apply.test.ts` — 实现Brand Kit应用与复制接口 → AC-004, AC-008
   - Batch: B06
   - Depends: T050
   - Check: `pnpm exec vitest run tests/cloud/brand-apply.test.ts`
   - Expect: 明确同意后更新快照，复制新ID且隔离，保留单页覆盖和已有素材引用。
 
-- [ ] T052 `src/features/brands/delete-dialog.tsx`, `src/app/api/v1/brand-kits/[id]/route.ts`, `tests/cloud/brand-delete.test.ts` — 实现品牌删除影响确认 → AC-008
+- [x] T052 `src/features/brands/delete-dialog.tsx`, `src/app/api/v1/brand-kits/[id]/route.ts`, `tests/cloud/brand-delete.test.ts` — 实现品牌删除影响确认 → AC-008
   - Batch: B06
   - Depends: T051
   - Check: `pnpm exec vitest run tests/cloud/brand-delete.test.ts`
