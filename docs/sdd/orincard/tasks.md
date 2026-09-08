@@ -323,7 +323,7 @@
   - Check: `pnpm exec vitest run tests/cloud/gallery.test.ts`
   - Expect: 作者/来源/配额保留，选择后才导入，任意外链不能冒充图库。
 
-- [ ] T046 `src/trigger/screenshot.ts`, `src/app/api/v1/assets/screenshot/route.ts`, `tests/cloud/screenshot.test.ts` — 实现隔离的URL截图 → AC-005
+- [x] T046 `src/trigger/screenshot.ts`, `src/app/api/v1/assets/screenshot/route.ts`, `tests/cloud/screenshot.test.ts` — 实现隔离的URL截图 → AC-005
   - Batch: B06
   - Depends: T045
   - Check: `pnpm exec vitest run tests/cloud/screenshot.test.ts`

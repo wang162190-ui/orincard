@@ -259,6 +259,22 @@ function checkHop(target: string, base?: string): HopCheck {
   return { ok: true, hop: { url, protocol: url.protocol, port, hostname, literal: null } };
 }
 
+/** Validates a browser-bound URL before Chromium is allowed to request it. */
+export async function isPublicWebTarget(
+  target: string,
+  resolve: SafeFetchResolver,
+): Promise<boolean> {
+  const checked = checkHop(target);
+  if (!checked.ok) return false;
+  if (checked.hop.literal) return true;
+  try {
+    const records = await resolve(checked.hop.hostname);
+    return records.length > 0 && records.every((record) => !isBlockedIpAddress(record.address));
+  } catch {
+    return false;
+  }
+}
+
 function headerValue(
   headers: Readonly<Record<string, string>>,
   name: string,
