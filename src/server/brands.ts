@@ -27,10 +27,11 @@ export type BrandKit = Readonly<{
 
 export class BrandServiceError extends Error {
   constructor(
-    readonly code: "INVALID_REQUEST" | "AUTH_REQUIRED" | "NOT_FOUND" | "VERSION_CONFLICT" | "ASSET_NOT_AVAILABLE" | "SERVICE_UNAVAILABLE",
+    readonly code: "INVALID_REQUEST" | "AUTH_REQUIRED" | "NOT_FOUND" | "VERSION_CONFLICT" | "IMPACT_CHANGED" | "ASSET_NOT_AVAILABLE" | "SERVICE_UNAVAILABLE",
     message: string,
     readonly status: number,
     readonly retryable = false,
+    readonly details?: Readonly<{ affectedProjects: readonly BrandProjectImpact[] }>,
   ) {
     super(message);
     this.name = "BrandServiceError";
@@ -39,11 +40,15 @@ export class BrandServiceError extends Error {
 
 type BrandRow = Readonly<{ id: string; name: string; settings: unknown; revision: number; updated_at: string }>;
 
+export type BrandProjectImpact = Readonly<{ id: string; title: string }>;
+
 export interface BrandStore {
   list(ownerId: string, limit: number): Promise<readonly BrandRow[]>;
   get(ownerId: string, brandKitId: string): Promise<BrandRow | null>;
   create(input: Readonly<{ ownerId: string; name: string; settings: BrandSettings }>): Promise<BrandRow>;
   update(input: Readonly<{ ownerId: string; brandKitId: string; expectedRevision: number; name: string; settings: BrandSettings }>): Promise<BrandRow | null>;
+  listAffectedProjects(ownerId: string, brandKitId: string): Promise<readonly BrandProjectImpact[]>;
+  delete(input: Readonly<{ ownerId: string; brandKitId: string; expectedRevision: number }>): Promise<boolean>;
   availableAssetIds(ownerId: string, assetIds: readonly string[]): Promise<readonly string[]>;
 }
 
@@ -123,6 +128,21 @@ function name(value: unknown): string {
   return value.trim();
 }
 
+function expectedProjectIds(value: unknown): readonly string[] {
+  if (!Array.isArray(value) || value.some((id) => typeof id !== "string" || !UUID_PATTERN.test(id))) {
+    throw new BrandServiceError("INVALID_REQUEST", "expectedProjectIds must be an array of project IDs.", 422);
+  }
+  const ids = [...value].sort();
+  if (new Set(ids).size !== ids.length) {
+    throw new BrandServiceError("INVALID_REQUEST", "expectedProjectIds cannot contain duplicates.", 422);
+  }
+  return ids;
+}
+
+function sameIds(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((id, index) => id === right[index]);
+}
+
 function brandFromRow(row: BrandRow): BrandKit {
   return { id: row.id, name: row.name, settings: parseBrandSettings(row.settings), revision: Number(row.revision), updatedAt: row.updated_at };
 }
@@ -158,6 +178,17 @@ export function createBrandService(store: BrandStore, projectService?: Pick<Proj
     }
   }
 
+  async function deleteImpact(ownerId: string, brandKitId: string): Promise<Readonly<{ kit: BrandKit; affectedProjects: readonly BrandProjectImpact[] }>> {
+    const kit = await ownedKit(ownerId, brandKitId);
+    try {
+      const affectedProjects = await store.listAffectedProjects(ownerId, kit.id);
+      return { kit, affectedProjects: [...affectedProjects].sort((left, right) => left.id.localeCompare(right.id)) };
+    } catch (error) {
+      if (error instanceof BrandServiceError) throw error;
+      throw new BrandServiceError("SERVICE_UNAVAILABLE", "Brand Kit impact is temporarily unavailable.", 503, true);
+    }
+  }
+
   return {
     async list(ownerId: string, limit?: unknown): Promise<readonly BrandKit[]> {
       const requested = Number(limit ?? 20);
@@ -190,6 +221,26 @@ export function createBrandService(store: BrandStore, projectService?: Pick<Proj
       try {
         return brandFromRow(await store.create({ ownerId, name: name(input.name), settings: original.settings }));
       } catch (error) { if (error instanceof BrandServiceError) throw error; throw new BrandServiceError("SERVICE_UNAVAILABLE", "Brand Kit could not be copied.", 503, true); }
+    },
+    deleteImpact,
+    async delete(ownerId: string, brandKitId: string, input: Readonly<{ expectedRevision: unknown; expectedProjectIds: unknown }>): Promise<void> {
+      if (!Number.isSafeInteger(input.expectedRevision) || Number(input.expectedRevision) < 1) throw new BrandServiceError("INVALID_REQUEST", "expectedRevision must be a positive integer.", 422);
+      const expectedIds = expectedProjectIds(input.expectedProjectIds);
+      const impact = await deleteImpact(ownerId, brandKitId);
+      if (impact.kit.revision !== Number(input.expectedRevision)) {
+        throw new BrandServiceError("VERSION_CONFLICT", "This Brand Kit changed in another tab. Reload it before deleting.", 409);
+      }
+      const actualIds = impact.affectedProjects.map((project) => project.id);
+      if (!sameIds(expectedIds, actualIds)) {
+        throw new BrandServiceError("IMPACT_CHANGED", "The projects affected by this deletion changed. Review them again.", 409, false, { affectedProjects: impact.affectedProjects });
+      }
+      try {
+        const deleted = await store.delete({ ownerId, brandKitId: impact.kit.id, expectedRevision: impact.kit.revision });
+        if (!deleted) throw new BrandServiceError("VERSION_CONFLICT", "This Brand Kit changed in another tab. Reload it before deleting.", 409);
+      } catch (error) {
+        if (error instanceof BrandServiceError) throw error;
+        throw new BrandServiceError("SERVICE_UNAVAILABLE", "Brand Kit could not be deleted.", 503, true);
+      }
     },
     async apply(ownerId: string, brandKitId: string, input: Readonly<{ projectId: string; expectedProjectRevision: unknown; previewConfirmed: unknown; idempotencyKey: string }>) {
       if (input.previewConfirmed !== true) throw new BrandServiceError("INVALID_REQUEST", "Review the Brand Kit preview before applying it.", 400);
@@ -242,6 +293,16 @@ export function createSupabaseBrandStore(client: SupabaseClient): BrandStore {
       const { data, error } = await client.from("brand_kits").update({ name: input.name, settings: input.settings, revision: input.expectedRevision + 1, updated_at: new Date().toISOString() }).eq("owner_id", input.ownerId).eq("id", input.brandKitId).eq("state", "active").eq("revision", input.expectedRevision).select("id,name,settings,revision,updated_at").maybeSingle();
       if (error) throw error;
       return data as BrandRow | null;
+    },
+    async listAffectedProjects(ownerId, brandKitId) {
+      const { data, error } = await client.from("projects").select("id,title").eq("owner_id", ownerId).eq("brand_kit_id", brandKitId).in("state", ["draft", "archived"]).order("id", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as BrandProjectImpact[];
+    },
+    async delete(input) {
+      const { data, error } = await client.from("brand_kits").update({ state: "deleted", updated_at: new Date().toISOString() }).eq("owner_id", input.ownerId).eq("id", input.brandKitId).eq("state", "active").eq("revision", input.expectedRevision).select("id").maybeSingle();
+      if (error) throw error;
+      return data !== null;
     },
     async availableAssetIds(ownerId, assetIds) {
       const { data, error } = await client.from("assets").select("id,kind,accepted_at").eq("owner_id", ownerId).in("id", assetIds).eq("state", "ready");

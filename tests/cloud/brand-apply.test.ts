@@ -26,6 +26,8 @@ function brandStore(overrides: Partial<BrandStore> = {}): BrandStore {
     get: vi.fn().mockResolvedValue(KIT),
     create: vi.fn().mockResolvedValue({ ...KIT, id: COPY_ID, name: "Personal copy", revision: 1 }),
     update: vi.fn(),
+    listAffectedProjects: vi.fn().mockResolvedValue([]),
+    delete: vi.fn().mockResolvedValue(true),
     availableAssetIds: vi.fn().mockResolvedValue([]),
     ...overrides,
   };

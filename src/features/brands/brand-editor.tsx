@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Button, Panel, PanelBody, PanelHeader } from "@/components/ui";
-import { DEFAULT_BRAND_SETTINGS, type BrandKit, type BrandSettings } from "@/server/brands";
+import { DEFAULT_BRAND_SETTINGS, type BrandKit, type BrandProjectImpact, type BrandSettings } from "@/server/brands";
+import { DeleteBrandDialog } from "./delete-dialog";
 
 type KitResponse = Readonly<{ data?: { kits?: readonly BrandKit[] }; error?: { message?: string } }>;
+type ImpactResponse = Readonly<{ data?: { kit?: BrandKit; affectedProjects?: readonly BrandProjectImpact[] }; error?: { message?: string } }>;
 
 export function BrandEditor({ fetcher = fetch }: { readonly fetcher?: typeof fetch }) {
   const [kits, setKits] = useState<readonly BrandKit[]>([]);
@@ -12,6 +14,7 @@ export function BrandEditor({ fetcher = fetch }: { readonly fetcher?: typeof fet
   const [name, setName] = useState("");
   const [settings, setSettings] = useState<BrandSettings>(DEFAULT_BRAND_SETTINGS);
   const [status, setStatus] = useState("Loading Brand Kits…");
+  const [deleteImpact, setDeleteImpact] = useState<Readonly<{ kit: BrandKit; affectedProjects: readonly BrandProjectImpact[] }> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -34,6 +37,17 @@ export function BrandEditor({ fetcher = fetch }: { readonly fetcher?: typeof fet
     const kit = body.data.kit as BrandKit;
     setKits((current) => [kit, ...current]); setSelected(kit); setName(kit.name); setSettings(kit.settings); setStatus("Brand Kit created.");
   }
+  async function startDelete() {
+    if (!selected) return;
+    setStatus("Checking deletion impact…");
+    try {
+      const response = await fetcher(`/api/v1/brand-kits/${selected.id}`, { cache: "no-store" });
+      const body = await response.json() as ImpactResponse;
+      if (!response.ok || !body.data?.kit || !body.data.affectedProjects) throw new Error(body.error?.message ?? "Deletion impact is unavailable.");
+      setDeleteImpact({ kit: body.data.kit, affectedProjects: body.data.affectedProjects });
+      setStatus("Review the deletion impact.");
+    } catch (error) { setStatus(error instanceof Error ? error.message : "Deletion impact is unavailable."); }
+  }
   function update<K extends keyof BrandSettings>(key: K, value: BrandSettings[K]) { setSettings((current) => ({ ...current, [key]: value })); }
 
   return <div className="stack" style={{ gap: 20 }}>
@@ -49,9 +63,13 @@ export function BrandEditor({ fetcher = fetch }: { readonly fetcher?: typeof fet
         <label>Font pair<select value={settings.fontPairId} onChange={(event) => update("fontPairId", event.target.value)}><option value="serif-sans">Editorial serif + sans</option><option value="sans-serif">Grotesk sans + serif</option><option value="mono-sans">Monospace + sans</option></select></label>
         <label><input type="checkbox" checked={settings.counterDefaults.visible} onChange={(event) => update("counterDefaults", { ...settings.counterDefaults, visible: event.target.checked })} /> Show page numbers by default</label>
         <label>Page number format<select value={settings.counterDefaults.style} onChange={(event) => update("counterDefaults", { ...settings.counterDefaults, style: event.target.value as BrandSettings["counterDefaults"]["style"] })}><option value="fraction">01 / 06</option><option value="number">1</option><option value="none">Hidden</option></select></label>
-        {selected ? <p className="meta">Changes remain in this editor until the revision-aware save route is available.</p> : <Button onClick={create}>Create Brand Kit</Button>}
+        {selected ? <><p className="meta">Changes remain in this editor until the revision-aware save route is available.</p><Button variant="danger" onClick={() => void startDelete()}>Delete Brand Kit</Button></> : <Button onClick={create}>Create Brand Kit</Button>}
       </div></PanelBody></Panel>
     </div>
     <p role="status">{status}</p>
+    {deleteImpact ? <DeleteBrandDialog kit={deleteImpact.kit} affectedProjects={deleteImpact.affectedProjects} fetcher={fetcher} onClose={() => setDeleteImpact(null)} onDeleted={() => {
+      setKits((current) => current.filter((kit) => kit.id !== deleteImpact.kit.id));
+      setSelected(null); setName(""); setSettings(DEFAULT_BRAND_SETTINGS); setDeleteImpact(null); setStatus("Brand Kit deleted. Existing project snapshots and assets remain available.");
+    }} /> : null}
   </div>;
 }
