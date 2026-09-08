@@ -45,7 +45,9 @@ function json(status: number, body: unknown): Response {
  * Routes by path so a test only has to describe the endpoints it cares about; anything
  * unexpected fails loudly rather than resolving into a shape the form silently accepts.
  */
-function stubFetch(routes: Record<string, (body: Record<string, unknown> | null) => Response>) {
+function stubFetch(
+  routes: Record<string, (body: Record<string, unknown> | null) => Response | Promise<Response>>,
+) {
   const calls: Recorded[] = [];
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
@@ -206,6 +208,40 @@ describe("SourceInput", () => {
       "/api/v1/sources",
       "/api/v1/guest/generate",
     ]);
+  });
+
+  it("does not send a second source while the first submission is still running", async () => {
+    const user = userEvent.setup();
+    const { transport: injected, opened } = transport();
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const calls = stubFetch({
+      // Held open so the test sees the form mid-flight, which is exactly when an
+      // impatient second click happens.
+      "/api/v1/sources": async () => {
+        await held;
+        return json(201, {
+          data: { sourceId: "src-5", kind: "topic", state: "ready", expiresAt: null },
+        });
+      },
+      "/api/v1/generation": () => json(202, { data: { jobId: "job-1" } }),
+      "/api/v1/jobs/": () => json(200, jobBody("succeeded")),
+    });
+    renderInput(injected);
+
+    await user.type(screen.getByLabelText("Topic"), "Writing shorter emails");
+    const submit = screen.getByRole("button", { name: "Generate carousel" });
+    await user.click(submit);
+    // A second click on an in-flight submission would otherwise buy a second source, a
+    // second job and a second charge for one intent.
+    expect(submit.hasAttribute("disabled")).toBe(true);
+    await user.click(submit);
+    release();
+
+    await waitFor(() => expect(opened).toHaveLength(1));
+    expect(calls.filter((call) => call.url === "/api/v1/sources")).toHaveLength(1);
   });
 
   it("asks a signed-out reader to sign in rather than guessing at a link", async () => {
