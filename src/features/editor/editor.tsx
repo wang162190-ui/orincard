@@ -53,6 +53,7 @@ import {
 } from "./local-drafts";
 import { SlidePanel } from "./slide-panel";
 import { ThemePanel } from "./theme-panel";
+import { EditorMedia } from "../assets/editor-media";
 
 const EMPTY_ASSETS: Readonly<Record<string, SlideRenderAsset | undefined>> = {};
 const MODES: ReadonlyArray<{ id: Slide["mode"]; label: string }> = [
@@ -252,6 +253,7 @@ export function Editor({
     readonly store: EditorDraftStore;
   } | null>(null);
   const [draftStatus, setDraftStatus] = useState<DraftStatus>("loading");
+  const [libraryAssets, setLibraryAssets] = useState<Readonly<Record<string, SlideRenderAsset>>>({});
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -442,6 +444,7 @@ export function Editor({
   }
 
   const currentSlot = selectedSlide.assetSlots[0];
+  const renderAssets = { ...assets, ...libraryAssets };
 
   return (
     <div
@@ -647,7 +650,7 @@ export function Editor({
                 platform: state.document.platform,
                 theme: state.document.theme,
                 brandSnapshot: state.document.brandSnapshot,
-                assets,
+                assets: renderAssets,
                 slideNumber: selectedIndex + 1,
                 slideCount,
               }}
@@ -763,6 +766,17 @@ export function Editor({
               >
                 Delete slide
               </Button>
+            </PanelBody>
+          </Panel>
+
+          <Panel aria-label="Media library">
+            <PanelBody>
+              <EditorMedia
+                document={state.document}
+                onDocumentChange={(document) => setState((current) => replaceDocument(current, document))}
+                onRenderAssetsChange={(next) => setLibraryAssets((current) => ({ ...current, ...next }))}
+                selectedSlideId={selectedSlideId}
+              />
             </PanelBody>
           </Panel>
 

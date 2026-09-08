@@ -20,7 +20,20 @@ export async function GET(request: Request) {
   try {
     const query = new URL(request.url).searchParams;
     const service = createAssetLibraryService({ store: createSupabaseAssetLibraryStore(createAdminSupabaseClient()) });
-    const result = await service.list(await ownerId(), { kind: query.get("kind") ?? undefined, cursor: query.get("cursor") ?? undefined, limit: query.get("limit") ?? undefined });
-    return Response.json({ data: result, requestId }, { headers: { "Cache-Control": "private, no-store" } });
+    const owner = await ownerId();
+    const result = await service.list(owner, { kind: query.get("kind") ?? undefined, cursor: query.get("cursor") ?? undefined, limit: query.get("limit") ?? undefined });
+    // Object keys stay private. The editor needs a short-lived thumbnail to render an
+    // owned library item, so mint it only after the owner-scoped library query succeeds.
+    const admin = createAdminSupabaseClient();
+    const ids = result.items.map((item) => item.id);
+    const { data: objects, error } = ids.length
+      ? await admin.from("assets").select("id,bucket,object_key").eq("owner_id", owner).in("id", ids)
+      : { data: [], error: null };
+    if (error) throw error;
+    const previews = new Map(await Promise.all((objects ?? []).map(async (item) => {
+      const { data } = await admin.storage.from(item.bucket).createSignedUrl(item.object_key, 300);
+      return [item.id, data?.signedUrl ?? null] as const;
+    })));
+    return Response.json({ data: { ...result, items: result.items.map((item) => ({ ...item, previewUrl: previews.get(item.id) ?? null })) }, requestId }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) { return failure(error, requestId); }
 }
