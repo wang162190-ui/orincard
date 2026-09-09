@@ -1,13 +1,15 @@
 import { idempotencyKeys, task, tasks } from "@trigger.dev/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { z } from "zod";
 import { createHash } from "node:crypto";
 import { inspectDeckPreflight, renderDeck, EXPORT_FORMATS, type BasicExportFormat } from "../render/render-deck";
 import { renderPptx } from "../render/pptx";
+import { parseVideoExportOptions, renderMp4 } from "../render/video";
+import { z } from "zod";
 import type { SlideRenderAsset } from "../render/slide";
 import {
   packageBasicExport,
   packagePptxExport,
+  packageMp4Export,
 } from "../server/export-package";
 import type { JobDispatchPayload } from "../server/jobs";
 import type { TriggerDispatcher } from "../server/jobs";
@@ -114,6 +116,36 @@ async function loadRenderAssets(
   return output;
 }
 
+const AUDIO_EXTENSIONS: Record<string, string> = {
+  "audio/mpeg": "mp3",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
+  "audio/mp4": "m4a",
+  "audio/aac": "aac",
+  "audio/ogg": "ogg",
+};
+
+async function loadAuthorizedAudio(client: SupabaseClient, ownerId: string, assetId: string) {
+  const { data, error } = await client
+    .from("assets")
+    .select("id,kind,bucket,object_key,mime,state,rights")
+    .eq("id", assetId)
+    .eq("owner_id", ownerId)
+    .eq("kind", "audio")
+    .eq("state", "ready")
+    .maybeSingle();
+  const rights = data?.rights;
+  const confirmed = rights && typeof rights === "object" && !Array.isArray(rights) && (
+    (rights as Record<string, unknown>).exportAuthorized === true ||
+    typeof (rights as Record<string, unknown>).licenseConfirmedAt === "string"
+  );
+  const extension = data ? AUDIO_EXTENSIONS[data.mime] : undefined;
+  if (error || !data || !confirmed || !extension) throw new Error("AUDIO_NOT_EXPORTABLE");
+  const { data: blob, error: downloadError } = await client.storage.from(data.bucket).download(data.object_key);
+  if (downloadError || !blob) throw new Error("AUDIO_NOT_EXPORTABLE");
+  return { bytes: Buffer.from(await blob.arrayBuffer()), extension };
+}
+
 export async function executePersistentExportJob(
   jobId: string,
   client: SupabaseClient = createAdminSupabaseClient(),
@@ -143,7 +175,7 @@ export async function executePersistentExportJob(
 
   let uploadedKey: string | undefined;
   try {
-    const [{ data: version, error: versionError }, { data: project, error: projectError }] = await Promise.all([
+    const [{ data: version, error: versionError }, { data: project, error: projectError }, { data: exportRow, error: exportError }] = await Promise.all([
       client
         .from("project_versions")
         .select("id,project_id,owner_id,revision,document")
@@ -158,8 +190,15 @@ export async function executePersistentExportJob(
         .eq("owner_id", job.owner_id)
         .in("state", ["draft", "archived"])
         .maybeSingle(),
+      client
+        .from("exports")
+        .select("options")
+        .eq("id", inputRef.exportId)
+        .eq("job_id", job.id)
+        .eq("owner_id", job.owner_id)
+        .maybeSingle(),
     ]);
-    if (versionError || projectError || !version || !project) {
+    if (versionError || projectError || exportError || !version || !project || !exportRow) {
       throw new Error("PROJECT_VERSION_UNAVAILABLE");
     }
     const document = version.document as {
@@ -175,9 +214,16 @@ export async function executePersistentExportJob(
           rendererVersion: inputRef.rendererVersion,
         })
       : await (async () => {
-          const rendered = await renderDeck({ document: version.document, assets, formats: [inputRef.format as BasicExportFormat] });
+          const renderFormat: BasicExportFormat = inputRef.format === "mp4" ? "png_zip" : inputRef.format;
+          const rendered = await renderDeck({ document: version.document, assets, formats: [renderFormat] });
           const output = rendered.outputs[0];
           if (!output || rendered.failures.length > 0) throw new Error("RENDER_FAILED");
+          if (inputRef.format === "mp4") {
+            const options = parseVideoExportOptions(exportRow.options);
+            const audio = options.audioAssetId ? await loadAuthorizedAudio(client, job.owner_id, options.audioAssetId) : undefined;
+            const video = await renderMp4({ pages: output.pages, width: output.width, height: output.height, options, audio });
+            return packageMp4Export({ ...video, slideIds: output.slideIds, documentHash: output.documentHash, rendererVersion: inputRef.rendererVersion });
+          }
           return packageBasicExport({ ...output, rendererVersion: inputRef.rendererVersion });
         })();
     uploadedKey = `${job.owner_id}/${job.id}/${version.id}/${packaged.filename}`;

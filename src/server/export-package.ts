@@ -23,6 +23,8 @@ export type ExportManifest = {
     readonly bytes: number;
     readonly sha256: string;
   }[];
+  readonly durationSeconds?: number;
+  readonly hasAudio?: boolean;
 };
 
 export type PackagedBasicExport = {
@@ -37,6 +39,35 @@ export type PackagedPptxExport = PackagedBasicExport;
 
 function sha256(bytes: Buffer): string {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+export async function packageMp4Export(input: {
+  readonly bytes: Buffer;
+  readonly width: number;
+  readonly height: number;
+  readonly slideIds: readonly string[];
+  readonly documentHash: string;
+  readonly rendererVersion: string;
+  readonly durationSeconds: number;
+  readonly hasAudio: boolean;
+}): Promise<PackagedBasicExport> {
+  if (input.bytes.byteLength < 1 || !Number.isFinite(input.durationSeconds) || input.durationSeconds <= 0) {
+    throw new Error("Verified MP4 bytes and duration are required.");
+  }
+  const file = { name: "orincard.mp4", bytes: input.bytes.byteLength, sha256: sha256(input.bytes) };
+  const manifest: ExportManifest = {
+    schemaVersion: 1,
+    format: "mp4",
+    width: input.width,
+    height: input.height,
+    pageCount: input.slideIds.length,
+    documentHash: input.documentHash,
+    rendererVersion: input.rendererVersion,
+    files: [file],
+    durationSeconds: input.durationSeconds,
+    hasAudio: input.hasAudio,
+  };
+  return { bytes: input.bytes, filename: file.name, mime: "video/mp4", manifest, sha256: file.sha256 };
 }
 
 export async function packageBasicExport(input: {

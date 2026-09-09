@@ -18,7 +18,7 @@ import fontManifestJson from "./font-manifest.json" with { type: "json" };
 
 export const BASIC_EXPORT_FORMATS = ["png_zip", "jpg_zip", "pdf"] as const;
 export type BasicExportFormat = (typeof BASIC_EXPORT_FORMATS)[number];
-export const EXPORT_FORMATS = [...BASIC_EXPORT_FORMATS, "pptx"] as const;
+export const EXPORT_FORMATS = [...BASIC_EXPORT_FORMATS, "pptx", "mp4"] as const;
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
 export type RenderedPage = {
