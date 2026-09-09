@@ -244,6 +244,26 @@ describe("T039 DNS rebinding", () => {
     expect(seen[0]?.hostname).toBe("rebind.example.com");
     expect(seen[0]?.port).toBe(443);
   });
+
+  it("prefers a validated IPv4 answer when a proxy cannot tunnel IPv6 literals", async () => {
+    const connect = vi.fn(async () => respond("<p>public page</p>"));
+    const result = await safeFetch("https://dual-stack.example.com/", {
+      resolve: resolverFor({
+        "dual-stack.example.com": [
+          address("2606:4700::6812:18e8", 6),
+          address("104.18.24.232", 4),
+        ],
+      }),
+      connect,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(connect).toHaveBeenCalledWith(expect.objectContaining({
+      address: "104.18.24.232",
+      family: 4,
+      hostname: "dual-stack.example.com",
+    }));
+  });
 });
 
 describe("T039 redirects", () => {

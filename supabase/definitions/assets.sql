@@ -194,6 +194,26 @@ create index if not exists project_asset_refs_asset_id_idx on public.project_ass
 create index if not exists brand_asset_refs_asset_id_idx on public.brand_asset_refs (asset_id);
 create index if not exists projects_brand_kit_id_idx on public.projects (brand_kit_id) where brand_kit_id is not null;
 
+create or replace function private.sync_project_brand_kit_id()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.brand_kit_id := nullif(new.document #>> '{brandSnapshot,kitId}', '')::uuid;
+  return new;
+end;
+$$;
+
+comment on function private.sync_project_brand_kit_id() is '从 CarouselDocument 品牌快照同步项目品牌引用，供影响检查和引用约束使用';
+
+drop trigger if exists projects_sync_brand_kit_id on public.projects;
+create trigger projects_sync_brand_kit_id
+before insert or update of document on public.projects
+for each row execute function private.sync_project_brand_kit_id();
+
+comment on trigger projects_sync_brand_kit_id on public.projects is '项目文档写入时同步 brand_kit_id';
+
 create or replace function private.enforce_owned_resource_links()
 returns trigger
 language plpgsql

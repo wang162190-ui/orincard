@@ -1,5 +1,6 @@
+import { setDefaultResultOrder } from "node:dns";
 import { task } from "@trigger.dev/sdk";
-import { createApiMartImageProvider, generatedMetadata, type AiImageKind } from "../server/assets/ai-image";
+import { AiAssetError, createApiMartImageProvider, generatedMetadata, type AiImageKind } from "../server/assets/ai-image";
 import { createAdminSupabaseClient } from "../server/supabase";
 
 export const GENERATE_IMAGE_TASK_ID = "orincard-generate-image";
@@ -12,6 +13,7 @@ export function validateImageGenerationPayload(payload: unknown): { readonly ass
 }
 
 export async function executeImageGeneration(assetId: string, provider = createApiMartImageProvider(process.env.APIMART_API_KEY?.trim() ?? "")) {
+  setDefaultResultOrder("ipv4first");
   const client = createAdminSupabaseClient();
   const { data: asset } = await client.from("assets").select("id,owner_id,kind,rights,state").eq("id", assetId).in("kind", ["ai_image", "portrait"]).eq("state", "pending_upload").maybeSingle();
   if (!asset) return { assetId, state: "skipped" as const };
@@ -31,7 +33,9 @@ export async function executeImageGeneration(assetId: string, provider = createA
       reference = new Uint8Array(await data.arrayBuffer());
       referenceMime = source.mime;
     }
+    console.info("[image-generation] provider request started", { assetId: asset.id, provider: "apimart" });
     const image = await provider.generate({ kind: asset.kind as AiImageKind, prompt, reference, referenceMime });
+    console.info("[image-generation] provider request completed", { assetId: asset.id, provider: "apimart", providerOperationId: image.providerOperationId });
     const metadata = generatedMetadata(image.bytes);
     const objectKey = `${asset.owner_id}/${asset.id}/generated.png`;
     const { error: uploadError } = await client.storage.from("assets").upload(objectKey, image.bytes, { contentType: image.mime, upsert: false });
@@ -39,7 +43,10 @@ export async function executeImageGeneration(assetId: string, provider = createA
     const { error: updateError } = await client.from("assets").update({ object_key: objectKey, mime: image.mime, ...metadata, state: "ready", error_code: null }).eq("id", asset.id).eq("owner_id", asset.owner_id).eq("state", "pending_upload");
     if (updateError) { await client.storage.from("assets").remove([objectKey]); return fail("ASSET_UPLOAD_FAILED"); }
     return { assetId, state: "ready" as const };
-  } catch { return fail("PROVIDER_FAILED"); }
+  } catch (error) {
+    console.error("[image-generation] provider request failed", { assetId: asset.id, error: error instanceof Error ? error.name : "UnknownError" });
+    return fail(error instanceof AiAssetError && error.internalCode ? error.internalCode : "PROVIDER_FAILED");
+  }
 }
 
-export const generateImageTask = task({ id: GENERATE_IMAGE_TASK_ID, maxDuration: 120, run: async (payload: unknown) => executeImageGeneration(validateImageGenerationPayload(payload).assetId) });
+export const generateImageTask = task({ id: GENERATE_IMAGE_TASK_ID, maxDuration: 300, run: async (payload: unknown) => executeImageGeneration(validateImageGenerationPayload(payload).assetId) });

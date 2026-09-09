@@ -17,6 +17,7 @@
 import { lookup } from "node:dns/promises";
 import { request as httpRequest, type IncomingMessage } from "node:http";
 import { request as httpsRequest } from "node:https";
+import { ProxyAgent, request as proxyRequest } from "undici";
 
 export interface ResolvedAddress {
   readonly address: string;
@@ -362,7 +363,10 @@ export async function safeFetch(
         if (records.some((record) => isBlockedIpAddress(record.address))) {
           return { ok: false, reason: "blocked" };
         }
-        pinned = records[0]!;
+        // Prefer IPv4 when both families are available. Some HTTP CONNECT proxies do
+        // not tunnel IPv6 literals, while every answer has already passed the same
+        // public-address check above.
+        pinned = records.find((record) => record.family === 4) ?? records[0]!;
       }
 
       let response: SafeFetchConnectionResponse;
@@ -447,7 +451,54 @@ export function createNodeDnsResolver(): SafeFetchResolver {
  * Host header and certificate validation, so no part of the stack resolves the name a
  * second time. Redirects are never followed here; `safeFetch` owns that decision.
  */
-export function createNodeHttpConnector(): SafeFetchConnector {
+export function createNodeHttpConnector(
+  proxyUrl = process.env.HTTPS_PROXY?.trim()
+    || process.env.https_proxy?.trim()
+    || process.env.HTTP_PROXY?.trim()
+    || process.env.http_proxy?.trim(),
+): SafeFetchConnector {
+  if (proxyUrl) {
+    return async (request) => {
+      const pinnedUrl = new URL(request.url);
+      pinnedUrl.hostname = request.family === 6 ? `[${request.address}]` : request.address;
+      const dispatcher = new ProxyAgent({
+        uri: proxyUrl,
+        requestTls: {
+          rejectUnauthorized: true,
+          servername: request.hostname,
+        },
+      });
+      try {
+        const response = await proxyRequest(pinnedUrl, {
+          dispatcher,
+          method: "GET",
+          signal: request.signal,
+          headers: {
+            host: request.hostname,
+            accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.1",
+            "accept-encoding": "identity",
+            "user-agent": "OrincardBot/1.0 (+https://orincard.com/bot)",
+          },
+        });
+        const headers: Record<string, string> = {};
+        for (const [name, value] of Object.entries(response.headers)) {
+          if (value === undefined) continue;
+          headers[name] = Array.isArray(value) ? value.join(", ") : String(value);
+        }
+        const body = (async function* () {
+          try {
+            for await (const chunk of response.body) yield new Uint8Array(chunk);
+          } finally {
+            await dispatcher.close();
+          }
+        })();
+        return { status: response.statusCode, headers, body };
+      } catch (error) {
+        await dispatcher.close().catch(() => undefined);
+        throw error;
+      }
+    };
+  }
   return (request) =>
     new Promise<SafeFetchConnectionResponse>((resolve, reject) => {
       const url = new URL(request.url);

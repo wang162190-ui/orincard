@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { Agent, ProxyAgent, fetch as undiciFetch } from "undici";
 
 export const AI_IMAGE_KINDS = ["ai_image", "portrait"] as const;
 export type AiImageKind = (typeof AI_IMAGE_KINDS)[number];
@@ -10,6 +11,7 @@ export class AiAssetError extends Error {
     message: string,
     readonly status: number,
     readonly retryable = false,
+    readonly internalCode: string | null = null,
   ) {
     super(message);
     this.name = "AiAssetError";
@@ -81,40 +83,67 @@ export function createAiCandidateService(input: { readonly store: AiCandidateSto
 
 type ApiMartTask = Readonly<{ status: string; cost?: number; result?: { images?: Array<{ url?: string[] }> } }>;
 
-function providerFailure(message = "Image generation is temporarily unavailable."): AiAssetError {
-  return new AiAssetError("PROVIDER_FAILED", message, 503, true);
+const apiMartProxy = process.env.HTTPS_PROXY?.trim() || process.env.https_proxy?.trim();
+const apiMartImageHosts = new Set(["upload.apimart.ai", "getapib.org"]);
+const apiMartDispatcher = apiMartProxy
+  ? new ProxyAgent(apiMartProxy)
+  : new Agent({ connect: { family: 4 } });
+const defaultApiMartFetch: typeof fetch = (input, init) => undiciFetch(input as Parameters<typeof undiciFetch>[0], {
+  ...init,
+  dispatcher: apiMartDispatcher,
+} as Parameters<typeof undiciFetch>[1]) as unknown as ReturnType<typeof fetch>;
+
+function providerFailure(message = "Image generation is temporarily unavailable.", internalCode: string | null = null): AiAssetError {
+  return new AiAssetError("PROVIDER_FAILED", message, 503, true, internalCode);
 }
 
-async function responseJson(response: Response): Promise<Record<string, unknown>> {
+async function responseJson(response: Response, step: string): Promise<Record<string, unknown>> {
   const value: unknown = await response.json().catch(() => null);
-  if (!response.ok || typeof value !== "object" || value === null || Array.isArray(value)) throw providerFailure();
+  if (!response.ok || typeof value !== "object" || value === null || Array.isArray(value)) {
+    console.error("[apimart] invalid response", { step, status: response.status });
+    throw providerFailure(undefined, `APIMART_${step.toUpperCase()}_RESPONSE`);
+  }
   return value as Record<string, unknown>;
 }
 
-export function createApiMartImageProvider(apiKey: string, fetcher: typeof fetch = fetch, sleep = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds))): AiImageProvider {
+export function createApiMartImageProvider(apiKey: string, fetcher: typeof fetch = defaultApiMartFetch, sleep = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds))): AiImageProvider {
   if (!apiKey.trim()) throw new Error("APIMART_API_KEY is required.");
   const headers = { authorization: `Bearer ${apiKey}`, "content-type": "application/json" };
+  const requestTimeout = () => AbortSignal.timeout(20_000);
+  const request = async (step: string, url: string | URL, init: RequestInit) => {
+    try {
+      return await fetcher(url, init);
+    } catch (error) {
+      const failure = error as Error & { code?: string; cause?: { code?: string } };
+      console.error("[apimart] request failed", { step, error: failure.name, code: failure.code ?? failure.cause?.code ?? null });
+      throw providerFailure(undefined, `APIMART_${step.toUpperCase()}_${failure.name === "TimeoutError" ? "TIMEOUT" : "NETWORK"}`);
+    }
+  };
   return {
     async generate(input) {
       try {
         const payload: Record<string, unknown> = { model: "gpt-image-2", prompt: input.prompt, n: 1, size: "1:1", resolution: "1k" };
         if (input.reference) payload.image_urls = [`data:${input.referenceMime ?? "image/png"};base64,${Buffer.from(input.reference).toString("base64")}`];
-        const submitted = await responseJson(await fetcher("https://api.apimart.ai/v1/images/generations", { method: "POST", headers, body: JSON.stringify(payload) }));
+        const submitted = await responseJson(await request("submit", "https://api.apimart.ai/v1/images/generations", { method: "POST", headers, body: JSON.stringify(payload), signal: requestTimeout() }), "submit");
         const taskId = Array.isArray(submitted.data) && typeof submitted.data[0] === "object" && submitted.data[0] !== null && typeof (submitted.data[0] as Record<string, unknown>).task_id === "string"
           ? (submitted.data[0] as Record<string, unknown>).task_id as string : null;
         if (!taskId) throw providerFailure();
 
-        for (let attempt = 0; attempt < 55; attempt += 1) {
+        const deadline = Date.now() + 240_000;
+        while (Date.now() < deadline) {
           await sleep(2_000);
-          const queried = await responseJson(await fetcher(`https://api.apimart.ai/v1/tasks/${encodeURIComponent(taskId)}?language=en`, { headers }));
+          const queried = await responseJson(await request("poll", `https://api.apimart.ai/v1/tasks/${encodeURIComponent(taskId)}?language=en`, { headers, signal: requestTimeout() }), "poll");
           const task = queried.data as ApiMartTask | undefined;
           if (task?.status === "failed") throw providerFailure();
           const completedTask = task?.status === "completed" ? task : undefined;
           const url = completedTask?.result?.images?.[0]?.url?.[0];
           if (!url) continue;
           const imageUrl = new URL(url);
-          if (imageUrl.protocol !== "https:" || imageUrl.hostname !== "upload.apimart.ai") throw providerFailure();
-          const imageResponse = await fetcher(imageUrl, { headers: { accept: "image/png" } });
+          if (imageUrl.protocol !== "https:" || !apiMartImageHosts.has(imageUrl.hostname)) {
+            console.error("[apimart] unexpected result host", { hostname: imageUrl.hostname });
+            throw providerFailure(undefined, "APIMART_RESULT_HOST");
+          }
+          const imageResponse = await request("download", imageUrl, { headers: { accept: "image/png" }, redirect: "error", signal: requestTimeout() });
           if (!imageResponse.ok) throw providerFailure();
           const bytes = new Uint8Array(await imageResponse.arrayBuffer());
           return { bytes, mime: "image/png", providerOperationId: taskId, providerCostUsd: typeof completedTask.cost === "number" ? completedTask.cost : null };
