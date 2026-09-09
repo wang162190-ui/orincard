@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { AiAssetError, createAiCandidateService, generatedMetadata, type AiCandidateStore } from "../../src/server/assets/ai-image";
+import { AiAssetError, createAiCandidateService, createApiMartImageProvider, generatedMetadata, type AiCandidateStore } from "../../src/server/assets/ai-image";
 import { validateImageGenerationPayload } from "../../src/trigger/generate-image";
 
 const OWNER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -48,6 +48,19 @@ describe("T047 AI candidate assets", () => {
 
   it("rejects non-PNG provider data before it can become ready", () => {
     expect(() => generatedMetadata(new Uint8Array(24))).toThrow(AiAssetError);
+  });
+
+  it("submits a 1k APIMart task, polls its result, and never sends an unsupported quality field", async () => {
+    const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1]);
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ code: 200, data: [{ status: "submitted", task_id: "task-1" }] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ code: 200, data: { status: "completed", cost: 0.01, result: { images: [{ url: ["https://upload.apimart.ai/f/image/result.png"] }] } } })))
+      .mockResolvedValueOnce(new Response(png));
+    const provider = createApiMartImageProvider("test-key", fetcher, async () => undefined);
+
+    await expect(provider.generate({ kind: "ai_image", prompt: "A notebook" })).resolves.toMatchObject({ providerOperationId: "task-1", providerCostUsd: 0.01, bytes: png });
+    expect(JSON.parse((fetcher.mock.calls[0]?.[1] as RequestInit).body as string)).toEqual({ model: "gpt-image-2", prompt: "A notebook", n: 1, size: "1:1", resolution: "1k" });
+    expect(fetcher.mock.calls[1]?.[0]).toBe("https://api.apimart.ai/v1/tasks/task-1?language=en");
   });
 
   it("keeps Trigger payloads reference-only", () => {

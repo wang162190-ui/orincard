@@ -74,7 +74,7 @@ test("T053 real asset and Brand Kit acceptance keeps providers, candidates, proj
   const secondaryEmail = required("ORINCARD_AUTH_SECONDARY_TEST_EMAIL");
   const secondaryPassword = required("ORINCARD_AUTH_SECONDARY_TEST_PASSWORD");
   required("PEXELS_API_KEY");
-  required("OPENAI_API_KEY");
+  required("APIMART_API_KEY");
   required("TRIGGER_SECRET_KEY");
 
   const admin = createClient(supabaseUrl, secretKey, { auth: { persistSession: false } });

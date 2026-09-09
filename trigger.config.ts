@@ -22,7 +22,7 @@ export default defineConfig({
   build: {
     extensions: [
       syncEnvVars(() =>
-        ["VOLCENGINE_SPEECH_API_KEY", "AI_TRANSCRIBE_MODEL"].flatMap((name) =>
+        ["VOLCENGINE_SPEECH_API_KEY", "AI_TRANSCRIBE_MODEL", "APIMART_API_KEY"].flatMap((name) =>
           process.env[name] ? [{ name, value: process.env[name], isSecret: true }] : [],
         ),
       ),

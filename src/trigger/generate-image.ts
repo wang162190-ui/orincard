@@ -1,5 +1,5 @@
 import { task } from "@trigger.dev/sdk";
-import { createOpenAiImageProvider, generatedMetadata, type AiImageKind } from "../server/assets/ai-image";
+import { createApiMartImageProvider, generatedMetadata, type AiImageKind } from "../server/assets/ai-image";
 import { createAdminSupabaseClient } from "../server/supabase";
 
 export const GENERATE_IMAGE_TASK_ID = "orincard-generate-image";
@@ -11,13 +11,14 @@ export function validateImageGenerationPayload(payload: unknown): { readonly ass
   return { assetId: value.assetId, schemaVersion: 1 };
 }
 
-export async function executeImageGeneration(assetId: string, provider = createOpenAiImageProvider(process.env.OPENAI_API_KEY?.trim() ?? "")) {
+export async function executeImageGeneration(assetId: string, provider = createApiMartImageProvider(process.env.APIMART_API_KEY?.trim() ?? "")) {
   const client = createAdminSupabaseClient();
   const { data: asset } = await client.from("assets").select("id,owner_id,kind,rights,state").eq("id", assetId).in("kind", ["ai_image", "portrait"]).eq("state", "pending_upload").maybeSingle();
   if (!asset) return { assetId, state: "skipped" as const };
   const rights = asset.rights as Record<string, unknown>;
   const prompt = typeof rights.prompt === "string" ? rights.prompt : "";
   const referenceAssetId = typeof rights.referenceAssetId === "string" ? rights.referenceAssetId : null;
+  let referenceMime: string | undefined;
   const fail = async (code: string) => { await client.from("assets").update({ state: "failed", error_code: code }).eq("id", asset.id).eq("owner_id", asset.owner_id).eq("state", "pending_upload"); return { assetId, state: "failed" as const }; };
   try {
     let reference: Uint8Array | undefined;
@@ -28,8 +29,9 @@ export async function executeImageGeneration(assetId: string, provider = createO
       const { data, error } = await client.storage.from(source.bucket).download(source.object_key);
       if (error || !data) return fail("REFERENCE_UNAVAILABLE");
       reference = new Uint8Array(await data.arrayBuffer());
+      referenceMime = source.mime;
     }
-    const image = await provider.generate({ kind: asset.kind as AiImageKind, prompt, reference });
+    const image = await provider.generate({ kind: asset.kind as AiImageKind, prompt, reference, referenceMime });
     const metadata = generatedMetadata(image.bytes);
     const objectKey = `${asset.owner_id}/${asset.id}/generated.png`;
     const { error: uploadError } = await client.storage.from("assets").upload(objectKey, image.bytes, { contentType: image.mime, upsert: false });

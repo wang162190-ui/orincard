@@ -1,5 +1,4 @@
 import { createHash, randomUUID } from "node:crypto";
-import OpenAI from "openai";
 
 export const AI_IMAGE_KINDS = ["ai_image", "portrait"] as const;
 export type AiImageKind = (typeof AI_IMAGE_KINDS)[number];
@@ -17,10 +16,10 @@ export class AiAssetError extends Error {
   }
 }
 
-export type GeneratedImage = Readonly<{ bytes: Uint8Array; mime: "image/png"; providerOperationId: string | null }>;
+export type GeneratedImage = Readonly<{ bytes: Uint8Array; mime: "image/png"; providerOperationId: string | null; providerCostUsd: number | null }>;
 
 export interface AiImageProvider {
-  generate(input: { readonly kind: AiImageKind; readonly prompt: string; readonly reference?: Uint8Array }): Promise<GeneratedImage>;
+  generate(input: { readonly kind: AiImageKind; readonly prompt: string; readonly reference?: Uint8Array; readonly referenceMime?: string }): Promise<GeneratedImage>;
 }
 
 export interface AiCandidateStore {
@@ -68,7 +67,7 @@ export function createAiCandidateService(input: { readonly store: AiCandidateSto
         await input.store.create({
           id: assetId, owner_id: ownerId, kind: request.kind, purpose: "media", bucket: "assets",
           object_key: `${ownerId}/${assetId}/pending.png`, mime: "image/png", bytes: 0, sha256: "0".repeat(64),
-          rights: { provider: "openai", model: "gpt-image-1", prompt: request.prompt, candidate: true, referenceAssetId: request.referenceAssetId, userAcceptedRequired: true, requestedAt: now().toISOString() },
+          rights: { provider: "apimart", model: "gpt-image-2", resolution: "1k", prompt: request.prompt, candidate: true, referenceAssetId: request.referenceAssetId, userAcceptedRequired: true, requestedAt: now().toISOString() },
           state: "pending_upload", library_retained: false,
         });
       } catch (error) {
@@ -80,22 +79,50 @@ export function createAiCandidateService(input: { readonly store: AiCandidateSto
   };
 }
 
-export function createOpenAiImageProvider(apiKey: string): AiImageProvider {
-  if (!apiKey.trim()) throw new Error("OPENAI_API_KEY is required.");
-  const client = new OpenAI({ apiKey });
+type ApiMartTask = Readonly<{ status: string; cost?: number; result?: { images?: Array<{ url?: string[] }> } }>;
+
+function providerFailure(message = "Image generation is temporarily unavailable."): AiAssetError {
+  return new AiAssetError("PROVIDER_FAILED", message, 503, true);
+}
+
+async function responseJson(response: Response): Promise<Record<string, unknown>> {
+  const value: unknown = await response.json().catch(() => null);
+  if (!response.ok || typeof value !== "object" || value === null || Array.isArray(value)) throw providerFailure();
+  return value as Record<string, unknown>;
+}
+
+export function createApiMartImageProvider(apiKey: string, fetcher: typeof fetch = fetch, sleep = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds))): AiImageProvider {
+  if (!apiKey.trim()) throw new Error("APIMART_API_KEY is required.");
+  const headers = { authorization: `Bearer ${apiKey}`, "content-type": "application/json" };
   return {
     async generate(input) {
       try {
-        // gpt-image-1 returns base64 image data; the request remains server-side and no
-        // generated or reference image URL is exposed to the browser.
-        const response = input.reference
-          ? await client.images.edit({ model: "gpt-image-1", image: new File([Buffer.from(input.reference)], "reference.png", { type: "image/png" }), prompt: input.prompt, size: "1024x1024", quality: "low" })
-          : await client.images.generate({ model: "gpt-image-1", prompt: input.prompt, size: "1024x1024", quality: "low" });
-        const encoded = response.data?.[0]?.b64_json;
-        if (!encoded) throw new Error("provider returned no image data");
-        return { bytes: Buffer.from(encoded, "base64"), mime: "image/png", providerOperationId: null };
-      } catch {
-        throw new AiAssetError("PROVIDER_FAILED", "Image generation is temporarily unavailable.", 503, true);
+        const payload: Record<string, unknown> = { model: "gpt-image-2", prompt: input.prompt, n: 1, size: "1:1", resolution: "1k" };
+        if (input.reference) payload.image_urls = [`data:${input.referenceMime ?? "image/png"};base64,${Buffer.from(input.reference).toString("base64")}`];
+        const submitted = await responseJson(await fetcher("https://api.apimart.ai/v1/images/generations", { method: "POST", headers, body: JSON.stringify(payload) }));
+        const taskId = Array.isArray(submitted.data) && typeof submitted.data[0] === "object" && submitted.data[0] !== null && typeof (submitted.data[0] as Record<string, unknown>).task_id === "string"
+          ? (submitted.data[0] as Record<string, unknown>).task_id as string : null;
+        if (!taskId) throw providerFailure();
+
+        for (let attempt = 0; attempt < 55; attempt += 1) {
+          await sleep(2_000);
+          const queried = await responseJson(await fetcher(`https://api.apimart.ai/v1/tasks/${encodeURIComponent(taskId)}?language=en`, { headers }));
+          const task = queried.data as ApiMartTask | undefined;
+          if (task?.status === "failed") throw providerFailure();
+          const completedTask = task?.status === "completed" ? task : undefined;
+          const url = completedTask?.result?.images?.[0]?.url?.[0];
+          if (!url) continue;
+          const imageUrl = new URL(url);
+          if (imageUrl.protocol !== "https:" || imageUrl.hostname !== "upload.apimart.ai") throw providerFailure();
+          const imageResponse = await fetcher(imageUrl, { headers: { accept: "image/png" } });
+          if (!imageResponse.ok) throw providerFailure();
+          const bytes = new Uint8Array(await imageResponse.arrayBuffer());
+          return { bytes, mime: "image/png", providerOperationId: taskId, providerCostUsd: typeof completedTask.cost === "number" ? completedTask.cost : null };
+        }
+        throw providerFailure("Image generation timed out.");
+      } catch (error) {
+        if (error instanceof AiAssetError) throw error;
+        throw providerFailure();
       }
     },
   };
