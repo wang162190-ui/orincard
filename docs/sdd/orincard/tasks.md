@@ -415,7 +415,7 @@
   - Check: `pnpm exec vitest run tests/cloud/account-export.test.ts`
   - Expect: 偏好持久化；账号包只含本人授权内容，无密钥/支付凭证。
 
-- [ ] T061 `tests/e2e/export-restore.spec.ts`, `tests/cloud/package-privacy.test.ts` — 验收全格式与恢复集成 → AC-006, AC-007
+- [x] T061 `tests/e2e/export-restore.spec.ts`, `tests/cloud/package-privacy.test.ts` — 验收全格式与恢复集成 → AC-006, AC-007
   - Batch: B07
   - Depends: T060
   - Check: `pnpm exec playwright test tests/e2e/export-restore.spec.ts && pnpm exec vitest run tests/cloud/package-privacy.test.ts`
