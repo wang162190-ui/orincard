@@ -385,13 +385,13 @@
   - Check: `pnpm exec vitest run tests/cloud/mp4.test.ts`
   - Expect: ffprobe检查尺寸/编码/结尾，页时长和音频符合选项；无音频可用。
 
-- [ ] T056 `src/server/recovery.ts`, `src/app/api/v1/imports/inspect/route.ts`, `src/app/api/v1/imports/[id]/confirm/route.ts`, `tests/cloud/recovery.test.ts` — 实现恢复包检查与确认导入 → AC-006, AC-007
+- [x] T056 `src/server/recovery.ts`, `src/app/api/v1/imports/inspect/route.ts`, `src/app/api/v1/imports/[id]/confirm/route.ts`, `tests/cloud/recovery.test.ts` — 实现恢复包检查与确认导入 → AC-006, AC-007
   - Batch: B07
   - Depends: T055
   - Check: `pnpm exec vitest run tests/cloud/recovery.test.ts`
   - Expect: ZIP/PDF附件恢复新ID，损坏/恶意/缺资源预览确认，拒绝跨账号key。
 
-- [ ] T057 `src/features/projects/versions.tsx`, `src/app/api/v1/projects/[id]/versions/route.ts`, `src/app/api/v1/projects/[id]/restore/route.ts`, `tests/cloud/versions.test.ts` — 实现版本浏览与恢复 → AC-007
+- [x] T057 `src/features/projects/versions.tsx`, `src/app/api/v1/projects/[id]/versions/route.ts`, `src/app/api/v1/projects/[id]/restore/route.ts`, `tests/cloud/versions.test.ts` — 实现版本浏览与恢复 → AC-007
   - Batch: B07
   - Depends: T056
   - Check: `pnpm exec vitest run tests/cloud/versions.test.ts`

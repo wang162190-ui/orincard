@@ -545,8 +545,15 @@ returns trigger
 language plpgsql
 set search_path = ''
 as $$
+declare
+  requested_brand_id text;
 begin
-  new.brand_kit_id := nullif(new.document #>> '{brandSnapshot,kitId}', '')::uuid;
+  requested_brand_id := nullif(new.document #>> '{brandSnapshot,kitId}', '');
+  new.brand_kit_id := null;
+  if requested_brand_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' then
+    select id into new.brand_kit_id from public.brand_kits
+    where id = requested_brand_id::uuid and owner_id = new.owner_id and state = 'active';
+  end if;
   return new;
 end;
 $$;

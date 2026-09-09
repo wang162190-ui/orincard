@@ -30,7 +30,8 @@ describe("asset database definition", () => {
     expect(sql).toMatch(/function private\.enforce_owned_resource_links\([\s\S]+security definer[\s\S]+set search_path = ''/);
     expect(sql).toContain("revoke execute on function private.enforce_owned_resource_links()");
     expect(sql).toContain("create trigger projects_sync_brand_kit_id");
-    expect(sql).toContain("new.brand_kit_id := nullif(new.document #>> '{brandSnapshot,kitId}', '')::uuid");
+    expect(sql).toContain("requested_brand_id := nullif(new.document #>> '{brandSnapshot,kitId}', '')");
+    expect(sql).toContain("where id = requested_brand_id::uuid and owner_id = new.owner_id and state = 'active'");
     expect(sql).toContain("comment on trigger projects_sync_brand_kit_id on public.projects");
     expect(sql).toContain("create policy storage_download_owned_or_referenced_assets");
     expect(sql).toContain("values ('sources', 'sources', false), ('assets', 'assets', false)");

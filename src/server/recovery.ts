@@ -17,6 +17,15 @@ export type RecoveryInspection = {
   readonly missingAssets: readonly string[];
 };
 
+type StoredRecoveryInspection = Readonly<{
+  id: string;
+  sourceAssetId: string;
+  inspectionHash: string;
+  document: CarouselDocument;
+  missingAssets: readonly string[];
+  expiresAt: string;
+}>;
+
 function digest(bytes: Buffer): string { return createHash("sha256").update(bytes).digest("hex"); }
 function safePath(path: string): boolean {
   return path.length > 0 && !path.startsWith("/") && !path.includes("\\") && !path.split("/").some((part) => part === "" || part === "." || part === "..");
@@ -70,16 +79,21 @@ function defaultQpdf(bytes: Buffer, attachment: string): Promise<Buffer> {
   });
 }
 
-export async function inspectRecoveryFile(bytes: Buffer, qpdf = defaultQpdf): Promise<RecoveryInspection> {
-  return inspectRecoveryZip(bytes.subarray(0, 5).equals(Buffer.from("%PDF-")) ? await extractOrincardPdfAttachment(bytes, qpdf) : bytes);
+async function recoveryZipBytes(bytes: Buffer, qpdf = defaultQpdf): Promise<Buffer> {
+  return bytes.subarray(0, 5).equals(Buffer.from("%PDF-")) ? extractOrincardPdfAttachment(bytes, qpdf) : bytes;
 }
 
-export function rewriteRecoveredAssetIds(document: CarouselDocument): { document: CarouselDocument; assetIds: ReadonlyMap<string, string> } {
-  const assetIds = new Map(document.assetRefs.map((asset) => [asset.id, randomUUID()]));
-  const replace = (id: string | null) => id ? assetIds.get(id) ?? id : null;
+export async function inspectRecoveryFile(bytes: Buffer, qpdf = defaultQpdf): Promise<RecoveryInspection> {
+  return inspectRecoveryZip(await recoveryZipBytes(bytes, qpdf));
+}
+
+export function rewriteRecoveredAssetIds(document: CarouselDocument, missingAssets: readonly string[] = []): { document: CarouselDocument; assetIds: ReadonlyMap<string, string> } {
+  const missing = new Set(missingAssets);
+  const assetIds = new Map(document.assetRefs.filter((asset) => !missing.has(asset.id)).map((asset) => [asset.id, randomUUID()]));
+  const replace = (id: string | null) => id && !missing.has(id) ? assetIds.get(id) ?? id : null;
   const next = structuredClone(document);
-  next.assetRefs = next.assetRefs.map((asset) => ({ ...asset, id: assetIds.get(asset.id) ?? asset.id }));
-  next.slides = next.slides.map((slide) => ({ ...slide, assetSlots: slide.assetSlots.map((slot) => ({ ...slot, assetId: assetIds.get(slot.assetId) ?? slot.assetId })) }));
+  next.assetRefs = next.assetRefs.filter((asset) => !missing.has(asset.id)).map((asset) => ({ ...asset, id: assetIds.get(asset.id) ?? asset.id }));
+  next.slides = next.slides.map((slide) => ({ ...slide, assetSlots: slide.assetSlots.filter((slot) => !missing.has(slot.assetId)).map((slot) => ({ ...slot, assetId: assetIds.get(slot.assetId) ?? slot.assetId })) }));
   if (next.brandSnapshot) next.brandSnapshot = { ...next.brandSnapshot, logoAssetId: replace(next.brandSnapshot.logoAssetId), headshotAssetId: replace(next.brandSnapshot.headshotAssetId) };
   return { document: next, assetIds };
 }
@@ -87,8 +101,8 @@ export function rewriteRecoveredAssetIds(document: CarouselDocument): { document
 export interface RecoveryStore {
   load(ownerId: string, assetId: string): Promise<Buffer | null>;
   save(ownerId: string, assetId: string, inspection: RecoveryInspection): Promise<{ id: string; expiresAt: string }>;
-  get(ownerId: string, inspectionId: string): Promise<{ id: string; inspectionHash: string; document: CarouselDocument; missingAssets: readonly string[]; expiresAt: string } | null>;
-  create(ownerId: string, document: CarouselDocument, inspectionId: string): Promise<{ projectId: string; revision: number }>;
+  get(ownerId: string, inspectionId: string): Promise<StoredRecoveryInspection | null>;
+  create(ownerId: string, inspection: StoredRecoveryInspection, document: CarouselDocument, assetIds: ReadonlyMap<string, string>): Promise<{ projectId: string; revision: number }>;
 }
 
 export function createSupabaseRecoveryStore(client: SupabaseClient): RecoveryStore {
@@ -106,15 +120,53 @@ export function createSupabaseRecoveryStore(client: SupabaseClient): RecoverySto
       return { id: data.id, expiresAt: data.expires_at };
     },
     async get(ownerId, inspectionId) {
-      const { data } = await client.from("recovery_imports").select("id,inspection_hash,document,missing_assets,expires_at").eq("id", inspectionId).eq("owner_id", ownerId).eq("state", "inspected").maybeSingle();
-      return data ? { id: data.id, inspectionHash: data.inspection_hash, document: parseCarouselDocument(data.document), missingAssets: data.missing_assets as string[], expiresAt: data.expires_at } : null;
+      const { data } = await client.from("recovery_imports").select("id,asset_id,inspection_hash,document,missing_assets,expires_at").eq("id", inspectionId).eq("owner_id", ownerId).eq("state", "inspected").maybeSingle();
+      return data ? { id: data.id, sourceAssetId: data.asset_id, inspectionHash: data.inspection_hash, document: parseCarouselDocument(data.document), missingAssets: data.missing_assets as string[], expiresAt: data.expires_at } : null;
     },
-    async create(ownerId, document, inspectionId) {
-      const { data, error } = await client.rpc("server_confirm_recovery_import", { p_owner_id: ownerId, p_import_id: inspectionId, p_document: document });
-      if (error || !data || typeof data !== "object") throw new RecoveryError("INVALID_PACKAGE", "Recovery confirmation failed.", 422);
-      const output = data as { projectId?: string; revision?: number };
-      if (!output.projectId || output.revision !== 1) throw new RecoveryError("INVALID_PACKAGE", "Recovery confirmation failed.", 422);
-      return { projectId: output.projectId, revision: output.revision };
+    async create(ownerId, inspection, document, assetIds) {
+      const source = await this.load(ownerId, inspection.sourceAssetId);
+      if (!source) throw new RecoveryError("NOT_FOUND", "Recovery file not found.", 404);
+      const zipBytes = await recoveryZipBytes(source);
+      const verified = await inspectRecoveryZip(zipBytes);
+      if (verified.inspectionHash !== inspection.inspectionHash) throw new RecoveryError("INSPECTION_CHANGED", "Recovery preview changed. Inspect the package again.", 409);
+      const archive = await JSZip.loadAsync(zipBytes, { createFolders: false });
+      const uploaded: Array<{ id: string; objectKey: string }> = [];
+      try {
+        for (const asset of inspection.document.assetRefs) {
+          if (inspection.missingAssets.includes(asset.id)) continue;
+          const file = archive.file(`project/assets/${asset.id}`);
+          const newId = assetIds.get(asset.id);
+          if (!file || !newId) throw new RecoveryError("INSPECTION_CHANGED", "Recovery preview changed. Inspect the package again.", 409);
+          const bytes = Buffer.from(await file.async("nodebuffer"));
+          const objectKey = `${ownerId}/${newId}/restored`;
+          const { error: uploadError } = await client.storage.from("assets").upload(objectKey, bytes, { contentType: asset.mimeType, upsert: false });
+          if (uploadError) throw new Error("recovery asset upload failed");
+          uploaded.push({ id: newId, objectKey });
+          const { error: assetError } = await client.from("assets").insert({
+            id: newId, owner_id: ownerId, kind: asset.kind === "generated" ? "derived" : "upload", purpose: "media",
+            bucket: "assets", object_key: objectKey, mime: asset.mimeType, bytes: bytes.byteLength, sha256: digest(bytes),
+            rights: { source: "orincard_recovery", userConfirmed: true }, accepted_at: new Date().toISOString(),
+            library_retained: true, state: "ready",
+          });
+          if (assetError) throw new Error("recovery asset record failed");
+        }
+        const { data, error } = await client.rpc("server_confirm_recovery_import", {
+          p_owner_id: ownerId,
+          p_import_id: inspection.id,
+          p_inspected_document: inspection.document,
+          p_restored_document: document,
+        });
+        if (error || !data || typeof data !== "object") throw new RecoveryError("INVALID_PACKAGE", "Recovery confirmation failed.", 422);
+        const output = data as { projectId?: string; revision?: number };
+        if (!output.projectId || output.revision !== 1) throw new RecoveryError("INVALID_PACKAGE", "Recovery confirmation failed.", 422);
+        return { projectId: output.projectId, revision: output.revision };
+      } catch (error) {
+        if (uploaded.length > 0) {
+          await client.from("assets").delete().eq("owner_id", ownerId).in("id", uploaded.map((asset) => asset.id));
+          await client.storage.from("assets").remove(uploaded.map((asset) => asset.objectKey));
+        }
+        throw error;
+      }
     },
   };
 }
@@ -134,7 +186,8 @@ export function createRecoveryService(store: RecoveryStore) {
       if (new Date(inspection.expiresAt) <= new Date()) throw new RecoveryError("INSPECTION_EXPIRED", "Recovery inspection expired. Inspect the package again.", 409);
       if (inspection.inspectionHash !== inspectionHash) throw new RecoveryError("INSPECTION_CHANGED", "Recovery preview changed. Inspect the package again.", 409);
       if (inspection.missingAssets.length > 0 && !acceptMissingAssets) throw new RecoveryError("INVALID_PACKAGE", "Confirm missing assets before restoring.", 422);
-      return store.create(ownerId, rewriteRecoveredAssetIds(inspection.document).document, inspection.id);
+      const rewritten = rewriteRecoveredAssetIds(inspection.document, inspection.missingAssets);
+      return store.create(ownerId, inspection, rewritten.document, rewritten.assetIds);
     },
   };
 }
@@ -144,7 +197,7 @@ export function createMemoryRecoveryStore(): RecoveryStore {
   return {
     async load() { return null; },
     async save(ownerId, _assetId, inspection) { const id = randomUUID(); const expiresAt = new Date(Date.now() + 15 * 60_000).toISOString(); inspections.set(id, { ownerId, value: inspection, expiresAt }); return { id, expiresAt }; },
-    async get(ownerId, id) { const record = inspections.get(id); return record?.ownerId === ownerId ? { id, inspectionHash: record.value.inspectionHash, document: record.value.document, missingAssets: record.value.missingAssets, expiresAt: record.expiresAt } : null; },
-    async create(_ownerId, _document, _inspectionId) { return { projectId: randomUUID(), revision: 1 }; },
+    async get(ownerId, id) { const record = inspections.get(id); return record?.ownerId === ownerId ? { id, sourceAssetId: "memory-source", inspectionHash: record.value.inspectionHash, document: record.value.document, missingAssets: record.value.missingAssets, expiresAt: record.expiresAt } : null; },
+    async create() { return { projectId: randomUUID(), revision: 1 }; },
   };
 }

@@ -34,7 +34,7 @@ describe("T056 recovery package inspection and confirmation (AC-006, AC-007)", (
     const create = vi.fn().mockResolvedValue({ projectId: "new-project", revision: 1 });
     const store: RecoveryStore = {
       load: vi.fn().mockResolvedValue(bytes), save,
-      get: vi.fn(async (ownerId) => ownerId === "owner-a" ? { id: "inspection-a", inspectionHash: inspection.inspectionHash, document: inspection.document, missingAssets: [], expiresAt: "2099-01-01T00:00:00.000Z" } : null), create,
+      get: vi.fn(async (ownerId) => ownerId === "owner-a" ? { id: "inspection-a", sourceAssetId: "source-a", inspectionHash: inspection.inspectionHash, document: inspection.document, missingAssets: [], expiresAt: "2099-01-01T00:00:00.000Z" } : null), create,
     };
     const service = createRecoveryService(store);
     const preview = await service.inspect("owner-a", "asset-a");
@@ -42,7 +42,7 @@ describe("T056 recovery package inspection and confirmation (AC-006, AC-007)", (
     await expect(service.confirm("owner-b", "inspection-a", preview.inspectionHash, false)).rejects.toMatchObject({ code: "NOT_FOUND", status: 404 });
     await expect(service.confirm("owner-a", "inspection-a", "bad", false)).rejects.toMatchObject({ code: "INSPECTION_CHANGED", status: 409 });
     await expect(service.confirm("owner-a", "inspection-a", preview.inspectionHash, false)).resolves.toEqual({ projectId: "new-project", revision: 1 });
-    expect(create).toHaveBeenCalledWith("owner-a", inspection.document, "inspection-a");
+    expect(create).toHaveBeenCalledWith("owner-a", expect.objectContaining({ id: "inspection-a", sourceAssetId: "source-a" }), inspection.document, expect.any(Map));
   });
 
   it("requires an explicit acceptance when package assets are absent", async () => {
