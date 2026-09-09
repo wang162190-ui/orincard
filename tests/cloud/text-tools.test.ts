@@ -9,12 +9,12 @@ const OWNER_ID = "22222222-2222-4222-8222-222222222222";
 
 const outputs: Record<TextToolName, unknown> = {
   caption: { text: "A concise caption", hashtags: ["#design"] },
-  linkedInPost: { hook: "A strong hook", body: "A useful post body.", cta: "What would you add?", hashtags: ["#creators"] },
-  postIdeas: { ideas: [{ title: "One", angle: "First angle" }, { title: "Two", angle: "Second angle" }, { title: "Three", angle: "Third angle" }] },
+  "linkedin-post": { hook: "A strong hook", body: "A useful post body.", cta: "What would you add?", hashtags: ["#creators"] },
+  "post-ideas": { ideas: [{ title: "One", angle: "First angle" }, { title: "Two", angle: "Second angle" }, { title: "Three", angle: "Third angle" }] },
 };
 
 describe("T063 text tools", () => {
-  it.each(["caption", "linkedInPost", "postIdeas"] as const)("generates a %s candidate from an empty standalone input", async (tool) => {
+  it.each(["caption", "linkedin-post", "post-ideas"] as const)("generates a %s candidate from an empty standalone input", async (tool) => {
     const ai = { generateStructured: vi.fn().mockResolvedValue(outputs[tool]) };
     const candidate = await generateTextToolCandidate({ ai, jobId: JOB_ID, request: { tool, input: "", selectedContext: [] }, createId: () => "result-1" });
     expect(candidate).toMatchObject({ schemaVersion: 1, resultId: "result-1", jobId: JOB_ID, tool, state: "candidate", payload: outputs[tool] });
@@ -42,11 +42,11 @@ describe("T063 text tools", () => {
   it("persists only a candidate result and has no project mutation operation", async () => {
     let stored: TextToolCandidate | undefined;
     const store: TextToolWorkerStore = {
-      claim: async () => ({ jobId: JOB_ID, ownerId: OWNER_ID, request: { tool: "postIdeas", input: "", selectedContext: [] } }),
+      claim: async () => ({ jobId: JOB_ID, ownerId: OWNER_ID, request: { tool: "post-ideas", input: "", selectedContext: [] } }),
       succeed: async (_jobId, _ownerId, candidate) => { stored = candidate; return true; },
       fail: vi.fn(),
     };
-    const result = await runTextToolJob(store, async (work) => ({ schemaVersion: 1, resultId: "result-2", jobId: work.jobId, tool: "postIdeas", state: "candidate", payload: outputs.postIdeas as Record<string, unknown> }), { jobId: JOB_ID, schemaVersion: 1, requestId: "request-1" });
+    const result = await runTextToolJob(store, async (work) => ({ schemaVersion: 1, resultId: "result-2", jobId: work.jobId, tool: "post-ideas", state: "candidate", payload: outputs["post-ideas"] as Record<string, unknown> }), { jobId: JOB_ID, schemaVersion: 1, requestId: "request-1" });
     expect(result.state).toBe("succeeded");
     expect(stored?.state).toBe("candidate");
     expect(Object.keys(store).sort()).toEqual(["claim", "fail", "succeed"]);

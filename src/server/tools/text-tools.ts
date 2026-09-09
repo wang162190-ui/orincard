@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { CarouselDocument } from "../../domain/document";
 import type { StructuredAI } from "../ai";
 
-export const TEXT_TOOL_NAMES = ["caption", "linkedInPost", "postIdeas"] as const;
+export const TEXT_TOOL_NAMES = ["caption", "linkedin-post", "post-ideas"] as const;
 export type TextToolName = (typeof TEXT_TOOL_NAMES)[number];
 export const TEXT_CONTEXT_FIELDS = ["title", "caption", "slides"] as const;
 export type TextContextField = (typeof TEXT_CONTEXT_FIELDS)[number];
@@ -48,14 +48,14 @@ const postIdeasSchema = z.object({ ideas: z.array(z.object({ title: z.string().m
 
 const OUTPUTS = {
   caption: captionSchema,
-  linkedInPost: linkedInPostSchema,
-  postIdeas: postIdeasSchema,
+  "linkedin-post": linkedInPostSchema,
+  "post-ideas": postIdeasSchema,
 } as const;
 
 const JSON_SCHEMAS: Record<TextToolName, Record<string, unknown>> = {
   caption: { type: "object", additionalProperties: false, required: ["text", "hashtags"], properties: { text: { type: "string" }, hashtags: { type: "array", maxItems: 10, items: { type: "string", pattern: "^#[^\\s#]+$" } } } },
-  linkedInPost: { type: "object", additionalProperties: false, required: ["hook", "body", "cta", "hashtags"], properties: { hook: { type: "string" }, body: { type: "string" }, cta: { type: "string" }, hashtags: { type: "array", maxItems: 10, items: { type: "string", pattern: "^#[^\\s#]+$" } } } },
-  postIdeas: { type: "object", additionalProperties: false, required: ["ideas"], properties: { ideas: { type: "array", minItems: 3, maxItems: 10, items: { type: "object", additionalProperties: false, required: ["title", "angle"], properties: { title: { type: "string" }, angle: { type: "string" } } } } } },
+  "linkedin-post": { type: "object", additionalProperties: false, required: ["hook", "body", "cta", "hashtags"], properties: { hook: { type: "string" }, body: { type: "string" }, cta: { type: "string" }, hashtags: { type: "array", maxItems: 10, items: { type: "string", pattern: "^#[^\\s#]+$" } } } },
+  "post-ideas": { type: "object", additionalProperties: false, required: ["ideas"], properties: { ideas: { type: "array", minItems: 3, maxItems: 10, items: { type: "object", additionalProperties: false, required: ["title", "angle"], properties: { title: { type: "string" }, angle: { type: "string" } } } } } },
 };
 
 export function parseTextToolRequest(value: unknown): TextToolRequest {
