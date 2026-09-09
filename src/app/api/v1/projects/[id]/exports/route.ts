@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { BASIC_EXPORT_FORMATS, type BasicExportFormat } from "@/render/render-deck";
+import { EXPORT_FORMATS, type ExportFormat } from "@/render/render-deck";
 import { readServerEnvironment } from "@/server/environment";
 import { createSupabaseJobStore, dispatchPendingJob } from "@/server/jobs";
 import { assertTrustedWriteRequest } from "@/server/projects";
@@ -11,7 +11,7 @@ import { basicExportTriggerDispatcher } from "@/trigger/export";
 export type CreatedProjectExport = {
   readonly exportId: string;
   readonly jobId: string;
-  readonly format: BasicExportFormat;
+  readonly format: ExportFormat;
 };
 
 export interface ProjectExportStore {
@@ -19,7 +19,7 @@ export interface ProjectExportStore {
     readonly ownerId: string;
     readonly projectId: string;
     readonly expectedRevision: number;
-    readonly formats: readonly BasicExportFormat[];
+    readonly formats: readonly ExportFormat[];
     readonly options: Readonly<Record<string, unknown>>;
     readonly confirmedWarnings: readonly string[];
     readonly idempotencyKey: string;
@@ -44,7 +44,7 @@ export async function createProjectExports(
     readonly ownerId: string;
     readonly projectId: string;
     readonly expectedRevision: number;
-    readonly formats: readonly BasicExportFormat[];
+    readonly formats: readonly ExportFormat[];
     readonly options: Readonly<Record<string, unknown>>;
     readonly confirmedWarnings: readonly string[];
     readonly idempotencyKey: string;
@@ -56,7 +56,7 @@ export async function createProjectExports(
     !Number.isSafeInteger(input.expectedRevision) ||
     input.expectedRevision < 1 ||
     formats.length < 1 ||
-    formats.some((format) => !BASIC_EXPORT_FORMATS.includes(format)) ||
+    formats.some((format) => !EXPORT_FORMATS.includes(format)) ||
     !input.idempotencyKey.trim()
   ) {
     throw new ProjectExportError("INVALID_REQUEST", "A revision, format, and Idempotency-Key are required.", 400);
@@ -99,7 +99,7 @@ export function createSupabaseProjectExportStore(client: SupabaseClient): Projec
       return data.map((row) => ({
         exportId: row.export_id,
         jobId: row.job_id,
-        format: row.format as BasicExportFormat,
+        format: row.format as ExportFormat,
       }));
     },
   };
@@ -147,7 +147,7 @@ export function createProjectExportsPostHandler(dependencies: {
           ownerId,
           projectId,
           expectedRevision: Number(value.expectedRevision),
-          formats: Array.isArray(value.formats) ? value.formats as BasicExportFormat[] : [],
+          formats: Array.isArray(value.formats) ? value.formats as ExportFormat[] : [],
           options: value.options && typeof value.options === "object" && !Array.isArray(value.options) ? value.options as Record<string, unknown> : {},
           confirmedWarnings: Array.isArray(value.confirmedWarnings) ? value.confirmedWarnings.filter((item): item is string => typeof item === "string") : [],
           idempotencyKey: request.headers.get("idempotency-key") ?? "",

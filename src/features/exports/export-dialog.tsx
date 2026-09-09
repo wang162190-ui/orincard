@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button, Dialog, DialogBody, DialogFooter, DialogHeader } from "@/components/ui";
-import type { BasicExportFormat } from "@/render/render-deck";
+import type { ExportFormat } from "@/render/render-deck";
 import { createBrowserSupabaseClient } from "@/features/auth/client";
 
 type Fetcher = typeof fetch;
@@ -16,7 +16,7 @@ export function ExportDialog({
   readonly revision: number;
   readonly fetcher?: Fetcher;
 }) {
-  const [format, setFormat] = useState<BasicExportFormat>("pdf");
+  const [format, setFormat] = useState<ExportFormat>("pdf");
   const [issues, setIssues] = useState<readonly { repairAction: string }[]>([]);
   const [status, setStatus] = useState<"idle" | "checking" | "started" | "failed">("idle");
 
@@ -58,10 +58,11 @@ export function ExportDialog({
       <DialogBody>
         <label>
           Format
-          <select value={format} onChange={(event) => setFormat(event.target.value as BasicExportFormat)}>
+          <select value={format} onChange={(event) => setFormat(event.target.value as ExportFormat)}>
             <option value="png_zip">PNG ZIP</option>
             <option value="jpg_zip">JPG ZIP</option>
             <option value="pdf">PDF</option>
+            <option value="pptx">Editable PPTX</option>
           </select>
         </label>
         {issues.map((issue, index) => <p role="alert" key={index}>{issue.repairAction}</p>)}

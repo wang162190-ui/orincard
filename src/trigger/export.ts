@@ -1,11 +1,13 @@
 import { idempotencyKeys, task, tasks } from "@trigger.dev/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { inspectDeckPreflight, renderDeck, BASIC_EXPORT_FORMATS, type BasicExportFormat } from "../render/render-deck";
+import { createHash } from "node:crypto";
+import { inspectDeckPreflight, renderDeck, EXPORT_FORMATS, type BasicExportFormat } from "../render/render-deck";
+import { renderPptx } from "../render/pptx";
 import type { SlideRenderAsset } from "../render/slide";
 import {
-  BASIC_RENDERER_VERSION,
   packageBasicExport,
+  packagePptxExport,
 } from "../server/export-package";
 import type { JobDispatchPayload } from "../server/jobs";
 import type { TriggerDispatcher } from "../server/jobs";
@@ -34,8 +36,8 @@ const inputRefSchema = z
   .object({
     projectVersionId: z.string().uuid(),
     exportId: z.string().uuid(),
-    format: z.enum(BASIC_EXPORT_FORMATS),
-    rendererVersion: z.literal(BASIC_RENDERER_VERSION),
+    format: z.enum(EXPORT_FORMATS),
+    rendererVersion: z.string().min(1),
   })
   .strict();
 
@@ -166,17 +168,18 @@ export async function executePersistentExportJob(
     const assets = await loadRenderAssets(client, job.owner_id, document);
     const preflight = await inspectDeckPreflight({ document: version.document, assets });
     if (!preflight.ok) throw new Error("EXPORT_PREFLIGHT_FAILED");
-    const rendered = await renderDeck({
-      document: version.document,
-      assets,
-      formats: [inputRef.format as BasicExportFormat],
-    });
-    const output = rendered.outputs[0];
-    if (!output || rendered.failures.length > 0) throw new Error("RENDER_FAILED");
-    const packaged = await packageBasicExport({
-      ...output,
-      rendererVersion: inputRef.rendererVersion,
-    });
+    const packaged = inputRef.format === "pptx"
+      ? packagePptxExport({
+          ...await renderPptx({ document: version.document, assets }),
+          documentHash: createHash("sha256").update(JSON.stringify(version.document)).digest("hex"),
+          rendererVersion: inputRef.rendererVersion,
+        })
+      : await (async () => {
+          const rendered = await renderDeck({ document: version.document, assets, formats: [inputRef.format as BasicExportFormat] });
+          const output = rendered.outputs[0];
+          if (!output || rendered.failures.length > 0) throw new Error("RENDER_FAILED");
+          return packageBasicExport({ ...output, rendererVersion: inputRef.rendererVersion });
+        })();
     uploadedKey = `${job.owner_id}/${job.id}/${version.id}/${packaged.filename}`;
     const { error: uploadError } = await client.storage
       .from("exports")
