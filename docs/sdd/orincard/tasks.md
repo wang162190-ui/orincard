@@ -365,7 +365,7 @@
   - Check: `pnpm exec vitest run tests/cloud/brand-delete.test.ts`
   - Expect: 逐项目替换/内联选择，影响集合变化409，保留必要素材引用。
 
-- [ ] T053 `tests/e2e/assets-brands.spec.ts`, `docs/acceptance/assets.md` — 验收素材和品牌集成 → AC-005, AC-008
+- [x] T053 `tests/e2e/assets-brands.spec.ts`, `docs/acceptance/assets.md` — 验收素材和品牌集成 → AC-005, AC-008
   - Batch: B06
   - Depends: T052
   - Check: `pnpm exec playwright test tests/e2e/assets-brands.spec.ts`
