@@ -37,10 +37,11 @@ export default function HomePage() {
               <h2 className="h3">Saved projects</h2>
             </PanelHeader>
             <PanelBody className="stack">
-              <p style={{ margin: 0 }}>No saved projects yet.</p>
+              <p style={{ margin: 0 }}>Search, filter, copy, archive, or continue a saved project.</p>
               <p className="meta" style={{ margin: 0 }}>
-                Your saved carousels will appear here.
+                Recent projects appear first.
               </p>
+              <div><Link className="btn btn-secondary" href="/projects">Open project library</Link></div>
             </PanelBody>
           </Panel>
         </div>
