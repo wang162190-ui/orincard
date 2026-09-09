@@ -2,14 +2,16 @@ import { createHash } from "node:crypto";
 import JSZip from "jszip";
 import type {
   BasicExportFormat,
+  ExportFormat,
   RenderedPage,
 } from "../render/render-deck";
+import { PPTX_MIME } from "../render/pptx";
 
 export const BASIC_RENDERER_VERSION = "b04-v1";
 
 export type ExportManifest = {
   readonly schemaVersion: 1;
-  readonly format: BasicExportFormat;
+  readonly format: ExportFormat;
   readonly width: number;
   readonly height: number;
   readonly pageCount: number;
@@ -30,6 +32,8 @@ export type PackagedBasicExport = {
   readonly manifest: ExportManifest;
   readonly sha256: string;
 };
+
+export type PackagedPptxExport = PackagedBasicExport;
 
 function sha256(bytes: Buffer): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -112,4 +116,26 @@ export async function packageBasicExport(input: {
     manifest,
     sha256: sha256(bytes),
   };
+}
+
+export function packagePptxExport(input: {
+  readonly bytes: Buffer;
+  readonly width: number;
+  readonly height: number;
+  readonly slideIds: readonly string[];
+  readonly documentHash: string;
+  readonly rendererVersion: string;
+}): PackagedPptxExport {
+  const file = { name: "orincard.pptx", bytes: input.bytes.byteLength, sha256: sha256(input.bytes) };
+  const manifest: ExportManifest = {
+    schemaVersion: 1,
+    format: "pptx",
+    width: input.width,
+    height: input.height,
+    pageCount: input.slideIds.length,
+    documentHash: input.documentHash,
+    rendererVersion: input.rendererVersion,
+    files: [file],
+  };
+  return { bytes: input.bytes, filename: file.name, mime: PPTX_MIME, manifest, sha256: file.sha256 };
 }

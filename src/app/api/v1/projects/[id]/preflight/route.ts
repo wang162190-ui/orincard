@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseCarouselDocument, type CarouselDocument } from "@/domain/document";
-import { BASIC_EXPORT_FORMATS, inspectDeckPreflight, type BasicExportFormat } from "@/render/render-deck";
+import { EXPORT_FORMATS, inspectDeckPreflight, type ExportFormat } from "@/render/render-deck";
 import type { SlideRenderAsset } from "@/render/slide";
 import { readServerEnvironment } from "@/server/environment";
 import { assertTrustedWriteRequest } from "@/server/projects";
@@ -26,7 +26,7 @@ export interface ExportPreflightStore {
     readonly ownerId: string;
     readonly projectId: string;
     readonly expectedRevision: number;
-    readonly format: BasicExportFormat;
+    readonly format: ExportFormat;
     readonly options: Readonly<Record<string, unknown>>;
   }): Promise<ExportPreflightSnapshot | null>;
 }
@@ -49,14 +49,14 @@ export async function evaluateProjectExportPreflight(
     readonly ownerId: string;
     readonly projectId: string;
     readonly expectedRevision: number;
-    readonly format: BasicExportFormat;
+    readonly format: ExportFormat;
     readonly options: Readonly<Record<string, unknown>>;
   },
 ) {
   if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1) {
     throw new ExportPreflightError("INVALID_REQUEST", "expectedRevision must be a positive integer.", 400);
   }
-  if (!BASIC_EXPORT_FORMATS.includes(input.format)) {
+  if (!EXPORT_FORMATS.includes(input.format)) {
     throw new ExportPreflightError("INVALID_REQUEST", "This export format is not available yet.", 400);
   }
   const snapshot = await store.load(input);
@@ -216,7 +216,7 @@ export function createPreflightPostHandler(dependencies: {
         ownerId,
         projectId,
         expectedRevision: Number(value.expectedRevision),
-        format: value.format as BasicExportFormat,
+        format: value.format as ExportFormat,
         options: value.options && typeof value.options === "object" && !Array.isArray(value.options)
           ? value.options as Record<string, unknown>
           : {},
