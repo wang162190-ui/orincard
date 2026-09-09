@@ -23,7 +23,7 @@ describe("asset database definition", () => {
       expect(sql).toContain(`alter table public.${table} enable row level security`);
     }
     expect(sql.match(/comment on column public\.brand_kits\./g)).toHaveLength(8);
-    expect(sql.match(/comment on column public\.assets\./g)).toHaveLength(20);
+    expect(sql.match(/comment on column public\.assets\./g)).toHaveLength(21);
     expect(sql.match(/comment on column public\.sources\./g)).toHaveLength(11);
     expect(sql.match(/comment on column public\.project_asset_refs\./g)).toHaveLength(6);
     expect(sql.match(/comment on column public\.brand_asset_refs\./g)).toHaveLength(4);

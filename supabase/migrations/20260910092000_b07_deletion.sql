@@ -13,6 +13,9 @@ $$;
 comment on type public.deletion_scope is '异步清理针对单个项目或整个账户';
 comment on type public.deletion_state is '分阶段删除清理任务状态';
 
+alter table public.assets add column if not exists deleted_at timestamptz;
+comment on column public.assets.deleted_at is '物理对象删除完成时间（UTC）';
+
 create table if not exists public.deletion_requests (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users (id) on delete restrict,

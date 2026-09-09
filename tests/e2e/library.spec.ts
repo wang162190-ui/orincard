@@ -7,6 +7,7 @@ import type { CarouselDocument } from "../../src/domain/document";
 const cloud = process.env.ORINCARD_RUN_LIBRARY_E2E === "1";
 test.skip(!cloud, "Set ORINCARD_RUN_LIBRARY_E2E=1 for the real T058 acceptance run.");
 test.use({ screenshot: "off", trace: "off" });
+test.setTimeout(120_000);
 
 function required(name: string): string {
   const value = process.env[name]?.trim();

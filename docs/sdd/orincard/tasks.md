@@ -397,19 +397,19 @@
   - Check: `pnpm exec vitest run tests/cloud/versions.test.ts`
   - Expect: 原快照不可变，恢复新revision，版本对应素材仍可读。
 
-- [ ] T058 `src/app/projects/page.tsx`, `src/features/projects/library.tsx`, `src/app/api/v1/projects/[id]/duplicate/route.ts`, `src/app/api/v1/projects/[id]/archive/route.ts`, `tests/e2e/library.spec.ts` — 实现项目库搜索复制归档 → AC-007
+- [x] T058 `src/app/projects/page.tsx`, `src/features/projects/library.tsx`, `src/app/api/v1/projects/[id]/duplicate/route.ts`, `src/app/api/v1/projects/[id]/archive/route.ts`, `tests/e2e/library.spec.ts` — 实现项目库搜索复制归档 → AC-007
   - Batch: B07
   - Depends: T057
   - Check: `pnpm exec playwright test tests/e2e/library.spec.ts`
   - Expect: 最近记录/筛选/搜索/复制/归档/继续编辑使用真实数据。
 
-- [ ] T059 `src/server/deletion.ts`, `src/trigger/cleanup.ts`, `src/app/api/v1/account/route.ts`, `tests/cloud/deletion.test.ts`, `src/app/api/v1/projects/[id]/route.ts` — 实现项目与账户分阶段删除 → AC-007, AC-008
+- [x] T059 `src/server/deletion.ts`, `src/trigger/cleanup.ts`, `src/app/api/v1/account/route.ts`, `tests/cloud/deletion.test.ts`, `src/app/api/v1/projects/[id]/route.ts` — 实现项目与账户分阶段删除 → AC-007, AC-008
   - Batch: B07
   - Depends: T058
   - Check: `pnpm exec vitest run tests/cloud/deletion.test.ts`
   - Expect: 先拒绝权限再清理，删除中任务不能写回，共享活引用不被删。
 
-- [ ] T060 `src/app/settings/page.tsx`, `src/app/api/v1/settings/route.ts`, `src/app/api/v1/account/export/route.ts`, `src/trigger/account-export.ts`, `tests/cloud/account-export.test.ts` — 实现偏好和用户数据包 → AC-007
+- [x] T060 `src/app/settings/page.tsx`, `src/app/api/v1/settings/route.ts`, `src/app/api/v1/account/export/route.ts`, `src/trigger/account-export.ts`, `tests/cloud/account-export.test.ts` — 实现偏好和用户数据包 → AC-007
   - Batch: B07
   - Depends: T059
   - Check: `pnpm exec vitest run tests/cloud/account-export.test.ts`

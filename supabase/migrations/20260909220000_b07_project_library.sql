@@ -56,8 +56,9 @@ begin
   ) returning * into copied;
   insert into public.project_versions (project_id, owner_id, revision, document, reason)
   values (copied.id, p_owner_id, 1, copied.document, 'manual');
-  insert into public.project_asset_refs (project_id, asset_id, slide_id, slot_key)
-  select copied.id, asset_id, slide_id, slot_key from public.project_asset_refs where project_id = source.id;
+  insert into public.project_asset_refs (project_id, version_id, asset_id, slot_key)
+  select copied.id, null, asset_id, slot_key from public.project_asset_refs
+  where project_id = source.id and version_id is null;
 
   response := jsonb_build_object('projectId', copied.id, 'revision', copied.revision, 'state', copied.state, 'httpStatus', 201);
   insert into private.operation_receipts (owner_id, operation, idempotency_key, request_hash, status, response_ref)

@@ -72,6 +72,7 @@ create table if not exists public.assets (
   library_retained boolean not null default false,
   state public.asset_state not null default 'pending_upload',
   error_code text,
+  deleted_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (bucket, object_key),
@@ -99,6 +100,7 @@ comment on column public.assets.accepted_at is '用户接受 AI 候选素材的�
 comment on column public.assets.library_retained is '用户是否明确将素材保留在个人素材库';
 comment on column public.assets.state is '素材上传、验证、可用、失败或删除状态';
 comment on column public.assets.error_code is '可向用户公开的安全错误类别';
+comment on column public.assets.deleted_at is '物理对象删除完成时间（UTC）';
 comment on column public.assets.created_at is '创建时间（UTC）';
 comment on column public.assets.updated_at is '最近修改时间（UTC）';
 
