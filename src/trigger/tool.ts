@@ -31,7 +31,7 @@ export function createSupabaseTextToolWorkerStore(client: SupabaseClient): TextT
           await client.from("jobs").update({ state: "failed", error_code: "CONTEXT_UNAVAILABLE", finished_at: finishedAt, updated_at: finishedAt }).eq("id", jobId).eq("owner_id", jobResult.data.owner_id).eq("state", jobResult.data.state);
           return null;
         }
-        selectedProjectContext = selectProjectContext(project.data.document, request.selectedContext);
+        selectedProjectContext = selectProjectContext(project.data.document, request.selectedContext, request.selectedSlideIds);
       } else if (jobResult.data.project_id !== null) {
         const finishedAt = new Date().toISOString();
         await client.from("jobs").update({ state: "failed", error_code: "CONTEXT_UNAVAILABLE", finished_at: finishedAt, updated_at: finishedAt }).eq("id", jobId).eq("owner_id", jobResult.data.owner_id).eq("state", jobResult.data.state);

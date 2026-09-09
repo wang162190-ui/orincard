@@ -14,6 +14,7 @@ export type TextToolRequest = {
   readonly contextProjectId?: string;
   readonly contextRevision?: number;
   readonly selectedContext: readonly TextContextField[];
+  readonly selectedSlideIds?: readonly string[];
 };
 
 export type TextToolCandidate = {
@@ -33,6 +34,7 @@ const requestSchema = z.object({
   contextProjectId: z.string().uuid().optional(),
   contextRevision: z.number().int().positive().optional(),
   selectedContext: z.array(z.enum(TEXT_CONTEXT_FIELDS)).max(TEXT_CONTEXT_FIELDS.length).default([]),
+  selectedSlideIds: z.array(z.string().uuid()).max(12).optional(),
 }).strict().superRefine((value, context) => {
   if (Boolean(value.contextProjectId) !== Boolean(value.contextRevision)) {
     context.addIssue({ code: "custom", message: "Project ID and revision must be provided together." });
@@ -63,12 +65,13 @@ export function parseTextToolRequest(value: unknown): TextToolRequest {
   return { ...parsed, input: parsed.input.trim(), selectedContext: [...new Set(parsed.selectedContext)] };
 }
 
-export function selectProjectContext(document: CarouselDocument, selected: readonly TextContextField[]) {
+export function selectProjectContext(document: CarouselDocument, selected: readonly TextContextField[], selectedSlideIds?: readonly string[]) {
   const context: Record<string, unknown> = {};
   if (selected.includes("title")) context.title = document.title;
   if (selected.includes("caption")) context.caption = document.caption;
   if (selected.includes("slides")) {
-    context.slides = document.slides.map((slide) => ({
+    const ids = selectedSlideIds ? new Set(selectedSlideIds) : null;
+    context.slides = document.slides.filter((slide) => !ids || ids.has(slide.id)).map((slide) => ({
       title: slide.title,
       body: slide.bodyBlocks.map((block) => block.kind === "bullets" ? block.items.join("\n") : block.text).join("\n"),
     }));
