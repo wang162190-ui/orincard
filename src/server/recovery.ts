@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { spawn } from "node:child_process";
 import JSZip from "jszip";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseCarouselDocument, type CarouselDocument } from "../domain/document";
@@ -55,6 +56,34 @@ export async function inspectRecoveryZip(bytes: Buffer): Promise<RecoveryInspect
   return { inspectionHash, document, files, missingAssets };
 }
 
+export async function extractOrincardPdfAttachment(bytes: Buffer, run = defaultQpdf): Promise<Buffer> {
+  if (!bytes.subarray(0, 5).equals(Buffer.from("%PDF-"))) throw new RecoveryError("INVALID_PACKAGE", "Recovery input must be a ZIP or an Orincard PDF.", 422);
+  try { return await run(bytes, "orincard-recovery.zip"); } catch { throw new RecoveryError("INVALID_PACKAGE", "PDF has no named Orincard recovery attachment.", 422); }
+}
+
+function defaultQpdf(bytes: Buffer, attachment: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("qpdf", ["--show-attachment=" + attachment, "-"], { stdio: ["pipe", "pipe", "pipe"] });
+    const output: Buffer[] = []; child.stdout.on("data", (chunk: Buffer) => output.push(chunk));
+    child.once("error", reject); child.once("close", (code) => code === 0 ? resolve(Buffer.concat(output)) : reject(new Error("qpdf attachment unavailable")));
+    child.stdin.end(bytes);
+  });
+}
+
+export async function inspectRecoveryFile(bytes: Buffer, qpdf = defaultQpdf): Promise<RecoveryInspection> {
+  return inspectRecoveryZip(bytes.subarray(0, 5).equals(Buffer.from("%PDF-")) ? await extractOrincardPdfAttachment(bytes, qpdf) : bytes);
+}
+
+export function rewriteRecoveredAssetIds(document: CarouselDocument): { document: CarouselDocument; assetIds: ReadonlyMap<string, string> } {
+  const assetIds = new Map(document.assetRefs.map((asset) => [asset.id, randomUUID()]));
+  const replace = (id: string | null) => id ? assetIds.get(id) ?? id : null;
+  const next = structuredClone(document);
+  next.assetRefs = next.assetRefs.map((asset) => ({ ...asset, id: assetIds.get(asset.id) ?? asset.id }));
+  next.slides = next.slides.map((slide) => ({ ...slide, assetSlots: slide.assetSlots.map((slot) => ({ ...slot, assetId: assetIds.get(slot.assetId) ?? slot.assetId })) }));
+  if (next.brandSnapshot) next.brandSnapshot = { ...next.brandSnapshot, logoAssetId: replace(next.brandSnapshot.logoAssetId), headshotAssetId: replace(next.brandSnapshot.headshotAssetId) };
+  return { document: next, assetIds };
+}
+
 export interface RecoveryStore {
   load(ownerId: string, assetId: string): Promise<Buffer | null>;
   save(ownerId: string, assetId: string, inspection: RecoveryInspection): Promise<{ id: string; expiresAt: string }>;
@@ -95,7 +124,7 @@ export function createRecoveryService(store: RecoveryStore) {
     async inspect(ownerId: string, assetId: string) {
       const bytes = await store.load(ownerId, assetId);
       if (!bytes) throw new RecoveryError("NOT_FOUND", "Recovery file not found.", 404);
-      const inspection = await inspectRecoveryZip(bytes);
+      const inspection = await inspectRecoveryFile(bytes);
       const saved = await store.save(ownerId, assetId, inspection);
       return { inspectionId: saved.id, expiresAt: saved.expiresAt, inspectionHash: inspection.inspectionHash, missingAssets: inspection.missingAssets, title: inspection.document.title, platform: inspection.document.platform };
     },
@@ -105,7 +134,7 @@ export function createRecoveryService(store: RecoveryStore) {
       if (new Date(inspection.expiresAt) <= new Date()) throw new RecoveryError("INSPECTION_EXPIRED", "Recovery inspection expired. Inspect the package again.", 409);
       if (inspection.inspectionHash !== inspectionHash) throw new RecoveryError("INSPECTION_CHANGED", "Recovery preview changed. Inspect the package again.", 409);
       if (inspection.missingAssets.length > 0 && !acceptMissingAssets) throw new RecoveryError("INVALID_PACKAGE", "Confirm missing assets before restoring.", 422);
-      return store.create(ownerId, structuredClone(inspection.document), inspection.id);
+      return store.create(ownerId, rewriteRecoveredAssetIds(inspection.document).document, inspection.id);
     },
   };
 }

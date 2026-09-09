@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import JSZip from "jszip";
 import { describe, expect, it, vi } from "vitest";
 import type { CarouselDocument } from "../../src/domain/document";
-import { createRecoveryService, inspectRecoveryZip, RecoveryError, type RecoveryStore } from "../../src/server/recovery";
+import { createRecoveryService, extractOrincardPdfAttachment, inspectRecoveryFile, inspectRecoveryZip, rewriteRecoveredAssetIds, type RecoveryStore } from "../../src/server/recovery";
 
 async function document(): Promise<CarouselDocument> { return JSON.parse(await readFile(new URL("../fixtures/base-document.json", import.meta.url), "utf8")) as CarouselDocument; }
 async function packageBytes(value?: CarouselDocument) {
@@ -52,5 +52,15 @@ describe("T056 recovery package inspection and confirmation (AC-006, AC-007)", (
     value.slides[1]!.assetSlots = [{ slotId: "asset", assetId: "local-asset-01", fit: "cover", crop: { x: 0, y: 0, width: 1, height: 1 }, opacity: 1, alt: "" }];
     const result = await inspectRecoveryZip(await packageBytes(value));
     expect(result.missingAssets).toEqual(["local-asset-01"]);
+  });
+
+  it("extracts only the explicit Orincard PDF attachment and rewrites every asset reference", async () => {
+    const zip = await packageBytes();
+    await expect(extractOrincardPdfAttachment(Buffer.from("%PDF-test"), async (_pdf, name) => { expect(name).toBe("orincard-recovery.zip"); return zip; })).resolves.toEqual(zip);
+    await expect(inspectRecoveryFile(Buffer.from("%PDF-test"), async () => { throw new Error("missing"); })).rejects.toMatchObject({ code: "INVALID_PACKAGE" });
+    const value = await document(); value.assetRefs = [{ id: "local-asset-01", kind: "upload", mimeType: "image/png", rightsStatus: "verified" }]; value.slides[1]!.assetSlots = [{ slotId: "asset", assetId: "local-asset-01", fit: "cover", crop: { x: 0, y: 0, width: 1, height: 1 }, opacity: 1, alt: "" }];
+    value.brandSnapshot = { kitId: "local-kit-01", kitVersion: 1, name: "Kit", displayName: null, website: null, cta: null, colors: ["#000000"], fontPairId: "source-serif-inter", logoAssetId: "local-asset-01", headshotAssetId: null, counterDefaults: { visible: false, style: "none" } };
+    const rewritten = rewriteRecoveredAssetIds(value); const id = rewritten.document.assetRefs[0]!.id;
+    expect(id).not.toBe("local-asset-01"); expect(rewritten.document.slides[1]!.assetSlots[0]!.assetId).toBe(id); expect(rewritten.document.brandSnapshot?.logoAssetId).toBe(id);
   });
 });
