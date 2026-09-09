@@ -10,25 +10,25 @@ function response(error: AiAssetError, requestId: string) {
   return Response.json({ error: { code: error.code, message: error.message, retryable: error.retryable }, requestId }, { status: error.status, headers: { "Cache-Control": "private, no-store" } });
 }
 
-function candidateStore(client: ReturnType<typeof createAdminSupabaseClient>): AiCandidateStore {
+function candidateStore(client: ReturnType<typeof createAdminSupabaseClient>, environment: ReturnType<typeof readServerEnvironment>): AiCandidateStore {
   return {
     async findReference(ownerId, assetId) {
       const { data, error } = await client.from("assets").select("id,bucket,object_key,mime").eq("id", assetId).eq("owner_id", ownerId).eq("state", "ready").maybeSingle();
       if (error) throw new Error("reference query failed");
       return data ? { id: data.id, bucket: data.bucket, objectKey: data.object_key, mime: data.mime } : null;
     },
-    async reserve(ownerId) {
-      // This is deliberately a read-only guard until the integration migration supplies
-      // one atomic image reservation RPC. It prevents a request when the account has no
-      // image balance, but cannot safely decrement a balance without that RPC.
-      const now = new Date().toISOString();
-      const { data, error } = await client.from("usage_accounts").select("granted,reserved,consumed").eq("owner_id", ownerId).eq("resource", "image").lte("period_start", now).gt("period_end", now).maybeSingle();
-      if (error) throw new Error("image quota query failed");
-      if (!data || Number(data.granted) - Number(data.reserved) - Number(data.consumed) < 1) return "quota_exceeded" as const;
-      return "reserved" as const;
+    async createCandidate(input) {
+      const value = input as { assetId: string; ownerId: string; kind: string; objectKey: string; rights: Record<string, unknown> };
+      const { data, error } = await client.rpc("server_create_ai_asset_candidate", {
+        p_asset_id: value.assetId, p_owner_id: value.ownerId, p_kind: value.kind,
+        p_object_key: value.objectKey, p_rights: value.rights,
+        p_environment: environment.appEnvironment, p_reserved_micro_usd: 25_000,
+      });
+      if (error || !data || typeof data !== "object") throw new Error("candidate asset transaction failed");
+      const outcome = (data as { outcome?: unknown }).outcome;
+      if (outcome !== "created" && outcome !== "quota_exceeded" && outcome !== "budget_exceeded") throw new Error("candidate asset transaction failed");
+      return outcome;
     },
-    async release() {},
-    async create(input) { const { data, error } = await client.from("assets").insert(input).select("id").single(); if (error || !data) throw new Error("candidate asset insert failed"); return data; },
   };
 }
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     try { ownerId = (await requireVerifiedUser(user)).id; } catch { throw new AiAssetError("AUTH_REQUIRED", "Sign in before generating an image.", 401); }
     let body: unknown;
     try { body = await request.json(); } catch { throw new AiAssetError("INVALID_REQUEST", "Request body must be valid JSON.", 400); }
-    const result = await createAiCandidateService({ store: candidateStore(createAdminSupabaseClient()) }).submit(ownerId, body);
+    const result = await createAiCandidateService({ store: candidateStore(createAdminSupabaseClient(), environment) }).submit(ownerId, body);
     try { await tasks.trigger(GENERATE_IMAGE_TASK_ID, { assetId: result.assetId, schemaVersion: 1 }); }
     catch { /* Candidate row is durable and can be retried by the worker reconciler. */ }
     return Response.json({ data: result, requestId }, { status: 202, headers: { "Cache-Control": "private, no-store" } });

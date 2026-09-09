@@ -26,9 +26,7 @@ export interface AiImageProvider {
 
 export interface AiCandidateStore {
   findReference(ownerId: string, assetId: string): Promise<{ readonly id: string; readonly bucket: string; readonly objectKey: string; readonly mime: string } | null>;
-  reserve(ownerId: string): Promise<"reserved" | "quota_exceeded" | "budget_exceeded">;
-  release(ownerId: string): Promise<void>;
-  create(input: Readonly<Record<string, unknown>>): Promise<{ readonly id: string }>;
+  createCandidate(input: Readonly<Record<string, unknown>>): Promise<"created" | "quota_exceeded" | "budget_exceeded">;
 }
 
 function parse(input: unknown): { readonly kind: AiImageKind; readonly prompt: string; readonly referenceAssetId: string | null } {
@@ -61,21 +59,13 @@ export function createAiCandidateService(input: { readonly store: AiCandidateSto
           throw new AiAssetError("NOT_FOUND", "Reference image not found.", 404);
         }
       }
-      const reservation = await input.store.reserve(ownerId);
-      if (reservation === "quota_exceeded") throw new AiAssetError("QUOTA_EXCEEDED", "No image credit is available for this request.", 429);
-      if (reservation === "budget_exceeded") throw new AiAssetError("BUDGET_EXCEEDED", "Image generation is temporarily paused.", 429);
       const assetId = createId();
-      try {
-        await input.store.create({
-          id: assetId, owner_id: ownerId, kind: request.kind, purpose: "media", bucket: "assets",
-          object_key: `${ownerId}/${assetId}/pending.png`, mime: "image/png", bytes: 0, sha256: "0".repeat(64),
-          rights: { provider: "apimart", model: "gpt-image-2", resolution: "1k", prompt: request.prompt, candidate: true, referenceAssetId: request.referenceAssetId, userAcceptedRequired: true, requestedAt: now().toISOString() },
-          state: "pending_upload", library_retained: false,
-        });
-      } catch (error) {
-        await input.store.release(ownerId).catch(() => undefined);
-        throw error;
-      }
+      const outcome = await input.store.createCandidate({
+        assetId, ownerId, kind: request.kind, objectKey: `${ownerId}/${assetId}/pending.png`,
+        rights: { provider: "apimart", model: "gpt-image-2", resolution: "1k", prompt: request.prompt, candidate: true, referenceAssetId: request.referenceAssetId, userAcceptedRequired: true, requestedAt: now().toISOString() },
+      });
+      if (outcome === "quota_exceeded") throw new AiAssetError("QUOTA_EXCEEDED", "No image credit is available for this request.", 429);
+      if (outcome === "budget_exceeded") throw new AiAssetError("BUDGET_EXCEEDED", "Image generation is temporarily paused.", 429);
       return { assetId, state: "pending_upload" as const };
     },
   };

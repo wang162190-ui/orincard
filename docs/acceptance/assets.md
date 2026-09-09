@@ -4,7 +4,7 @@
 
 记录日期：2026-09-09
 
-2026-09-09 在开发 Supabase、Trigger 和真实供应商环境执行。图片供应商为 APIMart GPT-Image-2，生成参数为 `1k`、`1:1`；Trigger 部署版本为 `20260909.7`。
+2026-09-09 在开发 Supabase、Trigger 和真实供应商环境执行。图片供应商为 APIMart GPT-Image-2，使用最低成本的 `1k` 分辨率档和 `1:1` 比例；该接口没有独立的 `quality=low` 参数，因此不会发送未支持字段。
 
 ## 运行门槛
 
@@ -34,5 +34,5 @@ pnpm exec playwright test tests/e2e/assets-brands.spec.ts
 - 本机 Node、Git 和 Trigger CLI 原先未继承 macOS HTTP 代理，安全截图的固定地址连接也绕过代理；现已为运行命令和安全连接器显式接入代理，并优先使用已验证 IPv4 地址。
 - APIMart 提交、轮询和下载增加单次 20 秒截止时间，Trigger 任务上限调整为 300 秒；云端直连强制 IPv4。结果下载只接受明确列入清单的 HTTPS 主机。
 - `apply` 原先只写入文档快照，未同步 `projects.brand_kit_id`，导致删除影响清单为空。migration `20260909090000` 已在开发 Supabase 应用，通过数据库触发器同步字段并回填同 owner 的历史引用。
-- AI 图片的原子预算预留、实际成本结算和失败释放 RPC 尚待集成 migration。余额预检不构成真实预算控制验收。
+- 2026-09-10 已部署 AI 图片原子预算 migration：候选创建、图片额度和环境成本预留在同一事务中提交；worker 成功后结算供应商返回成本，失败时释放用户额度和成本预留。开发 Supabase 真实事务验证了预留与失败释放前后余额守恒。
 - 当前 T053 脚本验证应用后的项目快照，但不生成最终导出产物；预览与实际导出一致性仍需在导出批次的真实验收中覆盖。

@@ -21,7 +21,15 @@ export async function executeImageGeneration(assetId: string, provider = createA
   const prompt = typeof rights.prompt === "string" ? rights.prompt : "";
   const referenceAssetId = typeof rights.referenceAssetId === "string" ? rights.referenceAssetId : null;
   let referenceMime: string | undefined;
-  const fail = async (code: string) => { await client.from("assets").update({ state: "failed", error_code: code }).eq("id", asset.id).eq("owner_id", asset.owner_id).eq("state", "pending_upload"); return { assetId, state: "failed" as const }; };
+  const finalizeBudget = async (succeeded: boolean, providerOperationId: string | null, actualMicroUsd: number) => {
+    const { error } = await client.rpc("server_finalize_ai_asset_candidate", { p_asset_id: asset.id, p_owner_id: asset.owner_id, p_succeeded: succeeded, p_provider_operation_id: providerOperationId, p_actual_micro_usd: actualMicroUsd });
+    if (error) throw new Error("image budget finalization failed");
+  };
+  const fail = async (code: string) => {
+    await client.from("assets").update({ state: "failed", error_code: code }).eq("id", asset.id).eq("owner_id", asset.owner_id).eq("state", "pending_upload");
+    await finalizeBudget(false, null, 0);
+    return { assetId, state: "failed" as const };
+  };
   try {
     let reference: Uint8Array | undefined;
     if (asset.kind === "portrait") {
@@ -42,6 +50,7 @@ export async function executeImageGeneration(assetId: string, provider = createA
     if (uploadError) return fail("ASSET_UPLOAD_FAILED");
     const { error: updateError } = await client.from("assets").update({ object_key: objectKey, mime: image.mime, ...metadata, state: "ready", error_code: null }).eq("id", asset.id).eq("owner_id", asset.owner_id).eq("state", "pending_upload");
     if (updateError) { await client.storage.from("assets").remove([objectKey]); return fail("ASSET_UPLOAD_FAILED"); }
+    await finalizeBudget(true, image.providerOperationId, Math.max(0, Math.round((image.providerCostUsd ?? 0.025) * 1_000_000)));
     return { assetId, state: "ready" as const };
   } catch (error) {
     console.error("[image-generation] provider request failed", { assetId: asset.id, error: error instanceof Error ? error.name : "UnknownError" });
