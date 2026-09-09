@@ -1,0 +1,11 @@
+begin;
+select plan(8);
+select has_table('public', 'recovery_imports', 'recovery inspections table exists');
+select ok(obj_description('public.recovery_imports'::regclass, 'pg_class') is not null, 'recovery inspections table is commented');
+select is((select count(*)::integer from pg_attribute where attrelid='public.recovery_imports'::regclass and attnum>0 and not attisdropped and col_description(attrelid,attnum) is not null), 9, 'every recovery inspection column is commented');
+select ok((select relrowsecurity from pg_class where oid='public.recovery_imports'::regclass), 'recovery inspections use RLS');
+select ok(not has_table_privilege('authenticated', 'public.recovery_imports', 'select'), 'authenticated cannot enumerate recovery inspections');
+select has_function('public', 'server_confirm_recovery_import', array['uuid','uuid','jsonb'], 'recovery confirmation RPC exists');
+select ok(obj_description('public.server_confirm_recovery_import(uuid,uuid,jsonb)'::regprocedure, 'pg_proc') is not null, 'recovery confirmation RPC is commented');
+select ok(not has_function_privilege('authenticated', 'public.server_confirm_recovery_import(uuid,uuid,jsonb)'::regprocedure, 'execute'), 'authenticated cannot invoke recovery RPC directly');
+select * from finish(); rollback;
