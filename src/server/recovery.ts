@@ -6,7 +6,7 @@ import { parseCarouselDocument, type CarouselDocument } from "../domain/document
 export const RECOVERY_LIMITS = { maxBytes: 250 * 1024 * 1024, maxFiles: 1_000, maxCompressionRatio: 100 } as const;
 
 export class RecoveryError extends Error {
-  constructor(readonly code: "INVALID_PACKAGE" | "FILE_TOO_LARGE" | "NOT_FOUND" | "INSPECTION_EXPIRED" | "INSPECTION_CHANGED", message: string, readonly status: number) { super(message); }
+  constructor(readonly code: "INVALID_PACKAGE" | "FILE_TOO_LARGE" | "AUTH_REQUIRED" | "NOT_FOUND" | "INSPECTION_EXPIRED" | "INSPECTION_CHANGED", message: string, readonly status: number) { super(message); }
 }
 
 export type RecoveryInspection = {
