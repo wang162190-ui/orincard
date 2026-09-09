@@ -1,6 +1,6 @@
 # T054 — 可编辑 PPTX 导出
 
-状态：本地渲染与包结构验证通过；尚未部署。
+状态：`PASS — 本地结构、真实持久导出与 PowerPoint 兼容性通过`
 
 ## 已验证
 
@@ -16,5 +16,5 @@
 
 ## 发布前剩余项
 
-- 集成线须将 `server_create_exports` 接受的格式集合和 renderer version 与现有 `pptx` 数据库 enum 对齐，再在开发 Supabase 应用 migration、执行 pgTAP/RLS 检查并部署 Trigger worker。
-- 使用部署生成的真实文件分别在 Microsoft PowerPoint 和 Keynote 手动打开；记录字体替代、可编辑 title/body/CTA 和图片显示。字体不嵌入，跨 Office 版本不承诺像素级一致。
+- 开发 Supabase 已应用 `20260909191000_b07_export_formats.sql`，Trigger `20260909.8` 已完成真实持久 PPTX 导出；下载后解包验证 6 页顺序与原生文本节点。
+- Microsoft PowerPoint 16.109.1 成功打开并识别 6 页。Keynote 14.4 在自动化导入阶段超过 60 秒未返回，因此记录为兼容性限制；字体不嵌入，跨 Office 版本不承诺像素级一致。

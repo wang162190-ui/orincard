@@ -373,13 +373,13 @@
 
 ## B07
 
-- [ ] T054 `src/render/pptx.ts`, `tests/cloud/pptx.test.ts`, `docs/acceptance/pptx.md` — 实现可编辑PPTX导出 → AC-006
+- [x] T054 `src/render/pptx.ts`, `tests/cloud/pptx.test.ts`, `docs/acceptance/pptx.md` — 实现可编辑PPTX导出 → AC-006
   - Batch: B07
   - Depends: T053
   - Check: `pnpm exec vitest run tests/cloud/pptx.test.ts`
   - Expect: 提取PPTX XML确认标题/正文为可编辑文本，手动Office/Keynote兼容性记录。
 
-- [ ] T055 `src/render/video.ts`, `tests/cloud/mp4.test.ts`, `docs/acceptance/mp4.md` — 实现MP4与授权音轨 → AC-006
+- [x] T055 `src/render/video.ts`, `tests/cloud/mp4.test.ts`, `docs/acceptance/mp4.md` — 实现MP4与授权音轨 → AC-006
   - Batch: B07
   - Depends: T054
   - Check: `pnpm exec vitest run tests/cloud/mp4.test.ts`

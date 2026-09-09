@@ -103,7 +103,10 @@ export function createSupabaseExportDownloadStore(client: SupabaseClient): Expor
       if (!asset || asset.bucket !== "exports" || asset.purpose !== "export" || asset.state !== "ready") {
         throw new ExportDownloadError("NOT_FOUND", "Export not found.", 404);
       }
-      const extension = record.format === "pdf" ? "pdf" : "zip";
+      const extension = record.format === "pdf" ? "pdf"
+        : record.format === "pptx" ? "pptx"
+          : record.format === "mp4" ? "mp4"
+            : "zip";
       return {
         bucket: "exports" as const,
         objectPath: asset.object_key,
