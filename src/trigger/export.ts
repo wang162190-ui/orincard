@@ -214,7 +214,7 @@ export async function executePersistentExportJob(
           rendererVersion: inputRef.rendererVersion,
         })
       : await (async () => {
-          const renderFormat: BasicExportFormat = inputRef.format === "mp4" ? "png_zip" : inputRef.format;
+          const renderFormat: BasicExportFormat = inputRef.format === "mp4" ? "png_zip" : inputRef.format as BasicExportFormat;
           const rendered = await renderDeck({ document: version.document, assets, formats: [renderFormat] });
           const output = rendered.outputs[0];
           if (!output || rendered.failures.length > 0) throw new Error("RENDER_FAILED");

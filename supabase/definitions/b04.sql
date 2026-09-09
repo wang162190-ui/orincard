@@ -625,7 +625,7 @@ begin
     return;
   end if;
   if coalesce(array_length(p_formats, 1), 0) < 1 or jsonb_typeof(p_options) <> 'object'
-    or exists (select 1 from unnest(p_formats) value where value not in ('png_zip', 'jpg_zip', 'pdf'))
+    or exists (select 1 from unnest(p_formats) value where value not in ('png_zip', 'jpg_zip', 'pdf', 'pptx', 'mp4'))
     or (select count(*) from unnest(p_formats)) <> (select count(distinct value) from unnest(p_formats) value) then
     raise exception using errcode = '22023', message = 'invalid export request';
   end if;
@@ -639,7 +639,8 @@ begin
     insert into public.jobs (owner_id, project_id, kind, input_ref, idempotency_key, request_hash)
     values (
       p_owner_id, p_project_id, 'export',
-      jsonb_build_object('projectVersionId', version_id, 'exportId', gen_random_uuid(), 'format', requested, 'rendererVersion', 'b04-v1'),
+      jsonb_build_object('projectVersionId', version_id, 'exportId', gen_random_uuid(), 'format', requested, 'rendererVersion',
+        case requested when 'pptx' then 'b07-pptx-v1' when 'mp4' then 'b07-mp4-v1' else 'b04-v1' end),
       p_idempotency_key || ':' || requested, p_request_hash
     ) returning id into job_id;
     insert into public.exports (
@@ -647,7 +648,9 @@ begin
     ) values (
       (select (input_ref ->> 'exportId')::uuid from public.jobs where id = job_id),
       p_owner_id, p_project_id, version_id, job_id, requested::public.export_format,
-      p_options || jsonb_build_object('confirmedWarnings', to_jsonb(p_confirmed_warnings)), 'b04-v1', '{}'::jsonb, 'pending'
+      p_options || jsonb_build_object('confirmedWarnings', to_jsonb(p_confirmed_warnings)),
+      case requested when 'pptx' then 'b07-pptx-v1' when 'mp4' then 'b07-mp4-v1' else 'b04-v1' end,
+      '{}'::jsonb, 'pending'
     ) returning * into created_export;
     created_ids := created_ids || jsonb_build_array(created_export.id);
     export_id := created_export.id; format := created_export.format::text;
@@ -657,7 +660,7 @@ begin
   values (p_owner_id, operation_name, p_idempotency_key, p_request_hash, 'completed', jsonb_build_object('exportIds', created_ids));
 end;
 $$;
-comment on function public.server_create_exports(uuid, uuid, bigint, text[], jsonb, text[], text, text) is '服务端固定项目快照并为每种基础格式原子创建引用型导出任务与安全回执';
+comment on function public.server_create_exports(uuid, uuid, bigint, text[], jsonb, text[], text, text) is '服务端固定项目快照并为 PNG、JPG、PDF、PPTX 或 MP4 原子创建引用型导出任务与安全回执';
 revoke execute on function public.server_create_exports(uuid, uuid, bigint, text[], jsonb, text[], text, text) from public, anon, authenticated;
 grant execute on function public.server_create_exports(uuid, uuid, bigint, text[], jsonb, text[], text, text) to service_role;
 
