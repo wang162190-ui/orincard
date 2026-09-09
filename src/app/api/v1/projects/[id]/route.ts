@@ -14,6 +14,8 @@ import {
   createServerSupabaseClient,
   requireVerifiedUser,
 } from "../../../../../server/supabase";
+import { createDeletionService, createSupabaseDeletionStore, deletionErrorResponse } from "../../../../../server/deletion";
+import { deletionCleanupDispatcher } from "../../../../../trigger/dispatch";
 
 async function context() {
   const environment = readServerEnvironment(process.env);
@@ -114,5 +116,22 @@ export async function PUT(
     });
   } catch (error) {
     return projectErrorResponse(error, requestId);
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  contextInput: { readonly params: Promise<{ readonly id: string }> },
+) {
+  const requestId = randomUUID();
+  try {
+    const [{ id }, { environment, ownerId }] = await Promise.all([contextInput.params, context()]);
+    assertTrustedWriteRequest(request, environment.appUrl);
+    const deletionId = await createDeletionService(createSupabaseDeletionStore(createAdminSupabaseClient())).requestProject(ownerId, id);
+    try { await deletionCleanupDispatcher.trigger({ jobId: deletionId, schemaVersion: 1, requestId }, `deletion:${deletionId}`); } catch { /* Durable request remains retryable. */ }
+    return Response.json({ data: { deletionId, state: "deleting" }, requestId }, { status: 202, headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) {
+    if (error instanceof ProjectServiceError) return projectErrorResponse(error, requestId);
+    return deletionErrorResponse(error, requestId);
   }
 }

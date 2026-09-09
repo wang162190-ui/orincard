@@ -14,6 +14,7 @@ export const BASIC_EXPORT_TASK_ID = "orincard-basic-export";
 // id lives here and the API route that dispatches a parse never imports the task module.
 export const PARSE_SOURCE_TASK_ID = "orincard-parse-source";
 export const SCREENSHOT_TASK_ID = "orincard-screenshot";
+export const CLEANUP_TASK_ID = "orincard-deletion-cleanup";
 
 function dispatcherFor(taskId: string): TriggerDispatcher {
   return {
@@ -25,6 +26,7 @@ function dispatcherFor(taskId: string): TriggerDispatcher {
 }
 
 export const triggerDispatcher: TriggerDispatcher = dispatcherFor(JOB_DISPATCH_TASK_ID);
+export const deletionCleanupDispatcher: TriggerDispatcher = dispatcherFor(CLEANUP_TASK_ID);
 
 const BY_JOB_KIND: Record<string, TriggerDispatcher> = {
   generation: dispatcherFor(GENERATION_TASK_ID),
