@@ -9,7 +9,18 @@ test.skip(!cloud, "Set ORINCARD_RUN_ASSETS_E2E=1 for the real B06 acceptance run
 test.use({ screenshot: "off", trace: "off" });
 test.setTimeout(20 * 60_000);
 
-type AssetRow = Readonly<{ id: string; owner_id: string; bucket: string; object_key: string; kind: string; state: string; accepted_at: string | null }>;
+type AssetRow = Readonly<{
+  id: string;
+  owner_id: string;
+  bucket: string;
+  object_key: string;
+  kind: string;
+  state: string;
+  accepted_at: string | null;
+  error_code: string | null;
+  width: number | null;
+  height: number | null;
+}>;
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
@@ -29,12 +40,19 @@ async function signIn(page: Page, appOrigin: string, email: string, password: st
 
 async function waitForAsset(admin: SupabaseClient, assetId: string): Promise<AssetRow> {
   for (let attempt = 0; attempt < 300; attempt += 1) {
-    const { data, error } = await admin.from("assets").select("id,owner_id,bucket,object_key,kind,state,accepted_at").eq("id", assetId).maybeSingle();
+    const { data, error } = await admin.from("assets").select("id,owner_id,bucket,object_key,kind,state,accepted_at,error_code,width,height").eq("id", assetId).maybeSingle();
     expect(error?.message).toBeUndefined();
-    if (data && ["ready", "failed"].includes(data.state)) return data as AssetRow;
+    if (data?.state === "failed") throw new Error(`Asset ${assetId} failed with ${data.error_code ?? "an unknown error"}.`);
+    if (data?.state === "ready") return data as AssetRow;
     await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
   throw new Error(`Asset ${assetId} did not finish within five minutes.`);
+}
+
+function pngDimensions(bytes: Uint8Array): { width: number; height: number } {
+  expect(Buffer.from(bytes.subarray(0, 8)).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))).toBe(true);
+  expect(Buffer.from(bytes.subarray(12, 16)).toString("ascii")).toBe("IHDR");
+  return { width: Buffer.from(bytes).readUInt32BE(16), height: Buffer.from(bytes).readUInt32BE(20) };
 }
 
 async function createProject(page: Page, appOrigin: string, title: string): Promise<string> {
@@ -97,7 +115,19 @@ test("T053 real asset and Brand Kit acceptance keeps providers, candidates, proj
     expect(screenshot.status(), await screenshot.text()).toBe(202);
     const screenshotId = ((await screenshot.json()) as { data: { assetId: string } }).data.assetId;
     assetIds.push(screenshotId);
-    expect(await waitForAsset(admin, screenshotId)).toMatchObject({ kind: "screenshot", state: "ready" });
+    const screenshotAsset = await waitForAsset(admin, screenshotId);
+    expect(screenshotAsset).toMatchObject({ kind: "screenshot", state: "ready" });
+    expect(screenshotAsset.width).toBeGreaterThan(0);
+    expect(screenshotAsset.height).toBeGreaterThan(0);
+    const screenshotObject = await admin.storage.from(screenshotAsset.bucket).download(screenshotAsset.object_key);
+    expect(screenshotObject.error?.message).toBeUndefined();
+    const dimensions = pngDimensions(new Uint8Array(await screenshotObject.data!.arrayBuffer()));
+    expect(dimensions).toEqual({ width: screenshotAsset.width, height: screenshotAsset.height });
+
+    const foreignScreenshot = await secondaryPage.request.delete(`/api/v1/assets/${screenshotId}`, {
+      headers: { origin: appOrigin }, data: { expectedState: "ready" },
+    });
+    expect(foreignScreenshot.status(), await foreignScreenshot.text()).toBe(404);
 
     async function generate(kind: "ai_image" | "portrait", prompt: string, referenceAssetId?: string) {
       const response = await page.request.post("/api/v1/assets/generate", {
