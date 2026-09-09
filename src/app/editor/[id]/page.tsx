@@ -19,7 +19,7 @@ const UUID_PATTERN =
 export default async function EditorPage({ params }: EditorPageProps) {
   const { id } = await params;
   let cloudProject:
-    | { readonly ownerId: string; readonly document: CarouselDocument }
+    | { readonly ownerId: string; readonly document: CarouselDocument; readonly revision: number }
     | undefined;
 
   if (UUID_PATTERN.test(id)) {
@@ -31,7 +31,7 @@ export default async function EditorPage({ params }: EditorPageProps) {
       });
       const ownerId = (await requireVerifiedUser(userClient)).id;
       const project = await createSupabaseProjectStore(createAdminSupabaseClient()).get(ownerId, id);
-      if (project) cloudProject = { ownerId, document: project.document };
+      if (project) cloudProject = { ownerId, document: project.document, revision: project.revision };
     } catch {
       cloudProject = undefined;
     }
@@ -42,6 +42,7 @@ export default async function EditorPage({ params }: EditorPageProps) {
       <Editor
         draftId={id}
         initialDocument={cloudProject?.document}
+        projectRevision={cloudProject?.revision}
         draftOwner={cloudProject ? { kind: "account", userId: cloudProject.ownerId } : undefined}
       />
     </WorkspaceShell>

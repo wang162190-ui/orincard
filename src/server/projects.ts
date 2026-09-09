@@ -28,6 +28,14 @@ export interface ProjectSummary {
   readonly updatedAt: string;
 }
 
+export interface ProjectVersionSummary {
+  readonly id: string;
+  readonly revision: number;
+  readonly reason: "manual" | "pre_generation" | "export" | "restore";
+  readonly createdAt: string;
+  readonly documentHash: string;
+}
+
 export interface ProjectWriteInput {
   readonly ownerId: string;
   readonly title: string;
@@ -40,6 +48,15 @@ export interface ProjectWriteInput {
 export interface ProjectSaveInput extends ProjectWriteInput {
   readonly projectId: string;
   readonly expectedRevision: number;
+}
+
+export interface ProjectRestoreInput {
+  readonly ownerId: string;
+  readonly projectId: string;
+  readonly versionId: string;
+  readonly expectedRevision: number;
+  readonly idempotencyKey: string;
+  readonly requestHash: string;
 }
 
 export interface ProjectListInput {
@@ -55,6 +72,8 @@ export interface ProjectStore {
   get(ownerId: string, projectId: string): Promise<ProjectRecord | null>;
   list(input: ProjectListInput): Promise<readonly ProjectSummary[]>;
   save(input: ProjectSaveInput): Promise<ProjectRecord>;
+  listVersions(ownerId: string, projectId: string, limit: number): Promise<readonly ProjectVersionSummary[]>;
+  restore(input: ProjectRestoreInput): Promise<ProjectRecord>;
 }
 
 export type ProjectServiceErrorCode =
@@ -93,6 +112,14 @@ interface ProjectRow {
   readonly updated_at: string;
 }
 
+interface ProjectVersionRow {
+  readonly id: string;
+  readonly revision: number;
+  readonly document: unknown;
+  readonly reason: ProjectVersionSummary["reason"];
+  readonly created_at: string;
+}
+
 interface DatabaseFailure extends Error {
   readonly code?: string;
 }
@@ -121,6 +148,16 @@ function summaryFromRow(row: Omit<ProjectRow, "document">): ProjectSummary {
     revision: Number(row.revision),
     state: row.state,
     updatedAt: row.updated_at,
+  };
+}
+
+function versionFromRow(row: ProjectVersionRow): ProjectVersionSummary {
+  return {
+    id: row.id,
+    revision: Number(row.revision),
+    reason: row.reason,
+    createdAt: row.created_at,
+    documentHash: projectDocumentHash(parseCarouselDocument(row.document)),
   };
 }
 
@@ -332,6 +369,31 @@ export function createSupabaseProjectStore(client: SupabaseClient): ProjectStore
       }
       return readWrittenProject(input.ownerId, data);
     },
+
+    async listVersions(ownerId, projectId, limit) {
+      const { data, error } = await client
+        .from("project_versions")
+        .select("id,revision,document,reason,created_at")
+        .eq("owner_id", ownerId)
+        .eq("project_id", projectId)
+        .order("revision", { ascending: false })
+        .limit(limit);
+      if (error) throw databaseFailure(error);
+      return (data ?? []).map((row) => versionFromRow(row as ProjectVersionRow));
+    },
+
+    async restore(input) {
+      const { data, error } = await client.rpc("server_restore_project", {
+        p_owner_id: input.ownerId,
+        p_project_id: input.projectId,
+        p_version_id: input.versionId,
+        p_expected_revision: input.expectedRevision,
+        p_idempotency_key: input.idempotencyKey,
+        p_request_hash: input.requestHash,
+      });
+      if (error) throw databaseFailure(error);
+      return readWrittenProject(input.ownerId, data);
+    },
   };
 }
 
@@ -478,6 +540,49 @@ export function createProjectService(input: {
           title: document.title,
           platform: document.platform,
           document,
+          idempotencyKey: key,
+          requestHash: hash,
+        });
+      } catch (error) {
+        throwDatabaseError(error);
+      }
+    },
+
+    async listVersions(ownerId: string, projectId: string, limit: unknown = 30) {
+      if (!UUID_PATTERN.test(projectId)) {
+        throw new ProjectServiceError("NOT_FOUND", "Project not found.", 404);
+      }
+      const safeLimit = Number.isSafeInteger(Number(limit)) ? Math.min(50, Math.max(1, Number(limit))) : 30;
+      try {
+        // Confirming the current project first ensures a guessed project ID and a project
+        // with no versions both produce the same owner-safe response.
+        const project = await input.store.get(ownerId, projectId);
+        if (!project) throw new ProjectServiceError("NOT_FOUND", "Project not found.", 404);
+        return await input.store.listVersions(ownerId, projectId, safeLimit);
+      } catch (error) {
+        if (error instanceof ProjectServiceError) throw error;
+        throwDatabaseError(error);
+      }
+    },
+
+    async restore(
+      ownerId: string,
+      projectId: string,
+      body: { readonly versionId: unknown; readonly expectedRevision: unknown },
+      idempotencyKey: string,
+    ) {
+      if (!UUID_PATTERN.test(projectId) || typeof body.versionId !== "string" || !UUID_PATTERN.test(body.versionId)) {
+        throw new ProjectServiceError("NOT_FOUND", "Project version not found.", 404);
+      }
+      const expectedRevision = requireExpectedRevision(body.expectedRevision);
+      const key = requireIdempotencyKey(idempotencyKey);
+      const hash = requestHash(input.requestHashSecret, "restore_project", { projectId, versionId: body.versionId, expectedRevision });
+      try {
+        return await input.store.restore({
+          ownerId,
+          projectId,
+          versionId: body.versionId,
+          expectedRevision,
           idempotencyKey: key,
           requestHash: hash,
         });

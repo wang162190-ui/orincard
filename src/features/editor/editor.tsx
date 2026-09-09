@@ -54,6 +54,7 @@ import {
 import { SlidePanel } from "./slide-panel";
 import { ThemePanel } from "./theme-panel";
 import { EditorMedia } from "../assets/editor-media";
+import { VersionHistory } from "./versions";
 
 const EMPTY_ASSETS: Readonly<Record<string, SlideRenderAsset | undefined>> = {};
 const MODES: ReadonlyArray<{ id: Slide["mode"]; label: string }> = [
@@ -66,6 +67,7 @@ const MODES: ReadonlyArray<{ id: Slide["mode"]; label: string }> = [
 export interface EditorProps {
   readonly draftId: string;
   readonly initialDocument?: CarouselDocument;
+  readonly projectRevision?: number;
   readonly assets?: Readonly<Record<string, SlideRenderAsset | undefined>>;
   readonly draftOwner?: DraftOwner;
   readonly draftStore?: EditorDraftStore | null;
@@ -238,6 +240,7 @@ function uniqueSlideId(prefix: string): string {
 export function Editor({
   draftId,
   initialDocument,
+  projectRevision,
   assets = EMPTY_ASSETS,
   draftOwner,
   draftStore,
@@ -786,6 +789,8 @@ export function Editor({
               <ThemePanel document={state.document} onChange={applyAppearance} />
             </PanelBody>
           </Panel>
+
+          {draftOwner?.kind === "account" && projectRevision ? <VersionHistory projectId={draftId} revision={projectRevision} /> : null}
         </div>
       </div>
     </div>

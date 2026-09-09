@@ -37,6 +37,8 @@ function store(overrides: Partial<ProjectStore> = {}): ProjectStore {
     get: vi.fn(),
     list: vi.fn(),
     save: vi.fn(),
+    listVersions: vi.fn(),
+    restore: vi.fn(),
     ...overrides,
   };
 }
