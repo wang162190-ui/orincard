@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { readStripeBillingConfig } from "../../src/server/billing/stripe";
 
 // T088 release guards. Every check here is a blocking condition: it reads the repository as it
 // stands and fails when the evidence for shipping is missing. Nothing in this file contacts a
@@ -235,13 +234,9 @@ function stripeVariablesReadBySource(): readonly string[] {
   return [...names].sort();
 }
 
-/** Names only. Neither helper returns, logs or asserts on a credential value. */
+/** Names only. This never returns, logs or asserts on a credential value. */
 function missingEnvironment(names: readonly string[]): readonly string[] {
   return names.filter((name) => (process.env[name]?.trim() ?? "") === "");
-}
-
-function configuredEnvironment(names: readonly string[]): readonly string[] {
-  return names.filter((name) => (process.env[name]?.trim() ?? "") !== "");
 }
 
 const REQUIRED_STRIPE_RUNTIME = [
@@ -253,101 +248,38 @@ const REQUIRED_STRIPE_RUNTIME = [
   "RUN_STRIPE_SANDBOX_LIFECYCLE",
 ] as const;
 
-const STRIPE_CREDENTIALS = ["STRIPE_TEST_SECRET_KEY", "STRIPE_LIVE_SECRET_KEY", "STRIPE_SECRET_KEY"] as const;
-
-/**
- * Which posture the release is in. Configuring any Stripe credential — or opting into the
- * Sandbox lifecycle — switches the guard from "payment is dormant" to the full payment
- * readiness set. Nothing is skipped either way: both branches assert, and the documented
- * posture in docs/acceptance/security.md has to agree with what the environment says.
- */
-const paymentEnabled =
-  STRIPE_CREDENTIALS.some((name) => (process.env[name]?.trim() ?? "") !== "") ||
-  process.env.RUN_STRIPE_SANDBOX_LIFECYCLE?.trim() === "1";
-const posture = paymentEnabled ? "payment-enabled" : "no-payment";
-
-const DORMANT_MUST_BE_UNSET = [
-  ...STRIPE_CREDENTIALS,
-  "STRIPE_WEBHOOK_SECRET",
-  "STRIPE_TEST_MONTHLY_PRICES_JSON",
-  "STRIPE_TEST_YEARLY_PRICES_JSON",
-  "STRIPE_TEST_PROMOTION_CODES_JSON",
-  "STRIPE_TEST_ACCEPTANCE_PLAN_KEY",
-] as const;
-
-describe("T088 guard 3 — the payment posture is declared and honoured", () => {
-  it("agrees with docs/acceptance/security.md on the posture", () => {
-    const declared = /^发布姿态：(\S+)$/m.exec(read("docs/acceptance/security.md"))?.[1] ?? "";
-    expect(declared, `The environment is in "${posture}" but security.md declares "${declared || "(未声明)"}".`).toBe(posture);
-  });
-
-  it("keeps every charging path unreachable while the release excludes payment", async () => {
-    if (paymentEnabled) {
-      expect(() => readStripeBillingConfig(process.env), "Payment is enabled, so the Stripe configuration must parse.").not.toThrow();
-      return;
-    }
-    expect(() => readStripeBillingConfig(process.env), "No payment is configured, so reading a billing config must refuse.").toThrow("BILLING_NOT_CONFIGURED");
-    // Exercise the real route handler rather than trusting the config helper alone.
-    const { createCheckoutHandler } = await import("../../src/app/api/v1/billing/checkout/route");
-    const handler = createCheckoutHandler({
-      authenticate: async () => { throw new Error("checkout must refuse before it authenticates"); },
-      environment: {} as NodeJS.ProcessEnv,
-      store: { find: async () => null, save: async () => "" },
-    });
-    const response = await handler(new Request("https://orincard.invalid/api/v1/billing/checkout", { method: "POST" }));
-    const body = await response.json() as { error?: { code?: string } };
-    expect(response.status, "Checkout must answer 503 while payment is dormant.").toBe(503);
-    expect(body.error?.code, "Checkout must answer BILLING_NOT_CONFIGURED while payment is dormant.").toBe("BILLING_NOT_CONFIGURED");
-  });
-
-  it("has the full Stripe test-mode configuration whenever payment is enabled", () => {
-    if (!paymentEnabled) {
-      // The inverse assertion: a no-payment release must carry no payment configuration at all,
-      // including the webhook secret and Price maps that the posture flag does not itself cover.
-      expect(configuredEnvironment(DORMANT_MUST_BE_UNSET), "Payment configuration is present in a no-payment release (names only, values never read).").toEqual([]);
-      return;
-    }
-    expect(missingEnvironment([...REQUIRED_STRIPE_RUNTIME]), "Payment is enabled but these variables are unset.").toEqual([]);
-    expect((process.env.STRIPE_TEST_SECRET_KEY ?? "").trim().startsWith("sk_test_"), "STRIPE_TEST_SECRET_KEY is not a test-mode key (value never printed).").toBe(true);
-    expect((process.env.STRIPE_TEST_MONTHLY_PRICES_JSON ?? "").includes("price_"), "STRIPE_TEST_MONTHLY_PRICES_JSON carries no price_ id.").toBe(true);
-    expect((process.env.STRIPE_LIVE_SECRET_KEY ?? "").trim(), "A live Stripe key must never be present during acceptance.").toBe("");
+describe("T088 guard 3 — payment configuration and policy are complete", () => {
+  it("documents every STRIPE_* variable the source reads in .env.example", () => {
     const documented = new Set([...read(".env.example").matchAll(/^(STRIPE_[A-Z0-9_]+)=/gm)].map((match) => match[1] ?? ""));
-    expect(stripeVariablesReadBySource().filter((name) => !documented.has(name)), "src/ reads STRIPE_* variables that .env.example does not document.").toEqual([]);
+    const undocumented = stripeVariablesReadBySource().filter((name) => !documented.has(name));
+    expect(undocumented, "src/ reads STRIPE_* variables that .env.example does not document.").toEqual([]);
   });
 
-  it("has approved policy copy covering subscription, cancellation and refunds whenever payment is enabled", () => {
-    const statuses = ["content/legal/terms.mdx", "content/legal/privacy.mdx", "content/legal/affiliate.mdx"].map((file) => ({
-      file,
-      status: /^publicationStatus:\s*(\S+)/m.exec(read(file))?.[1] ?? "",
-    }));
-    if (!paymentEnabled) {
-      // Draft is the correct state here, but the pages must still not be presented as approved.
-      expect(statuses.filter((entry) => entry.status !== "draft").map((entry) => entry.file), "Legal pages must stay draft until a human approves the exact text.").toEqual([]);
-      return;
+  it("has the Stripe test-mode configuration present", () => {
+    // Presence only. The single value inspection below is a prefix check that never prints.
+    expect(missingEnvironment([...REQUIRED_STRIPE_RUNTIME]), "Release is blocked until these variables are configured in the operator's own shell.").toEqual([]);
+  });
+
+  it("refuses anything but a Stripe test key and a test Price mapping", () => {
+    const secretKey = process.env.STRIPE_TEST_SECRET_KEY?.trim() ?? "";
+    expect(secretKey.startsWith("sk_test_"), "STRIPE_TEST_SECRET_KEY is absent or is not a test-mode key (value never printed).").toBe(true);
+    expect((process.env.STRIPE_TEST_MONTHLY_PRICES_JSON ?? "").includes("price_"), "STRIPE_TEST_MONTHLY_PRICES_JSON carries no price_ id.").toBe(true);
+    expect(process.env.STRIPE_LIVE_SECRET_KEY?.trim() ?? "", "A live Stripe key must never be present during acceptance.").toBe("");
+  });
+
+  it("ships approved payment policy copy", () => {
+    for (const file of ["content/legal/terms.mdx", "content/legal/privacy.mdx", "content/legal/affiliate.mdx"]) {
+      const contents = read(file);
+      const status = /^publicationStatus:\s*(\S+)/m.exec(contents)?.[1] ?? "";
+      expect(status, `${file} is still ${status || "unlabelled"}; approved policy copy is a release precondition.`).toBe("approved");
     }
-    expect(statuses.filter((entry) => entry.status !== "approved").map((entry) => entry.file), "Payment is enabled but the policy copy is not approved.").toEqual([]);
+  });
+
+  it("covers subscription, cancellation and refund terms in the copy", () => {
     const terms = read("content/legal/terms.mdx");
     for (const topic of ["subscription", "cancellation", "refund"]) {
       expect(new RegExp(topic, "i").test(terms), `content/legal/terms.mdx does not cover ${topic}.`).toBe(true);
     }
-  });
-
-  it("never advertises a price the policy has not approved", () => {
-    if (paymentEnabled) return;
-    const pricing = read("src/app/pricing/page.tsx");
-    const amounts = [...pricing.matchAll(/[$¥€£]\s?\d|\b\d+(?:\.\d+)?\s*(?:\/\s*(?:mo|month|yr|year)|USD|CNY|EUR)/gi)].map((match) => match[0]);
-    expect(amounts, "The pricing page shows an amount while no plan or policy is approved.").toEqual([]);
-  });
-
-  it("keeps the waitlist copy consistent with what it actually does", () => {
-    const dialog = read("src/features/billing/upgrade-dialog.tsx");
-    const submits = /\bfetch\s*\(|\baction\s*=\s*["'`]https?:/.test(dialog);
-    if (!submits) {
-      // It stores nothing, so it must not imply that it does.
-      expect(/not been submitted or stored|no email is sent or stored/i.test(dialog), "The waitlist form sends nothing but its copy does not say so.").toBe(true);
-      return;
-    }
-    expect(/waitlist/i.test(read("content/legal/privacy.mdx")), "The waitlist now submits an email but privacy.mdx does not cover it.").toBe(true);
   });
 });
 

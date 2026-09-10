@@ -10,27 +10,8 @@
 |---|---|
 | 1 未知许可 | 用 `git ls-files` 枚举随仓库分发的素材：字体/图片/音视频/PDF/PPTX/压缩包等二进制扩展名，加上 `content/templates.json`、`tests/fixtures/*.json`、`docs/design/reference/**` 的 html/css/js/json。每个文件必须在 `docs/licenses/assets.md` 第 1 节有一行；缺行失败，许可列或证据列写着未知（含空、`-`、`TBD`、`未知`）失败，清单里列了已不存在的文件也失败。第 2 节与 `src/render/font-manifest.json` 的字体 `id` 集合双向比对。第 3 节与 `tests/fixtures/rights.json` 做双向集合比较并逐条比对 `license` 与 `redistribution`，任一不一致失败；第 1 节引用的 rightsId 必须在 `rights.json` 里定义；`tests/fixtures/corpus.json` 每条样本的 `rightsId` 也必须在 `rights.json` 里定义 |
 | 2 模型资格 | 从 `src/**/*.ts` 抽取实际写死的模型标识——`model:` / `resourceId:` 字面量、`AI_*_MODEL` 常量、`process.env.AI_*_MODEL ?? "…"` 的兜底值——与 `docs/licenses/assets.md` 第 4 节双向比对。出现未登记模型失败；登记了代码已不再调用的模型失败；登记行缺用途、商用资格或数据留存说明失败。另有一条防空转断言：抽取结果为空即失败，避免正则失效后守卫 2 空跑通过 |
-| 3 支付姿态 | 见下节。守卫按环境实际配置在两种姿态间切换，两条分支都断言，没有 skip |
+| 3 支付政策 | `src/**` 里读到的每个 `STRIPE_*` 变量（含 `readStripeBillingConfig` 按 `${prefix}_` 拼出的那批）必须在 `.env.example` 有文档条目；`STRIPE_TEST_SECRET_KEY`、`STRIPE_TEST_MONTHLY_PRICES_JSON`、`STRIPE_TEST_ACCEPTANCE_PLAN_KEY`、`STRIPE_WEBHOOK_SECRET`、`NEXT_PUBLIC_APP_URL`、`RUN_STRIPE_SANDBOX_LIFECYCLE` 必须已配置；密钥必须是 `sk_test_` 前缀且 `STRIPE_LIVE_SECRET_KEY` 必须不存在；`content/legal/` 三份政策的 `publicationStatus` 必须为 `approved`，且 terms 需覆盖 subscription / cancellation / refund |
 | 4 待发布内容扫描 | 除 `.env.example` 外不得有任何 `.env*` 被 Git 跟踪；文本类文件不得命中凭据形状（`sk_live_`/`sk_test_` 后接 16 位以上、`eyJhbGciOi` 开头的 JWT、PEM 私钥块、已命名密钥变量的非空赋值），命中时只报文件名与形状类别，不回显匹配文本；`tests/fixtures/corpus.json` 里长度 ≥24 的内联正文不得出现在 `tests/fixtures/` 之外的任何跟踪文件里；第 1 节中许可或证据为未知的素材不得存在于仓库 |
-
-### 支付姿态
-
-发布姿态：no-payment
-
-本次发布不接入 Stripe，付费入口以 joinlist（waitlist）形态呈现。守卫 3 读取环境变量的存在性来判定姿态：`STRIPE_TEST_SECRET_KEY`、`STRIPE_LIVE_SECRET_KEY`、`STRIPE_SECRET_KEY` 任一非空，或 `RUN_STRIPE_SANDBOX_LIFECYCLE=1`，即为 `payment-enabled`，否则为 `no-payment`。**上面这行「发布姿态：」必须与环境判定一致，不一致即失败**——有人配上 Stripe 却没改本文档，或改了本文档却没配，都会被拦住。
-
-`no-payment` 姿态下断言的是「收费路径确实不可达、且没有对外承诺」：
-
-- `readStripeBillingConfig(process.env)` 必须抛 `BILLING_NOT_CONFIGURED`；
-- 直接调用真实的 `createCheckoutHandler`（空环境、认证回调设为「一旦被调用就报错」）必须返回 `503` 且错误码为 `BILLING_NOT_CONFIGURED`，即在认证之前就拒绝；
-- `STRIPE_WEBHOOK_SECRET` 与三个 Price/Promotion 映射、`STRIPE_TEST_ACCEPTANCE_PLAN_KEY` 必须全部未配置——只报变量名，不读值；
-- `content/legal/` 三份政策必须仍是 `draft`（此姿态下 draft 才是正确状态，被冒然改成 `approved` 反而失败）；
-- `src/app/pricing/page.tsx` 不得出现任何金额字面量（`$12`、`12/mo`、`12 USD` 之类）；
-- `src/features/billing/upgrade-dialog.tsx` 的文案必须与其行为一致：它当前不发起任何网络请求，因此必须明说邮箱未被提交或存储；一旦它开始提交，`content/legal/privacy.mdx` 必须先覆盖 waitlist 邮箱的处理。
-
-`payment-enabled` 姿态下自动重新武装原来的严格集合：六个变量齐备、密钥为 `sk_test_` 前缀、`STRIPE_LIVE_SECRET_KEY` 不存在、Price 映射含 `price_`、`src/**` 读到的每个 `STRIPE_*` 都在 `.env.example` 有条目、三份政策为 `approved` 且 terms 覆盖 subscription / cancellation / refund。**接 Stripe 时不需要改守卫，配上变量它自己就变严。**
-
-已知未闭合项，留给接 Stripe 的那一轮：`.env.example` 文档化的是 `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`，而 `readStripeBillingConfig` 实际读 `STRIPE_TEST_SECRET_KEY`、`STRIPE_TEST_MONTHLY_PRICES_JSON`、`STRIPE_TEST_YEARLY_PRICES_JSON`、`STRIPE_TEST_PROMOTION_CODES_JSON`，这四个变量在 `.env.example` 里没有条目；`src/trigger/reconcile-billing.ts` 读的仍是不带 `TEST` 前缀的 `STRIPE_SECRET_KEY`，与 checkout 路径不一致。另有 `.env.example` 里的 `BILLING_LIVE_ENABLED` 与 `AFFILIATE_PAYOUTS_ENABLED` 全仓库无任何代码读取，是两个失效的开关，不构成保险。本批次未修，因为这些文件不在 T088 允许改动的清单内。
 
 守卫 3 需要的变量由运行者在自己的终端配置。缺变量时用例**显式失败并点名缺哪一个**，不会 skip 后当作通过；本文件与测试都不读取 `.env.local`。
 
@@ -48,7 +29,7 @@ cd /Users/www.macpe.cn/Documents/ChatGPT/Orincard-walking-skeleton
 pnpm exec vitest run tests/cloud/release-guards.test.ts
 ```
 
-`no-payment` 姿态不需要任何 Stripe 变量，上面这条命令直接跑即可。将来接 Stripe 时，在同一 shell 里配好下列变量（值由运行者自己持有，不粘贴、不入库、不写进本文件），并把本文档的「发布姿态：」改为 `payment-enabled`：
+守卫 3 需要在同一 shell 里先行配置（值由运行者自己持有，不粘贴、不入库、不写进本文件）：
 
 ```sh
 export STRIPE_TEST_SECRET_KEY=…          # 必须 sk_test_ 前缀
