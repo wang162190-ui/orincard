@@ -423,37 +423,37 @@
 
 ## B08
 
-- [ ] T062 `src/domain/tools.ts`, `src/features/tools/registry.ts`, `tests/unit/tools.test.ts` — 定义七工具输入/结果类型和上下文选择 → AC-010
+- [x] T062 `src/domain/tools.ts`, `src/features/tools/registry.ts`, `tests/unit/tools.test.ts` — 定义七工具输入/结果类型和上下文选择 → AC-010
   - Batch: B08
   - Depends: T061
   - Check: `pnpm exec vitest run tests/unit/tools.test.ts`
   - Expect: 七tool枚举和结果契约完整；只继承用户勾选的上下文。
 
-- [ ] T063 `src/server/tools/text-tools.ts`, `src/trigger/tool.ts`, `tests/cloud/text-tools.test.ts` — 实现Caption/LinkedIn Post/Post Ideas → AC-010
+- [x] T063 `src/server/tools/text-tools.ts`, `src/trigger/tool.ts`, `tests/cloud/text-tools.test.ts` — 实现Caption/LinkedIn Post/Post Ideas → AC-010
   - Batch: B08
   - Depends: T062
   - Check: `pnpm exec vitest run tests/cloud/text-tools.test.ts`
   - Expect: 空输入/项目入口均可生成，修改建议不直接写原项目。
 
-- [ ] T064 `src/server/tools/visual-tools.ts`, `src/render/tool-templates.tsx`, `tests/cloud/visual-tools.test.ts` — 实现Quote/Infographic/Portrait/Carousel-to-Video → AC-005, AC-006, AC-010
+- [x] T064 `src/server/tools/visual-tools.ts`, `src/render/tool-templates.tsx`, `tests/cloud/visual-tools.test.ts` — 实现Quote/Infographic/Portrait/Carousel-to-Video → AC-005, AC-006, AC-010
   - Batch: B08
   - Depends: T063
   - Check: `pnpm exec vitest run tests/cloud/visual-tools.test.ts`
   - Expect: 复用图片/渲染任务，Quote不伪造名人名言，工具尺寸有独立类型。
 
-- [ ] T065 `src/server/tools/outputs.ts`, `src/app/api/v1/tools/outputs/[id]/download/route.ts`, `tests/cloud/tool-outputs.test.ts` — 实现不绑定轮播的独立工具产物与下载 → AC-006, AC-010
+- [x] T065 `src/server/tools/outputs.ts`, `src/app/api/v1/tools/outputs/[id]/download/route.ts`, `tests/cloud/tool-outputs.test.ts` — 实现不绑定轮播的独立工具产物与下载 → AC-006, AC-010
   - Batch: B08
   - Depends: T064
   - Check: `pnpm exec vitest run tests/cloud/tool-outputs.test.ts`
   - Expect: 单张Quote/Infographic及独立MP4按owner/job授权下载；无需伪造4页项目，过期或删除后拒绝。
 
-- [ ] T066 `src/app/tools/page.tsx`, `src/app/tools/[tool]/page.tsx`, `src/app/api/v1/tools/[tool]/route.ts`, `src/app/api/v1/tools/[tool]/apply/route.ts`, `tests/e2e/tools.spec.ts` — 连接工具页面与显式应用 → AC-010, AC-011
+- [x] T066 `src/app/tools/page.tsx`, `src/app/tools/[tool]/page.tsx`, `src/app/api/v1/tools/[tool]/route.ts`, `src/app/api/v1/tools/[tool]/apply/route.ts`, `tests/e2e/tools.spec.ts` — 连接工具页面与显式应用 → AC-010, AC-011
   - Batch: B08
   - Depends: T065
   - Check: `pnpm exec playwright test tests/e2e/tools.spec.ts`
   - Expect: 七工具可独立访问，结果可复制/导出/确认应用，失败保留项目。
 
-- [ ] T067 `tests/cloud/tools-matrix.test.ts`, `docs/acceptance/tools.md` — 验收工具矩阵集成 → AC-010
+- [x] T067 `tests/cloud/tools-matrix.test.ts`, `docs/acceptance/tools.md` — 验收工具矩阵集成 → AC-010
   - Batch: B08
   - Depends: T066
   - Check: `pnpm exec vitest run tests/cloud/tools-matrix.test.ts`

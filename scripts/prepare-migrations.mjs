@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const developmentProjectRef = "ettuzeunkadkfnawawdy";
-const sources = ["identity.sql", "projects.sql", "assets.sql", "jobs-usage.sql", "ai-asset-budget.sql", "deletion.sql"];
+const sources = ["identity.sql", "projects.sql", "assets.sql", "jobs-usage.sql", "ai-asset-budget.sql", "deletion.sql", "tool-outputs.sql"];
 const target = resolve(
   root,
   "supabase/migrations/20260906000100_walking_skeleton.sql",
