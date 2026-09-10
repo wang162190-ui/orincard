@@ -28,6 +28,8 @@ pnpm exec vitest run tests/cloud/billing-lifecycle.test.ts
 
 ## Database gate
 
+The billing migration was applied to the development project on 2026-09-10 and `supabase/tests/billing.sql` passed 27/27 assertions through the IPv4 Session pooler. Trigger version `20260910.2` containing the reconciliation task was deployed successfully.
+
 The optional database run is isolated to a development Supabase project and refuses the configured production project reference:
 
 ```bash
