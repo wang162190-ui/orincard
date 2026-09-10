@@ -40,7 +40,7 @@ describe("walking skeleton migration", () => {
     );
     expect(productionRejected.status).not.toBe(0);
     expect(productionRejected.stderr).toContain("production");
-    expect(migration.match(/-- source: supabase\/definitions\//g)).toHaveLength(7);
+    expect(migration.match(/-- source: supabase\/definitions\//g)).toHaveLength(8);
     expect(migration).toContain("comment on table public.profiles");
     expect(migration).toContain("comment on table public.projects");
     expect(migration).toContain("comment on table public.assets");

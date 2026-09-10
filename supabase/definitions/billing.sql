@@ -16,6 +16,22 @@ comment on type public.billing_plan_key is '服务端权益策略中的产品档
 comment on type public.subscription_status is '支付供应商订阅生命周期镜像';
 comment on type private.billing_event_status is '已验签账单事件的处理状态';
 
+create table if not exists public.billing_customers (
+  owner_id uuid not null references auth.users (id) on delete restrict,
+  environment text not null check (environment in ('test', 'live')),
+  provider_customer_id text not null unique check (length(btrim(provider_customer_id)) between 1 and 255),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (owner_id, environment)
+);
+
+comment on table public.billing_customers is '服务端维护的账户与支付供应商 customer 映射';
+comment on column public.billing_customers.owner_id is '支付客户映射所属账户';
+comment on column public.billing_customers.environment is '严格隔离的 Stripe test 或 live 环境';
+comment on column public.billing_customers.provider_customer_id is 'Stripe Customer 标识，不是支付凭证';
+comment on column public.billing_customers.created_at is '首次建立映射时间（UTC）';
+comment on column public.billing_customers.updated_at is '映射最近更新时间（UTC）';
+
 create table if not exists public.subscriptions (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null unique references auth.users (id) on delete restrict,
@@ -175,9 +191,12 @@ drop trigger if exists billing_audit_is_append_only on private.billing_audit_log
 create trigger billing_audit_is_append_only before update or delete on private.billing_audit_log for each row execute function private.reject_billing_audit_mutation();
 
 alter table public.subscriptions enable row level security;
+alter table public.billing_customers enable row level security;
 alter table private.billing_events enable row level security;
 alter table private.billing_audit_log enable row level security;
 revoke all on table public.subscriptions from anon, authenticated, service_role;
+revoke all on table public.billing_customers from public, anon, authenticated, service_role;
+grant select, insert, update, delete on table public.billing_customers to service_role;
 grant select (id, plan_key, policy_version, status, current_period_start, current_period_end, cancel_at_period_end, updated_at) on table public.subscriptions to authenticated;
 grant select, insert, update, delete on table public.subscriptions to service_role;
 revoke all on table private.billing_events, private.billing_audit_log from public, anon, authenticated, service_role;

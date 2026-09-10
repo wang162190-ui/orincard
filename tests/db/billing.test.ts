@@ -11,6 +11,8 @@ describe("T069 billing database definition", () => {
   it("defines commented subscriptions, unique events and append-only audit", async () => {
     const [sql, policyTests] = await Promise.all([readFile(definitionPath, "utf8"), readFile(policyTestPath, "utf8")]);
     expect(sql.match(/comment on column public\.subscriptions\./g)).toHaveLength(12);
+    expect(sql.match(/comment on column public\.billing_customers\./g)).toHaveLength(5);
+    expect(sql).toContain("grant select, insert, update, delete on table public.billing_customers to service_role");
     expect(sql.match(/comment on column private\.billing_events\./g)).toHaveLength(8);
     expect(sql.match(/comment on column private\.billing_audit_log\./g)).toHaveLength(7);
     expect(sql).toContain("provider_event_id text primary key");

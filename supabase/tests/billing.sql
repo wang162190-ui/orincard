@@ -1,7 +1,8 @@
 begin;
 set local search_path = extensions, public, pg_catalog;
-select plan(25);
+select plan(27);
 
+select has_table('public', 'billing_customers', 'billing customers table exists');
 select has_table('public', 'subscriptions', 'subscriptions table exists');
 select has_table('private', 'billing_events', 'billing events table exists');
 select has_table('private', 'billing_audit_log', 'billing audit table exists');
@@ -13,6 +14,7 @@ select ok(not has_table_privilege('authenticated', 'private.billing_audit_log', 
 select ok(not has_function_privilege('authenticated', 'public.server_apply_billing_event(text,uuid,text,text,public.billing_plan_key,text,public.subscription_status,timestamptz,timestamptz,boolean,timestamptz,text,text,jsonb)', 'execute'), 'clients cannot apply billing events');
 select ok(not has_column_privilege('authenticated', 'public.subscriptions', 'provider_customer_id', 'select'), 'clients cannot read provider customer IDs');
 select ok(not has_column_privilege('authenticated', 'public.subscriptions', 'provider_subscription_id', 'select'), 'clients cannot read provider subscription IDs');
+select ok(not has_table_privilege('authenticated', 'public.billing_customers', 'select'), 'clients cannot read billing customer mappings');
 
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
