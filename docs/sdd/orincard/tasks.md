@@ -461,31 +461,31 @@
 
 ## B09
 
-- [ ] T068 `src/domain/entitlements.ts`, `src/server/billing/policy.ts`, `tests/unit/entitlements.test.ts` — 实现版本化权益策略和测试价目隔离 → AC-009
+- [x] T068 `src/domain/entitlements.ts`, `src/server/billing/policy.ts`, `tests/unit/entitlements.test.ts` — 实现版本化权益策略和测试价目隔离 → AC-009
   - Batch: B09
   - Depends: T067
   - Check: `pnpm exec vitest run tests/unit/entitlements.test.ts`
   - Expect: 客户端不能提权，生产缺真实policy拒绝开通，test_only不能装载生产。
 
-- [ ] T069 `supabase/definitions/billing.sql`, `supabase/tests/billing.sql`, `tests/db/billing.test.ts` — 定义订阅/事件/审计SQL → AC-009
+- [x] T069 `supabase/definitions/billing.sql`, `supabase/tests/billing.sql`, `tests/db/billing.test.ts` — 定义订阅/事件/审计SQL → AC-009
   - Batch: B09
   - Depends: T068
   - Check: `pnpm exec vitest run tests/db/billing.test.ts`
   - Expect: 注释齐全、事件唯一、不同发票不被时间戳错误合并。
 
-- [ ] T070 `src/server/billing/stripe.ts`, `src/app/api/v1/billing/checkout/route.ts`, `src/app/api/v1/billing/portal/route.ts`, `tests/cloud/checkout.test.ts` — 实现Stripe Checkout和Portal → AC-009
+- [x] T070 `src/server/billing/stripe.ts`, `src/app/api/v1/billing/checkout/route.ts`, `src/app/api/v1/billing/portal/route.ts`, `tests/cloud/checkout.test.ts` — 实现Stripe Checkout和Portal → AC-009
   - Batch: B09
   - Depends: T069
   - Check: `pnpm exec vitest run tests/cloud/checkout.test.ts`
   - Expect: 真实Sandbox可进入；customer/price和允许的promotion code由服务端控制，失效优惠码不生效，重复点击不重复开订阅。
 
-- [ ] T071 `src/app/api/v1/webhooks/stripe/route.ts`, `src/server/billing/events.ts`, `src/trigger/reconcile-billing.ts`, `tests/cloud/billing-events.test.ts` — 实现验签Webhook与订阅对账 → AC-009
+- [x] T071 `src/app/api/v1/webhooks/stripe/route.ts`, `src/server/billing/events.ts`, `src/trigger/reconcile-billing.ts`, `tests/cloud/billing-events.test.ts` — 实现验签Webhook与订阅对账 → AC-009
   - Batch: B09
   - Depends: T070
   - Check: `pnpm exec vitest run tests/cloud/billing-events.test.ts`
   - Expect: 无效签名拒绝、持久化后应答、重复/乱序收敛、失败可补偿。
 
-- [ ] T072 `src/app/billing/page.tsx`, `src/features/billing/upgrade-dialog.tsx`, `src/app/api/v1/billing/route.ts`, `tests/e2e/billing.spec.ts` — 实现账单页和额度/付费墙 → AC-009
+- [x] T072 `src/app/billing/page.tsx`, `src/features/billing/upgrade-dialog.tsx`, `src/app/api/v1/billing/route.ts`, `tests/e2e/billing.spec.ts` — 实现账单页和额度/付费墙 → AC-009
   - Batch: B09
   - Depends: T071
   - Check: `pnpm exec playwright test tests/e2e/billing.spec.ts`

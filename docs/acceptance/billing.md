@@ -4,7 +4,7 @@ Updated: 2026-09-10 (Asia/Shanghai)
 
 ## Current verdict
 
-T073 is **blocked for real lifecycle acceptance**. The development environment does not currently provide an approved Stripe test Price mapping (`STRIPE_TEST_MONTHLY_PRICES_JSON`) and explicit Sandbox lifecycle opt-in. No mock or local database assertion is recorded as a real Stripe subscription result.
+T073 is **blocked for real lifecycle acceptance**. T071 webhook reconciliation and T072 billing UI are implemented and locally verified, but the development environment does not currently provide an approved Stripe test Price mapping (`STRIPE_TEST_MONTHLY_PRICES_JSON`) and explicit Sandbox lifecycle opt-in. No mock or local database assertion is recorded as a real Stripe subscription result.
 
 The opt-in test in `tests/cloud/billing-lifecycle.test.ts` refuses live keys, requires a server-owned test Price mapping, creates real hosted Checkout and Portal sessions, and deletes its test customer. Run it only with:
 
@@ -40,6 +40,6 @@ Passing this gate proves the database event ledger, ordering rule, append-only a
 ## Release blockers
 
 - Configure approved Stripe **test** Price IDs and a test plan key; never use a live key or live Price in this test.
-- Complete and deploy T071 webhook verification/event reconciliation and T072 billing UI before lifecycle acceptance.
+- Deploy T071 webhook verification/event reconciliation with the Stripe test secret before lifecycle acceptance.
 - Run upgrade, renewal, failed payment, period-end cancellation and refund against Stripe Sandbox, then verify the subscription mirror and usage ledger after each signed event.
 - Run concurrent quota requests after the Sandbox entitlement grant and verify that total reserved plus consumed units never exceeds granted units.
