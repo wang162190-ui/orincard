@@ -6,6 +6,9 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Completed
 
+- 闭合 B08 视觉工具发布阻塞项：新增 `src/trigger/visual-tool.ts` worker，路由把 Quote Card / Infographic / Portrait / Carousel to Video 从 `503 TOOL_UNAVAILABLE` 分支移出，走与文本工具同一条幂等与任务派发路径。该错误码已从代码库中消失。Portrait 按 job id 预留并结算真实图片预算，生成物仍是候选，用户显式接受前不带 `accepted_at`。
+- 完成 B12 T090：20 份原创或明确授权的验收语料覆盖六来源与混排/OCR/媒体/恶意输入，授权登记在 `tests/fixtures/rights.json`，全部为 Orincard 原创或「不读取任何外部内容」，无版权不明素材。
+- 新增 `tests/cloud/visual-tools-live.test.ts`：由 `ORINCARD_RUN_VISUAL_TOOLS_CLOUD=1` 显式开启的真实端到端视觉工具验收驱动，缺变量时显式失败而非 skip。
 - 完成 B10 T074–T084：营销站与定价/等待名单入口、受控轮播模板、可信帮助与指南、公开 SEO 与私有 noindex、Affiliate 申请与归因、受控审批流、支持工单与三份法务草稿。三份法务文档保持 `draft` 且 `noindex`，未经人工批准精确版本与内容哈希不得发布。
 - 完成 B09 T068–T072：版本化权益策略、隔离的 Stripe Checkout 与 Portal、计费事件账本与客户持久化、签名事件对账、计费工作台 UI。
 - 完成 B08 T062–T067：显式工具契约与上下文选择、三项文本工具、仅候选的视觉工具、独立工具产物与授权下载、工具页面与显式应用。生成不改动项目，应用才创建新 revision。
@@ -30,6 +33,7 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Verified
 
+- B08 四条视觉工具于 2026-09-10 在 Trigger `20260910.3` 与开发 Supabase 上完成真实端到端验收，5 passed (183.85s)：Quote Card 真实 Chromium PNG 1080×1080 / 29,887 字节、Infographic 1080×1350 / 32,874 字节、Portrait 一次真实 APIMart GPT-Image-2 调用 1024×1024 / 1,777,066 字节、Carousel to Video 真实 ffmpeg MP4 4,600 字节 / 4,040 ms（`ffprobe` 确认 H.264 1080×1350）。四份产物的字节数与 SHA-256 由下载回的字节重新计算并与数据库登记值逐一比对一致，哈希记入 `docs/acceptance/tools.md`。
 - 开发库 `ettuzeunkadkfnawawdy` 的迁移状态经 `supabase migration list` 核对：22 个本地迁移文件与远端版本一一对应，无任何漂移；三个 B10 growth 迁移（`20260910124717`、`20260910210000`、`20260910211000`）确认已应用。该结果只证明 schema 状态，不构成任何 Affiliate 生命周期结论。
 - B09 计费迁移 `20260910160000_b09_billing.sql` 已应用到开发库，`supabase/tests/billing.sql` 经 IPv4 Session pooler 通过 27/27；含对账任务的 Trigger `20260910.2` 部署成功。该门禁只证明事件账本、顺序规则、只追加审计与 owner 隔离，不证明 Stripe 签名校验或任何真实订阅生命周期。
 - B08 迁移 `20260910130000_b08_tool_outputs.sql` 已应用到开发库，`supabase/tests/tool-outputs.sql` 通过 10/10；文本工具经 Trigger `20260910.1` 的 DeepSeek worker 契约完成。本机直连开发库为 IPv6-only，最终数据库验证改走 IPv4 Session pooler。
@@ -63,7 +67,9 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Known limitations
 
-- B08 的四条视觉工具路由（Quote Card、Infographic、Portrait、Carousel to Video）当前返回可重试的 `503 TOOL_UNAVAILABLE`，其 worker 尚未部署。候选渲染与供应商契约只经本地验证，**真实视觉供应商验收是发布阻塞项**；没有任何 mock 响应被记为供应商成功。
+- T092 跨账号与故障幂等矩阵阻塞：开发环境的 `ORINCARD_AUTH_OTHER_EMAIL` 与 `ORINCARD_AUTH_OTHER_PASSWORD` 变量名存在但值为空，`tests/cloud/security-matrix.test.ts` 按设计在 `beforeAll` 显式失败并点名缺失变量（1 failed / 7 skipped），**未取得任何真实云端证据，保持未勾选**。既有的 `tests/cloud/ownership-smoke.test.ts` 依赖同一对变量，同样从未真实执行过。
+- `tests/cloud/visual-tools.test.ts`、`tests/cloud/backup.test.ts` 与 `tests/cloud/operations.test.ts` 虽位于 `tests/cloud/` 目录，实为使用注入适配器的本地契约测试，不连接云资源；`pnpm test` 也按配置排除整个 `tests/cloud/**`，读取测试计数时不要把它们当成云端验收。
+- B08 真实视觉验收会在开发项目留下参考图与幻灯片夹具素材，归测试账号所有并标记为 Orincard 原创，没有自动清理。
 - T073 支付生命周期阻塞：开发环境缺经批准的 Stripe **测试** Price 映射（`STRIPE_TEST_MONTHLY_PRICES_JSON`）与 Sandbox 显式启用。升级、续费、扣款失败、期末取消、退款五条路径均未取得真实 Sandbox 结论。
 - T084 的 Affiliate 申请与看板浏览器检查使用受控路由 fixture，仅为可复现 UI 状态，**不作为开发 Supabase 或支付供应商证据**；付费转化、佣金与退款冲正生命周期同样阻塞于真实 Sandbox。
 - T085/T086/T087 代码已落地且 Check 在本地通过，但 GitHub Actions 与 Vercel 均未初始化，`tests/cloud/backup.test.ts` 与 `tests/cloud/operations.test.ts` 使用注入适配器，未连接任何云资源。三项按规则保持未勾选，不以本地断言充当真实发布、真实到期清理或真实隔离恢复演练。

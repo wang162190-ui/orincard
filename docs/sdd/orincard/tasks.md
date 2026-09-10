@@ -599,7 +599,7 @@
 
 ## B12
 
-- [ ] T090 [P] `tests/fixtures/corpus.json`, `tests/fixtures/rights.json`, `tests/unit/corpus.test.ts` — 建立20份授权全量验收语料清单 → AC-002, AC-005, AC-006
+- [x] T090 [P] `tests/fixtures/corpus.json`, `tests/fixtures/rights.json`, `tests/unit/corpus.test.ts` — 建立20份授权全量验收语料清单 → AC-002, AC-005, AC-006
   - Batch: B12
   - Parallel: B12-MATRIX/A
   - Depends: T087

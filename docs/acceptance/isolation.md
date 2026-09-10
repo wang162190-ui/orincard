@@ -34,4 +34,17 @@ pnpm test
 ORINCARD_RUN_SECURITY_MATRIX_CLOUD=1 pnpm exec vitest run tests/cloud/security-matrix.test.ts
 ```
 
-真实云端结果由协调线在跑完后补写。
+## 真实云端结果 — 2026-09-10 Blocked
+
+协调线在 2026-09-10 尝试执行，未能取得任何真实云端证据。用例按设计在 `beforeAll` 显式失败并点名缺失变量：
+
+```
+ORINCARD_RUN_SECURITY_MATRIX_CLOUD=1 requires development variables:
+ORINCARD_AUTH_OTHER_EMAIL, ORINCARD_AUTH_OTHER_PASSWORD
+```
+
+`Test Files 1 failed (1)`，`Tests 7 skipped (7)`。**这不是通过，T092 在 tasks.md 保持未勾选。**
+
+原因是开发环境缺第二个测试账号的凭据：这两个变量名存在但值为空。既有的 `tests/cloud/ownership-smoke.test.ts` 用的是同一对变量名，因此它同样从未真实跑过。另有一对 `ORINCARD_AUTH_SECONDARY_TEST_EMAIL` / `ORINCARD_AUTH_SECONDARY_TEST_PASSWORD` 是有值的，Playwright 的跨账号隔离用例一直用它，但仓库里没有任何依据能证明 `OTHER` 与 `SECONDARY` 指同一个账号，故未擅自改指向。
+
+解除条件：在自己的终端里为 `ORINCARD_AUTH_OTHER_EMAIL` 与 `ORINCARD_AUTH_OTHER_PASSWORD` 配置一个真实的第二开发账号，重跑上面的验收命令。届时 `ownership-smoke` 也一并解除封锁。
