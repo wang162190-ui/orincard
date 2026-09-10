@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "reviewedOn": "2026-09-10",
+  "reviewedBy": "orincard-team",
+  "entries": [
+    {
+      "rightsId": "orincard-editorial-copy",
+      "holder": "Orincard",
+      "origin": "original",
+      "license": "proprietary-owned",
+      "grant": "Written for Orincard by the team; may be reproduced, parsed, exported and screenshotted without limit inside the project.",
+      "acquiredOn": "2026-09-10",
+      "evidence": {
+        "kind": "statement",
+        "value": "Topic phrases and paragraphs typed into tests/fixtures/corpus.json by the Orincard team for T090; no external text was copied into them."
+      },
+      "redistribution": "internal-acceptance-only",
+      "notes": "Short original copy that lives inline in the corpus manifest. Kept internal because it is acceptance material, not published writing."
+    },
+    {
+      "rightsId": "orincard-repo-content",
+      "holder": "Orincard",
+      "origin": "original",
+      "license": "proprietary-owned",
+      "grant": "Long-form prose authored in this repository; full rights to parse, render and export.",
+      "acquiredOn": "2026-09-10",
+      "evidence": {
+        "kind": "repo-path",
+        "value": "content/guides/text-to-carousel.mdx"
+      },
+      "redistribution": "public",
+      "notes": "The guide and legal pages are the project's own publications, so their git history is the provenance record."
+    },
+    {
+      "rightsId": "orincard-hosted-page",
+      "holder": "Orincard",
+      "origin": "original",
+      "license": "proprietary-owned",
+      "grant": "Pages Orincard itself serves; fetching them is reading our own deployment, not a third party's site.",
+      "acquiredOn": "2026-09-10",
+      "evidence": {
+        "kind": "repo-path",
+        "value": "content/guides"
+      },
+      "redistribution": "public",
+      "notes": "The URL sample resolves the route against whichever Orincard deployment is under test; the bytes behind it are the repository file recorded alongside it."
+    },
+    {
+      "rightsId": "orincard-adversarial-input",
+      "holder": "Orincard",
+      "origin": "synthesised",
+      "license": "proprietary-owned",
+      "grant": "Hostile strings and archives constructed by the team to trip our own guards; free to use anywhere in testing.",
+      "acquiredOn": "2026-09-10",
+      "evidence": {
+        "kind": "repo-path",
+        "value": "src/server/sources/archive.ts"
+      },
+      "redistribution": "internal-acceptance-only",
+      "notes": "Each payload is built to hit a named rejection in archive.ts or safe-fetch.ts. Nothing is lifted from a public exploit corpus, so no upstream licence attaches."
+    },
+    {
+      "rightsId": "orincard-synthesised-media",
+      "holder": "Orincard",
+      "origin": "synthesised",
+      "license": "proprietary-owned",
+      "grant": "PDF, PPTX, audio and video artefacts produced locally from Orincard's own text; the derived files inherit the source's rights.",
+      "acquiredOn": "2026-09-10",
+      "evidence": {
+        "kind": "repo-path",
+        "value": "docs/licenses/parsers.md"
+      },
+      "redistribution": "internal-acceptance-only",
+      "notes": "Produced with the tools recorded in docs/licenses/parsers.md (poppler, tesseract, ffmpeg, macOS say) and pptxgenjs. Those tool licences cover the software, not the output; the output's rights come from the original text it was rendered from."
+    },
+    {
+      "rightsId": "no-material-ingested",
+      "holder": "none",
+      "origin": "not-ingested",
+      "license": "not-applicable-nothing-read",
+      "grant": "No content rights are claimed or needed: these inputs are classified and refused before any byte is fetched.",
+      "acquiredOn": "2026-09-10",
+      "evidence": {
+        "kind": "repo-path",
+        "value": "src/server/sources/video.ts"
+      },
+      "redistribution": "internal-acceptance-only",
+      "notes": "Covers platform watch pages and SSRF targets. classifyVideoUrl and safeFetch reject them on the address alone, so the corpus holds a URL string and never the material behind it. Recording them as licensed would be false; recording them as unknown would be worse."
+    }
+  ]
+}
