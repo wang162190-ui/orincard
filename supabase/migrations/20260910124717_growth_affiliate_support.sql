@@ -16,6 +16,7 @@ create table public.affiliate_accounts (
   application jsonb not null check (jsonb_typeof(application)='object' and not (application ?| array['tax_id','bank_account','password','api_key'])),
   state public.affiliate_state not null default 'applied', referral_code text unique,
   policy_version text, tax_status public.tax_status not null default 'missing', payout_reference text,
+  review_actor text, review_reason text, review_environment text,
   reviewed_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
   constraint affiliate_approval_fields check ((state='approved' and referral_code is not null and policy_version is not null and reviewed_at is not null) or state<>'approved')
 );
@@ -24,6 +25,7 @@ comment on column public.affiliate_accounts.id is 'Affiliate账户唯一标识';
 comment on column public.affiliate_accounts.application is '用户主动提交且排除税号、账户和密钥的申请资料'; comment on column public.affiliate_accounts.state is '受控审核状态';
 comment on column public.affiliate_accounts.referral_code is '批准时生成的唯一推荐码'; comment on column public.affiliate_accounts.policy_version is '批准采用的Affiliate政策版本';
 comment on column public.affiliate_accounts.tax_status is '税务资料核验状态'; comment on column public.affiliate_accounts.payout_reference is '仅服务端可读的受控收款记录编号';
+comment on column public.affiliate_accounts.review_actor is '执行审批的受控操作员标识'; comment on column public.affiliate_accounts.review_reason is '审批理由'; comment on column public.affiliate_accounts.review_environment is '审批发生的隔离环境';
 comment on column public.affiliate_accounts.reviewed_at is '最近审核时间'; comment on column public.affiliate_accounts.created_at is '申请创建时间'; comment on column public.affiliate_accounts.updated_at is '申请最近更新时间';
 
 create table public.referrals (
@@ -87,6 +89,16 @@ declare code text; begin
 end $$;
 comment on function public.server_review_affiliate(uuid,boolean,text) is '受控审批Affiliate并在批准时生成唯一推荐码';
 
+create or replace function public.server_review_affiliate(p_account_id uuid,p_approved boolean,p_policy_version text,p_reason text,p_actor text,p_environment text) returns text language plpgsql security definer set search_path='' as $$
+declare code text; begin
+ if length(btrim(p_actor))=0 or p_environment not in ('development','preview','production') then raise exception using errcode='22023',message='review audit context required'; end if;
+ if p_approved and length(btrim(p_policy_version))=0 then raise exception using errcode='22023',message='policy version required'; end if;
+ code := case when p_approved then upper(substr(replace(gen_random_uuid()::text,'-',''),1,12)) else null end;
+ update public.affiliate_accounts set state=case when p_approved then 'approved'::public.affiliate_state else 'rejected'::public.affiliate_state end,referral_code=code,policy_version=case when p_approved then p_policy_version else policy_version end,review_actor=p_actor,review_reason=p_reason,review_environment=p_environment,reviewed_at=now(),updated_at=now() where id=p_account_id returning referral_code into code;
+ if not found then raise exception using errcode='P0002',message='affiliate application not found'; end if; return code;
+end $$;
+comment on function public.server_review_affiliate(uuid,boolean,text,text,text,text) is '以申请ID受控审批Affiliate并持久化操作员、理由和环境审计';
+
 create or replace function public.server_attribute_referral(p_referred_owner_id uuid,p_code text,p_consent_at timestamptz,p_expires_at timestamptz) returns uuid language plpgsql security definer set search_path='' as $$
 declare account public.affiliate_accounts; result uuid; target_state public.referral_state; begin
  select * into account from public.affiliate_accounts where referral_code=p_code and state='approved';
@@ -121,4 +133,6 @@ create policy affiliate_read_own on public.affiliate_accounts for select to auth
 create policy support_read_own on public.support_tickets for select to authenticated using(owner_id=(select auth.uid()));
 create policy support_insert_own on public.support_tickets for insert to authenticated with check(owner_id=(select auth.uid()));
 revoke execute on function public.server_apply_affiliate(uuid,jsonb),public.server_review_affiliate(uuid,boolean,text),public.server_attribute_referral(uuid,text,timestamptz,timestamptz),public.server_record_commission(uuid,text,text,integer,text),public.server_reverse_commission(uuid,text) from public,anon,authenticated;
+revoke execute on function public.server_review_affiliate(uuid,boolean,text,text,text,text) from public,anon,authenticated;
 grant execute on function public.server_apply_affiliate(uuid,jsonb),public.server_review_affiliate(uuid,boolean,text),public.server_attribute_referral(uuid,text,timestamptz,timestamptz),public.server_record_commission(uuid,text,text,integer,text),public.server_reverse_commission(uuid,text) to service_role;
+grant execute on function public.server_review_affiliate(uuid,boolean,text,text,text,text) to service_role;

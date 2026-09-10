@@ -35,6 +35,6 @@ describe("controlled affiliate review", () => {
   it("uses the atomic audited review RPC", async () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ id: "audit-1" }), { status: 200 }));
     await reviewAffiliateApplication({ argv, environment, fetchImpl });
-    expect(fetchImpl).toHaveBeenCalledWith("https://db.test/rest/v1/rpc/review_affiliate_application", expect.objectContaining({ method: "POST", body: expect.stringContaining('"p_actor":"ops@example.test"') }));
+    expect(fetchImpl).toHaveBeenCalledWith("https://db.test/rest/v1/rpc/server_review_affiliate", expect.objectContaining({ method: "POST", body: expect.stringContaining('"p_actor":"ops@example.test"') }));
   });
 });

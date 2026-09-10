@@ -28,8 +28,16 @@ export function createAffiliateApplyHandler(dependencies: { readonly authenticat
 
 export function createSupabaseAffiliateApplicationStore(client: SupabaseClient): AffiliateApplicationStore {
   return {
-    async find(ownerId) { const result = await client.from("affiliate_applications").select("id,status").eq("owner_id", ownerId).maybeSingle(); if (result.error) throw result.error; return result.data; },
-    async create(input) { const result = await client.from("affiliate_applications").insert({ owner_id: input.ownerId, channel: input.channel, audience: input.audience, status: "pending" }).select("id,status").single(); if (result.error) throw result.error; return result.data; },
+    async find(ownerId) {
+      const result = await client.from("affiliate_accounts").select("id,state").eq("owner_id", ownerId).maybeSingle();
+      if (result.error) throw result.error;
+      return result.data ? { id: result.data.id, status: result.data.state === "applied" ? "pending" : result.data.state } : null;
+    },
+    async create(input) {
+      const result = await client.rpc("server_apply_affiliate", { p_owner_id: input.ownerId, p_application: { channel: input.channel, audience: input.audience } });
+      if (result.error) throw result.error;
+      return { id: String(result.data), status: "pending" };
+    },
   };
 }
 

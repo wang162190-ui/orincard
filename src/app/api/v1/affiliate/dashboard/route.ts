@@ -19,17 +19,17 @@ export function createAffiliateDashboardHandler(dependencies: { readonly authent
 
 export function createSupabaseAffiliateDashboardStore(client: SupabaseClient): AffiliateDashboardStore {
   return { async summary(ownerId) {
-    const applicationResult = await client.from("affiliate_applications").select("id,owner_id,status,code").eq("owner_id", ownerId).maybeSingle();
+    const applicationResult = await client.from("affiliate_accounts").select("id,owner_id,state,referral_code,policy_version").eq("owner_id", ownerId).maybeSingle();
     if (applicationResult.error) throw applicationResult.error;
     if (!applicationResult.data) return { application: null, clicks: 0, conversions: 0, ledger: [] };
-    const application = { id: applicationResult.data.id, ownerId: applicationResult.data.owner_id, status: applicationResult.data.status, code: applicationResult.data.code } as AffiliateApplication;
+    const application = { id: applicationResult.data.id, ownerId: applicationResult.data.owner_id, status: applicationResult.data.state === "applied" ? "pending" : applicationResult.data.state, code: applicationResult.data.referral_code, policyVersion: applicationResult.data.policy_version } as AffiliateApplication;
     const [clicks, conversions, ledger] = await Promise.all([
-      client.from("affiliate_attributions").select("id", { count: "exact", head: true }).eq("affiliate_id", application.id),
-      client.from("affiliate_conversions").select("id", { count: "exact", head: true }).eq("affiliate_id", application.id),
-      client.from("affiliate_commissions").select("kind,amount_cents").eq("affiliate_id", application.id),
+      client.from("referrals").select("id", { count: "exact", head: true }).eq("affiliate_account_id", application.id),
+      client.from("commissions").select("id,referrals!inner(affiliate_account_id)", { count: "exact", head: true }).eq("referrals.affiliate_account_id", application.id).is("reversal_of", null),
+      client.from("commissions").select("amount_minor,referrals!inner(affiliate_account_id)").eq("referrals.affiliate_account_id", application.id),
     ]);
     if (clicks.error) throw clicks.error; if (conversions.error) throw conversions.error; if (ledger.error) throw ledger.error;
-    return { application, clicks: clicks.count ?? 0, conversions: conversions.count ?? 0, ledger: (ledger.data ?? []).map((row) => ({ kind: row.kind as "commission" | "refund", amountCents: Number(row.amount_cents) })) };
+    return { application, clicks: clicks.count ?? 0, conversions: conversions.count ?? 0, ledger: (ledger.data ?? []).map((row) => ({ kind: Number(row.amount_minor) < 0 ? "refund" as const : "commission" as const, amountCents: Math.abs(Number(row.amount_minor)) })) };
   } };
 }
 

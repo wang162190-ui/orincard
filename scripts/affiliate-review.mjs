@@ -19,10 +19,10 @@ export async function reviewAffiliateApplication({ argv, environment, fetchImpl 
   if (!sameSecret(args.authorization, environment.AFFILIATE_REVIEW_TOKEN)) throw new Error("Affiliate review authorization failed.");
   if (!args.application || !["approved", "rejected"].includes(args.decision)) throw new Error("Application and approved/rejected decision are required.");
   if (!environment.NEXT_PUBLIC_SUPABASE_URL || !environment.SUPABASE_SECRET_KEY || !environment.AFFILIATE_REVIEW_ACTOR) throw new Error("Review backend and audit actor must be configured.");
-  const response = await fetchImpl(`${environment.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/review_affiliate_application`, {
+  const response = await fetchImpl(`${environment.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/server_review_affiliate`, {
     method: "POST",
     headers: { apikey: environment.SUPABASE_SECRET_KEY, authorization: `Bearer ${environment.SUPABASE_SECRET_KEY}`, "content-type": "application/json" },
-    body: JSON.stringify({ p_application_id: args.application, p_decision: args.decision, p_reason: args.reason ?? null, p_actor: environment.AFFILIATE_REVIEW_ACTOR, p_environment: target }),
+    body: JSON.stringify({ p_account_id: args.application, p_approved: args.decision === "approved", p_policy_version: args.policy ?? "affiliate-draft-v1", p_reason: args.reason ?? null, p_actor: environment.AFFILIATE_REVIEW_ACTOR, p_environment: target }),
   });
   if (!response.ok) throw new Error(`Affiliate review failed (${response.status}).`);
   return response.json();
