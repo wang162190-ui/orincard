@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-export type ContentKind = "help" | "guide";
+export type ContentKind = "help" | "guide" | "legal";
 
 export type ContentBlock =
   | { readonly kind: "heading"; readonly level: 2 | 3; readonly text: string }
@@ -28,6 +28,9 @@ const CATALOG: readonly CatalogEntry[] = [
   { kind: "help", slug: "export-and-restore", file: "help/export-and-restore.mdx" },
   { kind: "help", slug: "billing-and-cancellation", file: "help/billing-and-cancellation.mdx" },
   { kind: "guide", slug: "text-to-carousel", file: "guides/text-to-carousel.mdx" },
+  { kind: "legal", slug: "privacy", file: "legal/README.md" },
+  { kind: "legal", slug: "terms", file: "legal/README.md" },
+  { kind: "legal", slug: "affiliate", file: "legal/README.md" },
 ];
 
 export class ContentNotFoundError extends Error {
