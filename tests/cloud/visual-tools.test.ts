@@ -234,7 +234,7 @@ describe("T067 visual tool worker", () => {
     const succeeded = harness(request, { assets, portraitProvider: provider, portraitBudget: { reserve, settle } });
     await runVisualToolJob(succeeded.dependencies, PAYLOAD);
     expect(reserve).toHaveBeenCalledWith({ ownerId: OWNER_ID, jobId: JOB_ID, prompt: "A warm editorial portrait", referenceAssetId: REFERENCE_ID });
-    expect(settle).toHaveBeenCalledWith({ ownerId: OWNER_ID, jobId: JOB_ID, succeeded: true, bytes: Uint8Array.from([1, 2, 3]), providerOperationId: "provider-1", providerCostUsd: 0.02 });
+    expect(settle).toHaveBeenCalledWith({ ownerId: OWNER_ID, jobId: JOB_ID, succeeded: true, bytes: Buffer.from([1, 2, 3]), providerOperationId: "provider-1", providerCostUsd: 0.02 });
     expect(succeeded.persisted[0]).toMatchObject({ tool: "portrait", content: { kind: "image", width: 1024, height: 1024 } });
 
     const failingSettle = vi.fn(async () => {});
