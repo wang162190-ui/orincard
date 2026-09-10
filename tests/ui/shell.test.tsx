@@ -19,11 +19,11 @@ describe("application routes", () => {
     expect(markup).toContain('<html lang="en">');
   });
 
-  it("renders the root as a product workspace with a working create entry", () => {
+  it("renders the root as the public marketing page with a working create entry", () => {
     const markup = renderToStaticMarkup(<HomePage />);
 
-    expect(markup).toContain('data-page="workspace"');
-    expect(markup).toContain("Your workspace");
+    expect(markup).toContain("Turn what you know into a carousel worth saving.");
+    expect(markup).toContain("Join the waitlist");
     expect(markup).toContain('href="/create"');
     expect(markup).not.toContain("Prototype map");
     expect(markup).not.toContain(".html");
