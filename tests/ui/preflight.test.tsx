@@ -78,33 +78,41 @@ function measurements(
   };
 }
 
-type FakeFontFace = {
-  readonly family: string;
-  readonly status: "unloaded" | "loading" | "loaded" | "error";
-};
+function familyOf(font: string): string {
+  return font.replace(/^\s*\d+px\s+/, "").replace(/^['"]|['"]$/g, "");
+}
 
-const loadedFontFaces: readonly FakeFontFace[] = [
-  { family: '"Source Serif 4 Variable"', status: "loaded" },
-  { family: "Inter Variable", status: "loaded" },
-  { family: "Noto Sans SC", status: "loaded" },
-];
-
-function installFontFaces(
-  faces: readonly FakeFontFace[],
-  checkResult = true,
+/**
+ * A FontFaceSet that behaves the way a real one does: a family only reports ready for the
+ * exact text it was asked to load. Real webfonts ship as unicode-range subsets and the
+ * browser fetches only the subsets a rendered glyph needs, so a family is never "loaded"
+ * as a whole — it is loaded for some text.
+ */
+function installFontSet(
+  options: { readonly unavailable?: readonly string[]; readonly rejects?: readonly string[] } = {},
 ) {
-  const check = vi.fn().mockReturnValue(checkResult);
+  const unavailable = new Set(options.unavailable ?? []);
+  const rejects = new Set(options.rejects ?? []);
+  const loaded = new Set<string>();
+  const key = (family: string, text: string) => JSON.stringify([family, text]);
+
+  const load = vi.fn(async (font: string, text: string) => {
+    const family = familyOf(font);
+    if (rejects.has(family)) {
+      throw new Error(`${family} failed to load`);
+    }
+    if (!unavailable.has(family)) {
+      loaded.add(key(family, text));
+    }
+    return [];
+  });
+  const check = vi.fn((font: string, text = " ") => loaded.has(key(familyOf(font), text)));
+
   Object.defineProperty(document, "fonts", {
     configurable: true,
-    value: {
-      ready: Promise.resolve(),
-      check,
-      forEach(callback: (face: FakeFontFace) => void) {
-        faces.forEach(callback);
-      },
-    },
+    value: { ready: Promise.resolve(), load, check },
   });
-  return check;
+  return { load, check };
 }
 
 describe("SlideRenderer", () => {
@@ -357,13 +365,14 @@ describe("preflightVisualExport", () => {
       scrollWidth: { configurable: true, value: 101 },
       scrollHeight: { configurable: true, value: 20 },
     });
-    const check = installFontFaces(loadedFontFaces);
+    const { check } = installFontSet();
 
     const result = await preflightVisualExport(
       [input],
       createDomPreflightAdapter(container),
     );
 
+    // Fonts resolve, so the only issue left is the clipping this test set up.
     expect(result.issues).toEqual([
       expect.objectContaining({ code: "TEXT_OVERFLOW", slideId: input.slide.id }),
     ]);
@@ -374,31 +383,103 @@ describe("preflightVisualExport", () => {
     ]);
   });
 
-  it("blocks a selected family that check claims is available but is absent", async () => {
-    installFontFaces(loadedFontFaces.slice(0, 2), true);
-    const adapter = createDomPreflightAdapter(document);
+  it("does not treat a background shape that bleeds past the card as clipped text", async () => {
+    // Five of the six themes place `.orincard-slide__shape` outside the card with negative
+    // offsets and let `overflow: hidden` clip it. The card's own scrollWidth/scrollHeight
+    // therefore exceed its client box on a perfectly typeset slide.
+    const input = renderInput("text");
+    input.slide.eyebrow = "EYEBROW";
+    input.slide.cta = "Continue";
+    input.slide.counterVisible = true;
+    const { container } = render(<SlideRenderer input={input} />);
 
-    await expect(adapter.waitForFonts(renderInput())).resolves.toBe(false);
+    const card = container.querySelector<HTMLElement>("[data-slide-id]");
+    expect(card).toBeTruthy();
+
+    // The card itself also carries data-slide-content, so size its descendants first and
+    // give the card its bleeding dimensions last.
+    const content = card!.querySelectorAll<HTMLElement>("[data-slide-content]");
+    expect(content.length).toBeGreaterThan(0);
+    for (const element of content) {
+      Object.defineProperties(element, {
+        clientWidth: { configurable: true, value: 907 },
+        clientHeight: { configurable: true, value: 200 },
+        scrollWidth: { configurable: true, value: 907 },
+        scrollHeight: { configurable: true, value: 200 },
+      });
+    }
+    Object.defineProperties(card!, {
+      clientWidth: { configurable: true, value: 1080 },
+      clientHeight: { configurable: true, value: 1350 },
+      scrollWidth: { configurable: true, value: 1188 },
+      scrollHeight: { configurable: true, value: 1544 },
+    });
+    installFontSet();
+
+    const result = await preflightVisualExport(
+      [input],
+      createDomPreflightAdapter(container),
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.ok).toBe(true);
   });
 
-  it.each(["loading", "error"] as const)(
-    "blocks a selected family whose actual face status is %s",
-    async (status) => {
-      installFontFaces([
-        ...loadedFontFaces.slice(0, 2),
-        { family: "Noto Sans SC", status },
-      ]);
-      const adapter = createDomPreflightAdapter(document);
+  it("blocks a selected family the page cannot supply for this text", async () => {
+    const input = renderInput();
+    const { container } = render(<SlideRenderer input={input} />);
+    installFontSet({ unavailable: ["Noto Sans SC"] });
+    const adapter = createDomPreflightAdapter(container);
 
-      await expect(adapter.waitForFonts(renderInput())).resolves.toBe(false);
-    },
-  );
+    await expect(adapter.waitForFonts(input)).resolves.toBe(false);
+  });
 
-  it("allows the selected manifest families only when actual faces are loaded", async () => {
-    const check = installFontFaces(loadedFontFaces);
-    const adapter = createDomPreflightAdapter(document);
+  it("blocks a selected family whose load is rejected", async () => {
+    const input = renderInput();
+    const { container } = render(<SlideRenderer input={input} />);
+    installFontSet({ rejects: ["Noto Sans SC"] });
+    const adapter = createDomPreflightAdapter(container);
 
-    await expect(adapter.waitForFonts(renderInput())).resolves.toBe(true);
-    expect(check).toHaveBeenCalledTimes(3);
+    await expect(adapter.waitForFonts(input)).resolves.toBe(false);
+  });
+
+  it("asks for the slide's own text so unicode-range subsets are fetched", async () => {
+    const input = renderInput();
+    const { container } = render(<SlideRenderer input={input} />);
+    const text = container
+      .querySelector<HTMLElement>("[data-slide-id]")!
+      .textContent!.trim();
+    const { load, check } = installFontSet();
+    const adapter = createDomPreflightAdapter(container);
+
+    await expect(adapter.waitForFonts(input)).resolves.toBe(true);
+    expect(load.mock.calls).toEqual([
+      ['16px "Source Serif 4 Variable"', text],
+      ['16px "Inter Variable"', text],
+      ['16px "Noto Sans SC"', text],
+    ]);
+    // Never the bare family: checking without text asks about a subset the slide will not draw.
+    expect(check.mock.calls.every(([, asked]) => asked === text)).toBe(true);
+  });
+
+  it("does not report a font issue for a slide that typesets nothing", async () => {
+    const input = renderInput();
+    const { container } = render(<SlideRenderer input={input} />);
+    const slide = container.querySelector<HTMLElement>("[data-slide-id]")!;
+    slide.textContent = "";
+    const { load } = installFontSet({ unavailable: ["Noto Sans SC"] });
+    const adapter = createDomPreflightAdapter(container);
+
+    await expect(adapter.waitForFonts(input)).resolves.toBe(true);
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it("blocks when the slide is not rendered at all", async () => {
+    const input = renderInput();
+    render(<SlideRenderer input={input} />);
+    installFontSet();
+    const adapter = createDomPreflightAdapter(document.createElement("div"));
+
+    await expect(adapter.waitForFonts(input)).resolves.toBe(false);
   });
 });

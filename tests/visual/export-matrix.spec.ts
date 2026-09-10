@@ -234,10 +234,28 @@ function canvasPreflightAdapter(page: Page): PreflightMeasurementAdapter {
             (family) =>
               family.length > 0 && !["serif", "sans-serif", "monospace"].includes(family),
           );
-        return (
-          families.length > 0 &&
-          families.every((family) => document.fonts.check(`16px "${family}"`))
+        if (families.length === 0) {
+          return false;
+        }
+        // Same gate as the shipped createDomPreflightAdapter: ask for the glyphs this slide
+        // actually draws. Noto Sans SC ships as ~100 unicode-range subsets, so checking the
+        // bare family is false on any page that has not rendered CJK yet.
+        const text = slide.textContent?.trim() ?? "";
+        if (text.length === 0) {
+          return true;
+        }
+        const ready = await Promise.all(
+          families.map(async (family) => {
+            const font = `16px "${family}"`;
+            try {
+              await document.fonts.load(font, text);
+            } catch {
+              return false;
+            }
+            return document.fonts.check(font, text);
+          }),
         );
+        return ready.every(Boolean);
       }, input.slide.id);
     },
 
@@ -271,7 +289,12 @@ function canvasPreflightAdapter(page: Page): PreflightMeasurementAdapter {
         if (!slide) {
           return null;
         }
-        return [slide, ...slide.querySelectorAll<HTMLElement>("[data-slide-content]")].map(
+        // Same boxes as the shipped createDomPreflightAdapter: the card itself is excluded
+        // because a theme's background shape bleeds past its edge by design and is clipped
+        // by `overflow: hidden`, which the card's scrollWidth/scrollHeight cannot tell apart
+        // from clipped text.
+        const content = slide.querySelectorAll<HTMLElement>("[data-slide-content]");
+        return (content.length > 0 ? Array.from(content) : [slide]).map(
           (element) => ({
             clientWidth: element.clientWidth,
             clientHeight: element.clientHeight,

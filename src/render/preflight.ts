@@ -90,10 +90,6 @@ function selectedFontFamilies(fontPairId: string): readonly string[] {
     : [];
 }
 
-function normalizeFontFamily(family: string): string {
-  return family.trim().replace(/^['"]|['"]$/g, "").toLocaleLowerCase();
-}
-
 function requiredAssetIds(input: SlideRenderInput): readonly (string | null)[] {
   const ids: Array<string | null> = [];
   if (input.slide.mode !== "text") {
@@ -226,23 +222,40 @@ export function createDomPreflightAdapter(root: ParentNode): PreflightMeasuremen
       if (
         !fonts ||
         typeof fonts.check !== "function" ||
-        typeof fonts.forEach !== "function" ||
+        typeof fonts.load !== "function" ||
         families.length === 0
       ) {
         return false;
       }
+
+      // Gate on the glyphs this slide actually renders, not on the whole family. A CJK
+      // webfont ships as ~100 unicode-range subsets and a browser only fetches the subsets
+      // a rendered glyph needs, so "every face reports loaded" is never true on a real page
+      // and would block every export. Asking for the slide's own text loads exactly the
+      // subsets the export will draw with, which is what FONT_NOT_READY is meant to catch.
+      const slide = findSlide(root, input.slide.id);
+      if (!slide) {
+        return false;
+      }
+      const text = slide.textContent?.trim() ?? "";
+      if (text.length === 0) {
+        // Nothing to typeset, so no glyph can render in a fallback face.
+        return true;
+      }
+
       await fonts.ready;
-      const loadedFamilies = new Set<string>();
-      fonts.forEach((face) => {
-        if (face.status === "loaded") {
-          loadedFamilies.add(normalizeFontFamily(face.family));
-        }
-      });
-      return families.every(
-        (family) =>
-          loadedFamilies.has(normalizeFontFamily(family)) &&
-          fonts.check(`16px "${family}"`),
+      const ready = await Promise.all(
+        families.map(async (family) => {
+          const font = `16px "${family}"`;
+          try {
+            await fonts.load(font, text);
+          } catch {
+            return false;
+          }
+          return fonts.check(font, text);
+        }),
       );
+      return ready.every(Boolean);
     },
 
     async waitForImage(input, asset) {
@@ -270,11 +283,15 @@ export function createDomPreflightAdapter(root: ParentNode): PreflightMeasuremen
         throw new Error(`Slide ${input.slide.id} is not rendered.`);
       }
 
-      const content = [
-        slide,
-        ...slide.querySelectorAll<HTMLElement>("[data-slide-content]"),
-      ];
-      return content.map((element) => ({
+      // Measure the text-bearing boxes, not the card itself. A theme's background shape is
+      // absolutely positioned past the card edge on purpose and clipped by the card's
+      // `overflow: hidden`, so the card's own scrollWidth/scrollHeight report that bleed as
+      // if it were clipped text — five of the six themes ship such a shape. Each
+      // data-slide-content box is height- and width-constrained by the card, so text that
+      // does not fit still surfaces as scroll > client on the box that holds it.
+      const content = slide.querySelectorAll<HTMLElement>("[data-slide-content]");
+      const measured = content.length > 0 ? Array.from(content) : [slide];
+      return measured.map((element) => ({
         clientWidth: element.clientWidth,
         clientHeight: element.clientHeight,
         scrollWidth: element.scrollWidth,
