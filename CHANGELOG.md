@@ -30,6 +30,7 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Verified
 
+- 开发库 `ettuzeunkadkfnawawdy` 的迁移状态经 `supabase migration list` 核对：22 个本地迁移文件与远端版本一一对应，无任何漂移；三个 B10 growth 迁移（`20260910124717`、`20260910210000`、`20260910211000`）确认已应用。该结果只证明 schema 状态，不构成任何 Affiliate 生命周期结论。
 - B09 计费迁移 `20260910160000_b09_billing.sql` 已应用到开发库，`supabase/tests/billing.sql` 经 IPv4 Session pooler 通过 27/27；含对账任务的 Trigger `20260910.2` 部署成功。该门禁只证明事件账本、顺序规则、只追加审计与 owner 隔离，不证明 Stripe 签名校验或任何真实订阅生命周期。
 - B08 迁移 `20260910130000_b08_tool_outputs.sql` 已应用到开发库，`supabase/tests/tool-outputs.sql` 通过 10/10；文本工具经 Trigger `20260910.1` 的 DeepSeek worker 契约完成。本机直连开发库为 IPv6-only，最终数据库验证改走 IPv4 Session pooler。
 - B07 在开发云端产出真实持久 PPTX 与 MP4：PPTX 解包验证 6 个含可编辑 DrawingML 文本的 slide，并由 Microsoft PowerPoint 16.109.1 打开识别 6 页；MP4 经 `ffprobe` 验证为 1080×1350 H.264，页序与时长与选项一致（Trigger `20260909.8`）。T059 分阶段删除在 Trigger `20260909.10` 完成，项目在清理前即不可访问。
