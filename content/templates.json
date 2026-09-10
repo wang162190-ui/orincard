@@ -1,0 +1,71 @@
+[
+  {
+    "slug": "clear-idea",
+    "name": "Clear Idea",
+    "description": "Explain one practical idea with a calm editorial rhythm.",
+    "category": "Education",
+    "document": {
+      "schemaVersion": 1,
+      "title": "Turn one useful idea into four clear steps",
+      "platform": "linkedin",
+      "templateId": "paper",
+      "templateVersion": 1,
+      "theme": { "paletteId": "paper", "fontPairId": "source-serif-inter", "textScale": 1, "spacing": "comfortable", "alignment": "left", "background": { "kind": "solid", "value": "#F5F1E8", "opacity": 1 }, "arrow": "line", "radius": 32, "counterStyle": "fraction" },
+      "brandSnapshot": null,
+      "slides": [
+        { "id": "local-clear-01", "revision": 1, "role": "intro", "mode": "text", "layoutId": "intro-centered", "eyebrow": "PRACTICAL GUIDE", "title": "Turn one useful idea into four clear steps", "bodyBlocks": [], "cta": null, "assetSlots": [], "counterVisible": false, "overrides": {} },
+        { "id": "local-clear-02", "revision": 1, "role": "content", "mode": "text", "layoutId": "statement", "eyebrow": "01", "title": "Start with the conclusion", "bodyBlocks": [{ "kind": "paragraph", "text": "Give readers a reason to keep moving before adding detail.", "emphasisRanges": [] }], "cta": null, "assetSlots": [], "counterVisible": true, "overrides": {} },
+        { "id": "local-clear-03", "revision": 1, "role": "content", "mode": "text", "layoutId": "numbered-point", "eyebrow": "02", "title": "Make the next action concrete", "bodyBlocks": [{ "kind": "paragraph", "text": "Use a verb, a constraint, and one example.", "emphasisRanges": [] }], "cta": null, "assetSlots": [], "counterVisible": true, "overrides": {} },
+        { "id": "local-clear-04", "revision": 1, "role": "outro", "mode": "text", "layoutId": "outro-cta", "eyebrow": "YOUR TURN", "title": "Teach the idea you needed last year.", "bodyBlocks": [], "cta": "Save this outline for your next carousel.", "assetSlots": [], "counterVisible": false, "overrides": {} }
+      ],
+      "caption": "A simple structure for explaining one useful idea.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "bold-launch",
+    "name": "Bold Launch",
+    "description": "Introduce a product or project with direct, high-energy statements.",
+    "category": "Launch",
+    "document": {
+      "schemaVersion": 1,
+      "title": "A launch story people can understand quickly",
+      "platform": "instagram",
+      "templateId": "signal",
+      "templateVersion": 1,
+      "theme": { "paletteId": "signal", "fontPairId": "inter", "textScale": 1, "spacing": "comfortable", "alignment": "left", "background": { "kind": "solid", "value": "#151515", "opacity": 1 }, "arrow": "filled", "radius": 20, "counterStyle": "number" },
+      "brandSnapshot": null,
+      "slides": [
+        { "id": "local-launch-01", "revision": 1, "role": "intro", "mode": "text", "layoutId": "intro-centered", "eyebrow": "NEW", "title": "A launch story people can understand quickly", "bodyBlocks": [], "cta": null, "assetSlots": [], "counterVisible": false, "overrides": {} },
+        { "id": "local-launch-02", "revision": 1, "role": "content", "mode": "text", "layoutId": "statement", "eyebrow": "THE PROBLEM", "title": "Name the friction in one sentence.", "bodyBlocks": [{ "kind": "paragraph", "text": "Keep the claim specific enough that readers recognise it.", "emphasisRanges": [] }], "cta": null, "assetSlots": [], "counterVisible": true, "overrides": {} },
+        { "id": "local-launch-03", "revision": 1, "role": "content", "mode": "text", "layoutId": "statement", "eyebrow": "THE CHANGE", "title": "Show what becomes easier now.", "bodyBlocks": [{ "kind": "paragraph", "text": "Describe the outcome before listing features.", "emphasisRanges": [] }], "cta": null, "assetSlots": [], "counterVisible": true, "overrides": {} },
+        { "id": "local-launch-04", "revision": 1, "role": "outro", "mode": "text", "layoutId": "outro-cta", "eyebrow": "NEXT STEP", "title": "Invite one clear action.", "bodyBlocks": [], "cta": "Try it, join the waitlist, or read the full story.", "assetSlots": [], "counterVisible": false, "overrides": {} }
+      ],
+      "caption": "A direct four-page launch narrative.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "vertical-story",
+    "name": "Vertical Story",
+    "description": "A tall, concise sequence for mobile-first stories and lessons.",
+    "category": "Story",
+    "document": {
+      "schemaVersion": 1,
+      "title": "The small decision that changed the outcome",
+      "platform": "tiktok",
+      "templateId": "sky",
+      "templateVersion": 1,
+      "theme": { "paletteId": "sky", "fontPairId": "inter", "textScale": 1, "spacing": "comfortable", "alignment": "center", "background": { "kind": "solid", "value": "#DCEEFF", "opacity": 1 }, "arrow": "line", "radius": 28, "counterStyle": "fraction" },
+      "brandSnapshot": null,
+      "slides": [
+        { "id": "local-story-01", "revision": 1, "role": "intro", "mode": "text", "layoutId": "intro-centered", "eyebrow": "SHORT STORY", "title": "The small decision that changed the outcome", "bodyBlocks": [], "cta": null, "assetSlots": [], "counterVisible": false, "overrides": {} },
+        { "id": "local-story-02", "revision": 1, "role": "content", "mode": "text", "layoutId": "statement", "eyebrow": "BEFORE", "title": "The obvious approach kept failing.", "bodyBlocks": [{ "kind": "paragraph", "text": "Describe the moment without adding a lesson too early.", "emphasisRanges": [] }], "cta": null, "assetSlots": [], "counterVisible": true, "overrides": {} },
+        { "id": "local-story-03", "revision": 1, "role": "content", "mode": "text", "layoutId": "statement", "eyebrow": "TURN", "title": "One constraint changed the choice.", "bodyBlocks": [{ "kind": "paragraph", "text": "Make the decision visible and specific.", "emphasisRanges": [] }], "cta": null, "assetSlots": [], "counterVisible": true, "overrides": {} },
+        { "id": "local-story-04", "revision": 1, "role": "outro", "mode": "text", "layoutId": "outro-cta", "eyebrow": "LESSON", "title": "End with what the reader can use.", "bodyBlocks": [], "cta": "What constraint would improve your next decision?", "assetSlots": [], "counterVisible": false, "overrides": {} }
+      ],
+      "caption": "A mobile-first story with one practical takeaway.",
+      "assetRefs": []
+    }
+  }
+]

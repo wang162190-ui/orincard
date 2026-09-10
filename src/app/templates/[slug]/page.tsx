@@ -1,0 +1,33 @@
+"use client";
+
+import { use, useMemo, useState } from "react";
+import Link from "next/link";
+import { notFound, useRouter } from "next/navigation";
+import templates from "../../../../content/templates.json";
+import { WorkspaceShell } from "@/components/workspace-shell";
+import { Button } from "@/components/ui";
+import { parseCarouselDocument } from "@/domain/document";
+
+export default function TemplateDetailPage({ params }: { readonly params: Promise<{ readonly slug: string }> }) {
+  const { slug } = use(params);
+  const template = templates.find((item) => item.slug === slug);
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const document = useMemo(() => template ? parseCarouselDocument(template.document) : null, [template]);
+  if (!template || !document) notFound();
+  const activeDocument = document;
+
+  async function createCopy() {
+    setBusy(true); setNotice("");
+    const copy = { ...structuredClone(activeDocument), slides: activeDocument.slides.map((slide) => ({ ...slide, id: crypto.randomUUID(), revision: 1 })) };
+    try {
+      const response = await fetch("/api/v1/projects", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ document: copy }) });
+      const body = await response.json();
+      if (!response.ok || typeof body.data?.projectId !== "string") throw new Error(body.error?.message ?? "Could not create this template copy.");
+      router.push(`/editor/${body.data.projectId}`);
+    } catch (error) { setNotice(error instanceof Error ? error.message : "Could not create this template copy."); setBusy(false); }
+  }
+
+  return <WorkspaceShell current="workspace" title={template.name}><div className="stack-lg"><header><p className="eyebrow">{template.category} · {document.platform}</p><h1>{template.name}</h1><p className="lead">{template.description}</p><div className="row"><Button disabled={busy} onClick={() => void createCopy()}>{busy ? "Creating…" : "Use this template"}</Button><Link className="btn btn-secondary" href="/templates">All templates</Link></div>{notice ? <p role="alert">{notice}</p> : null}</header><section className="card stack" aria-label="Template preview"><h2>Editable page outline</h2>{document.slides.map((slide, index) => <article key={slide.id} data-testid="template-slide"><p className="eyebrow">Page {index + 1} · {slide.role}</p><h3>{slide.title}</h3>{slide.bodyBlocks.map((block, blockIndex) => <p key={blockIndex}>{block.kind === "bullets" ? block.items.join(" · ") : block.text}</p>)}{slide.cta ? <p><strong>{slide.cta}</strong></p> : null}</article>)}</section></div></WorkspaceShell>;
+}
