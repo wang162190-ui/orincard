@@ -6,12 +6,12 @@ import { createAdminSupabaseClient, createServerSupabaseClient } from "@/server/
 export function createSupabaseAffiliateStore(client: SupabaseClient): AffiliateStore {
   return {
     async findApprovedByCode(code) {
-      const result = await client.from("affiliate_applications").select("id,owner_id,status,code").eq("code", code).eq("status", "approved").maybeSingle();
+      const result = await client.from("affiliate_accounts").select("id,owner_id,state,referral_code,policy_version").eq("referral_code", code).eq("state", "approved").maybeSingle();
       if (result.error) throw result.error;
-      return result.data ? { id: result.data.id, ownerId: result.data.owner_id, status: result.data.status, code: result.data.code } : null;
+      return result.data ? { id: result.data.id, ownerId: result.data.owner_id, status: result.data.state, code: result.data.referral_code, policyVersion: result.data.policy_version } : null;
     },
     async createAttribution(input) {
-      const result = await client.from("affiliate_attributions").insert({ affiliate_id: input.affiliateId, visitor_hash: input.visitorHash, expires_at: input.expiresAt });
+      const result = await client.from("referrals").insert({ affiliate_account_id: input.affiliateId, affiliate_owner_id: input.affiliateOwnerId, referred_owner_id: input.referredOwnerId, code: input.code, policy_version: input.policyVersion, visitor_hash: input.visitorHash, consent_at: input.consentAt, expires_at: input.expiresAt, state: "active" });
       if (result.error) throw result.error;
     },
   };

@@ -5,6 +5,7 @@ export type AffiliateApplication = {
   readonly ownerId: string;
   readonly status: "pending" | "approved" | "rejected";
   readonly code: string | null;
+  readonly policyVersion?: string | null;
 };
 
 export type AffiliateSummary = {
@@ -21,7 +22,12 @@ export interface AffiliateStore {
   findApprovedByCode(code: string): Promise<AffiliateApplication | null>;
   createAttribution(input: {
     readonly affiliateId: string;
+    readonly affiliateOwnerId: string;
+    readonly referredOwnerId: string | null;
+    readonly code: string;
+    readonly policyVersion: string;
     readonly visitorHash: string;
+    readonly consentAt: string;
     readonly expiresAt: string;
   }): Promise<void>;
 }
@@ -83,7 +89,12 @@ export function createAffiliateAttributeHandler(dependencies: {
     const expiresAt = new Date((dependencies.now?.() ?? new Date()).getTime() + 30 * 24 * 60 * 60 * 1_000);
     await dependencies.store.createAttribution({
       affiliateId: affiliate.id,
+      affiliateOwnerId: affiliate.ownerId,
+      referredOwnerId: ownerId,
+      code: affiliate.code,
+      policyVersion: affiliate.policyVersion ?? "affiliate-draft-v1",
       visitorHash: createHash("sha256").update(visitorId).digest("hex"),
+      consentAt: (dependencies.now?.() ?? new Date()).toISOString(),
       expiresAt: expiresAt.toISOString(),
     });
     const cookie = `orincard_affiliate=${encodeURIComponent(visitorId)}; Path=/; Max-Age=2592000; HttpOnly; Secure; SameSite=Lax`;

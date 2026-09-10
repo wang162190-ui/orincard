@@ -30,6 +30,7 @@ create table public.referrals (
  id uuid primary key default gen_random_uuid(), affiliate_account_id uuid not null references public.affiliate_accounts(id) on delete restrict,
  affiliate_owner_id uuid not null references auth.users(id) on delete restrict, referred_owner_id uuid references auth.users(id) on delete restrict,
  code text not null, policy_version text not null, consent_at timestamptz not null, attributed_at timestamptz not null default now(), expires_at timestamptz not null,
+ visitor_hash text not null check (visitor_hash ~ '^[0-9a-f]{64}$'),
  state public.referral_state not null, constraint referral_window check (expires_at > consent_at),
  constraint referral_self_state check ((affiliate_owner_id=referred_owner_id and state='self_rejected') or affiliate_owner_id is distinct from referred_owner_id)
 );
@@ -37,6 +38,7 @@ comment on table public.referrals is '用户明确同意后形成的推荐归因
 comment on column public.referrals.id is '推荐归因唯一标识'; comment on column public.referrals.affiliate_account_id is '归因时已批准的Affiliate账户';
 comment on column public.referrals.affiliate_owner_id is '推荐人账户，仅用于服务端归属'; comment on column public.referrals.referred_owner_id is '被推荐账户，仅用于服务端归因';
 comment on column public.referrals.code is '归因时推荐码快照'; comment on column public.referrals.policy_version is '归因采用的政策版本';
+comment on column public.referrals.visitor_hash is '不可逆访客标识哈希，不保存原始浏览器标识';
 comment on column public.referrals.consent_at is '被推荐用户明确同意时间'; comment on column public.referrals.attributed_at is '服务端记录归因时间';
 comment on column public.referrals.expires_at is '归因窗口截止时间'; comment on column public.referrals.state is '有效、自荐拒绝、撤销或过期状态';
 create unique index referrals_one_active_owner on public.referrals(referred_owner_id) where state='active' and referred_owner_id is not null;
@@ -90,7 +92,7 @@ declare account public.affiliate_accounts; result uuid; target_state public.refe
  select * into account from public.affiliate_accounts where referral_code=p_code and state='approved';
  if account.id is null or p_consent_at is null or p_expires_at<=p_consent_at or p_consent_at>now()+interval '5 minutes' then raise exception using errcode='22023',message='invalid referral consent or window'; end if;
  target_state := case when account.owner_id=p_referred_owner_id then 'self_rejected' else 'active' end;
- insert into public.referrals(affiliate_account_id,affiliate_owner_id,referred_owner_id,code,policy_version,consent_at,expires_at,state) values(account.id,account.owner_id,p_referred_owner_id,p_code,account.policy_version,p_consent_at,p_expires_at,target_state) returning id into result;
+ insert into public.referrals(affiliate_account_id,affiliate_owner_id,referred_owner_id,code,policy_version,consent_at,expires_at,visitor_hash,state) values(account.id,account.owner_id,p_referred_owner_id,p_code,account.policy_version,p_consent_at,p_expires_at,encode(digest(coalesce(p_referred_owner_id::text,gen_random_uuid()::text),'sha256'),'hex'),target_state) returning id into result;
  return result;
 end $$;
 comment on function public.server_attribute_referral(uuid,text,timestamptz,timestamptz) is '仅对已批准推荐码和明确同意窗口建立唯一归因并记录自荐拒绝';

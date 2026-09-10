@@ -14,7 +14,7 @@ describe("T079 growth database definition", () => {
     expect(migrated).toBe(sql);
     for (const table of ["affiliate_accounts", "referrals", "commissions", "support_tickets"]) expect(sql).toContain(`alter table public.${table} enable row level security`);
     expect(sql.match(/comment on column public\.affiliate_accounts\./g)).toHaveLength(11);
-    expect(sql.match(/comment on column public\.referrals\./g)).toHaveLength(10);
+    expect(sql.match(/comment on column public\.referrals\./g)).toHaveLength(11);
     expect(sql.match(/comment on column public\.commissions\./g)).toHaveLength(10);
     expect(sql.match(/comment on column public\.support_tickets\./g)).toHaveLength(8);
     expect(sql).toContain("referrals_one_active_owner");

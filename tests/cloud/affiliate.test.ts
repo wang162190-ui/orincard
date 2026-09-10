@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createAffiliateAttributeHandler, referralUrl, summarizeAffiliate, type AffiliateStore } from "../../src/server/affiliate";
 
-const approved = { id: "affiliate-1", ownerId: "owner-1", status: "approved" as const, code: "GOOD_CODE" };
+const approved = { id: "affiliate-1", ownerId: "owner-1", status: "approved" as const, code: "GOOD_CODE", policyVersion: "affiliate-draft-v1" };
 
 function store(application = approved): AffiliateStore {
   return { findApprovedByCode: vi.fn(async () => application), createAttribution: vi.fn(async () => undefined) };
