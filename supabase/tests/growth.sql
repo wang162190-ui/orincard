@@ -5,8 +5,8 @@ select has_table('public','affiliate_accounts','affiliate accounts table exists'
 select has_table('public','referrals','referrals table exists');
 select has_table('public','commissions','commissions table exists');
 select has_table('public','support_tickets','support tickets table exists');
-select is((select count(*)::integer from pg_attribute where attrelid='public.affiliate_accounts'::regclass and attnum>0 and not attisdropped and col_description(attrelid,attnum) is not null),11,'all affiliate fields are commented');
-select is((select count(*)::integer from pg_attribute where attrelid='public.referrals'::regclass and attnum>0 and not attisdropped and col_description(attrelid,attnum) is not null),10,'all referral fields are commented');
+select is((select count(*)::integer from pg_attribute where attrelid='public.affiliate_accounts'::regclass and attnum>0 and not attisdropped and col_description(attrelid,attnum) is not null),14,'all affiliate fields are commented');
+select is((select count(*)::integer from pg_attribute where attrelid='public.referrals'::regclass and attnum>0 and not attisdropped and col_description(attrelid,attnum) is not null),11,'all referral fields are commented');
 select is((select count(*)::integer from pg_attribute where attrelid='public.commissions'::regclass and attnum>0 and not attisdropped and col_description(attrelid,attnum) is not null),10,'all commission fields are commented');
 select is((select count(*)::integer from pg_attribute where attrelid='public.support_tickets'::regclass and attnum>0 and not attisdropped and col_description(attrelid,attnum) is not null),8,'all support fields are commented');
 select ok(not has_column_privilege('authenticated','public.affiliate_accounts','payout_reference','select'),'payout reference is hidden');
