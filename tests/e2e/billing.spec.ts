@@ -13,11 +13,9 @@ const summary = {
 test("T072 shows payment, period and balance states and keeps cancellation in Stripe portal", async ({ page }) => {
   const projectDeletes: string[] = [];
   let portalCalls = 0;
-  let checkoutBody: unknown;
   page.on("request", (request) => { if (request.method() === "DELETE" && request.url().includes("/projects/")) projectDeletes.push(request.url()); });
   await page.route("**/api/v1/billing", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: summary }) }));
   await page.route("**/api/v1/billing/portal", async (route) => { portalCalls += 1; await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: { url: "/billing?portal=opened" } }) }); });
-  await page.route("**/api/v1/billing/checkout", async (route) => { checkoutBody = route.request().postDataJSON(); await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: { url: "/billing?checkout=opened" } }) }); });
 
   await page.goto("/billing");
   await expect(page.getByRole("heading", { name: "Billing" })).toBeVisible();
@@ -31,11 +29,10 @@ test("T072 shows payment, period and balance states and keeps cancellation in St
   expect(projectDeletes).toEqual([]);
 
   await page.goto("/billing");
-  await page.getByRole("button", { name: "Upgrade" }).click();
-  await page.getByLabel("Creator").check();
-  await page.getByLabel("Billing interval").selectOption("year");
-  await page.getByRole("button", { name: "Continue to secure checkout" }).click();
-  await expect.poll(() => checkoutBody).toEqual({ planKey: "creator", interval: "year" });
+  await page.getByRole("button", { name: "Join the waitlist" }).click();
+  await page.getByLabel("Email address").fill("creator@example.com");
+  await page.getByRole("button", { name: "Join waitlist" }).click();
+  await expect(page.getByRole("status")).toContainText("has not been submitted or stored");
 });
 
 test("T072 reports scheduled cancellation without deleting saved work", async ({ page }) => {
