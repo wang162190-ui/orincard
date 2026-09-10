@@ -11,7 +11,6 @@
 | 路径 | 类别 | 许可 | rightsId | 证据 |
 |---|---|---|---|---|
 | `content/templates.json` | 模板 | proprietary-owned | orincard-editorial-copy | 团队为 T012 撰写的模板文案与版式，git 历史即出处 |
-| `docs/design/reference/assets/img/avatar-elena.jpg` | 设计参考图 | 未知 | - | 无 |
 | `docs/design/reference/assets/img/credits.json` | 设计参考出处记录 | client-supplied-internal | - | `docs/design/reference/README.md` 记载 2026-09-04 原样复制 |
 | `docs/design/reference/assets/img/desk-morning.jpg` | 设计参考图 | CC BY 2.0 | - | `docs/design/reference/assets/img/credits.json`，作者 Shixart1985，Wikimedia Commons |
 | `docs/design/reference/assets/img/glasses-notebook.jpg` | 设计参考图 | CC BY 2.0 | - | `docs/design/reference/assets/img/credits.json`，作者 Shixart1985，Wikimedia Commons |
@@ -33,7 +32,9 @@
 
 三点必须随表一起读：
 
-1. **`avatar-elena.jpg` 是当前唯一的未知项。** 同目录的 `credits.json` 记了 6 条，而目录里有 7 张 jpg，这一张没有对应条目，无法核对作者、来源 URL 与许可。它是一张人像，未知许可的人像风险高于风景图。闭合方式只有两条：补齐可核对的上游出处（Wikimedia 页面或原始授权），或删除该文件并改用已登记的图片。**在此之前 T088 不能勾选**，守卫会持续失败，这是正确结果。
+1. **`avatar-elena.jpg` 已于 2026-09-11 删除，因为它没有出处。** 同目录的 `credits.json` 记了 6 条，而目录里原有 7 张 jpg，这一张没有对应条目，无法核对作者、来源 URL 与许可；它又是一张人像，未知许可的人像风险高于风景图，因此按「无法核对即不留」处理。
+
+   代价是明写的：`brand-kits.html`、`editor.html`、`generator.html`、`projects.html` 与 `manifest.json` 仍引用 `assets/img/avatar-elena.jpg`，删除后这些头像位在设计快照里渲染为空。没有去改那五个文件，因为 `docs/design/reference/README.md` 记载的是「原样复制、原件未修改」，为补一张图而改动快照会破坏这个性质。空头像位是可接受的降级，留一张无出处人像不是。若之后找到可核对的上游授权，补回文件与 `credits.json` 条目即可恢复。
 2. **六张 CC BY 2.0 图片带署名义务。** 任何再分发（含把 `docs/design/reference/` 打包交付）必须同时保留 `credits.json` 里的作者、标题与许可字段。它们只是设计参考，不进产品构建；一旦被引入产品界面，需重新按 CC BY 的署名位置要求审查。
 3. **`client-supplied-internal` 的含义是「出处清楚、但未获对外再分发授权」。** 这批文件是用户在 2026-09-04 指定的设计快照的原样副本，供内部迁移比对使用，不随产品分发，也不得单独对外发布。
 
