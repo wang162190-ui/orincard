@@ -68,15 +68,18 @@ test("the desktop core flow reaches the editor and keeps the draft across a relo
   await expect(page).toHaveURL(/\/create$/);
 
   await page.getByLabel("Topic", { exact: true }).fill("A calm weekly planning ritual");
-  await page.getByLabel("Platform", { exact: true }).selectOption("instagram");
+  // 按可访问名定位：<label> 包住了 <select>，label 纯文本连着选项文字，getByLabel 精确匹配对不上。
+  await page.getByRole("combobox", { name: "Platform", exact: true }).selectOption("instagram");
   await page.getByLabel("Number of slides", { exact: true }).fill("4");
-  await page.getByLabel("Instructions", { exact: true }).fill("Use short, practical sentences.");
+  await page
+    .getByRole("textbox", { name: "Instructions", exact: true })
+    .fill("Use short, practical sentences.");
   // Ready, not submitted: the generate call itself is a paid provider call.
   await expect(page.getByRole("button", { name: "Generate carousel" })).toBeEnabled();
 
   await openLocalDraft(page, draftId);
   await page.getByRole("button", { name: "Slide 2: Lead with the conclusion" }).click();
-  await page.getByLabel("Headline", { exact: true }).fill(headline);
+  await page.getByRole("textbox", { name: "Headline", exact: true }).fill(headline);
   await expect(page.getByTestId("draft-status")).toHaveText("Saved locally.");
   await expect(page.locator("[data-editor-slide-id]")).toHaveCount(6);
 
@@ -137,7 +140,9 @@ test("a narrow viewport stacks the editor and never needs a sideways scroll", as
 
   await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
   await page.getByRole("button", { name: "Slide 3: Give every page one job" }).click();
-  await expect(page.getByLabel("Headline", { exact: true })).toHaveValue("Give every page one job");
+  await expect(
+    page.getByRole("textbox", { name: "Headline", exact: true }),
+  ).toHaveValue("Give every page one job");
 });
 
 test("local draft storage and the blob download path exist in this engine", async ({

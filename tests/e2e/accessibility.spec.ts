@@ -99,14 +99,14 @@ test("every create control is reachable by its own label and submission stays ga
   await expect(page.getByRole("tab", { name: "Text" })).toHaveAttribute("aria-selected", "false");
 
   await expect(page.getByRole("group", { name: "Generation options" })).toBeVisible();
-  for (const label of [
-    "Platform",
-    "Template",
-    "Language",
-    "Content format",
-    "Number of slides",
-    "Instructions",
-  ]) {
+  // 三个下拉用 getByRole 按可访问名断言。它们的 <label> 包住了 <select>，label 的纯文本因此
+  // 连着选项文字（"Platform" + "LinkedIn…"），getByLabel 的精确匹配对不上；而读屏软件读的是
+  // 可访问名，实测就是 "Platform"。这里断言可访问名，才是这条用例要证的东西。
+  for (const name of ["Platform", "Template", "Content format"]) {
+    await expect(page.getByRole("combobox", { name, exact: true })).toBeVisible();
+  }
+  await expect(page.getByRole("textbox", { name: "Instructions", exact: true })).toBeVisible();
+  for (const label of ["Language", "Number of slides"]) {
     await expect(page.getByLabel(label, { exact: true })).toBeVisible();
   }
 
@@ -118,7 +118,7 @@ test("every create control is reachable by its own label and submission stays ga
 
   // Switching the source kind renames the field instead of leaving a nameless input behind.
   await page.getByRole("tab", { name: "Text" }).click();
-  await expect(page.getByLabel("Source text", { exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Source text", exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "URL" }).click();
   await expect(page.getByLabel("Public link", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "PDF" }).click();
@@ -126,26 +126,44 @@ test("every create control is reachable by its own label and submission stays ga
   await expect(page.getByLabel("I have the rights to use this file.")).not.toBeChecked();
 });
 
+// macOS 的系统默认（AppleKeyboardUIMode 未设置）只让 Tab 停在文本框和列表上，按钮、链接、
+// role=tab 一律不进 Tab 序。Safari/WebKit 照办，Chrome 与 Firefox 不照办。这是操作系统惯例，
+// 对所有网站一视同仁，不是本页的缺陷；依赖键盘的 Mac 用户要开"全键盘控制"，开了之后 Safari
+// 的 Tab 序与另两个引擎一致。所以下面按引擎分流：三个引擎都验读序，但 WebKit 上只验它真的
+// 会停的那些控件。这一条如实记在 docs/acceptance/browsers.md，不当作已通过的按钮可达性证据。
+const WEBKIT_SKIPS_BUTTONS = "webkit";
+
 test("Tab walks the create form in reading order and every stop shows a visible focus ring", async ({
   page,
-}) => {
+}, testInfo) => {
+  const buttonsAreTabStops = testInfo.project.name !== WEBKIT_SKIPS_BUTTONS;
   await page.goto("/create");
   // The submit button is disabled until the form has a source, and a disabled button is not
   // a tab stop, so the topic is filled first and the whole order is then checked in one walk.
   await page.getByLabel("Topic", { exact: true }).fill("A calm weekly planning ritual");
 
-  const expectedOrder: readonly { locator: Locator; description: string }[] = [
+  const sourceTabs: readonly { locator: Locator; description: string }[] = [
     { locator: page.getByRole("tab", { name: "Text" }), description: "the Text source tab" },
     { locator: page.getByRole("tab", { name: "URL" }), description: "the URL source tab" },
     { locator: page.getByRole("tab", { name: "PDF" }), description: "the PDF source tab" },
     { locator: page.getByRole("tab", { name: "Slides" }), description: "the Slides source tab" },
     { locator: page.getByRole("tab", { name: "Video" }), description: "the Video source tab" },
+  ];
+
+  const expectedOrder: readonly { locator: Locator; description: string }[] = [
+    ...(buttonsAreTabStops ? sourceTabs : []),
     { locator: page.getByLabel("Topic", { exact: true }), description: "the topic field" },
-    { locator: page.getByLabel("Platform", { exact: true }), description: "the platform select" },
-    { locator: page.getByLabel("Template", { exact: true }), description: "the template select" },
+    {
+      locator: page.getByRole("combobox", { name: "Platform", exact: true }),
+      description: "the platform select",
+    },
+    {
+      locator: page.getByRole("combobox", { name: "Template", exact: true }),
+      description: "the template select",
+    },
     { locator: page.getByLabel("Language", { exact: true }), description: "the language field" },
     {
-      locator: page.getByLabel("Content format", { exact: true }),
+      locator: page.getByRole("combobox", { name: "Content format", exact: true }),
       description: "the content format select",
     },
     {
@@ -153,16 +171,28 @@ test("Tab walks the create form in reading order and every stop shows a visible 
       description: "the slide count field",
     },
     {
-      locator: page.getByLabel("Instructions", { exact: true }),
+      locator: page.getByRole("textbox", { name: "Instructions", exact: true }),
       description: "the instructions field",
     },
-    {
-      locator: page.getByRole("button", { name: "Generate carousel" }),
-      description: "the submit button",
-    },
+    ...(buttonsAreTabStops
+      ? [
+          {
+            locator: page.getByRole("button", { name: "Generate carousel" }),
+            description: "the submit button",
+          },
+        ]
+      : []),
   ];
 
-  await focusByKey(page, page.getByRole("tab", { name: "Topic" }), "Tab", "the Topic source tab");
+  // 填完 Topic 后焦点停在表单中段。Firefox 无头模式走到最后一个可聚焦元素（Generate carousel）
+  // 就不再往前走——它本该把焦点交给浏览器界面，无头下没有界面，于是原地不动。所以这里先把焦点
+  // 收回文档开头，从一个确定的起点走，而不是指望焦点绕回顶部。这不放宽断言：下面整条读序照走。
+  // 点一下不可聚焦的一级标题，把顺序焦点的起点挪回页面顶部；blur() 不行，Firefox 记的是起点元素
+  // 而不是当前焦点。
+  await page.getByRole("heading", { level: 1, name: "Create a carousel" }).click();
+  if (buttonsAreTabStops) {
+    await focusByKey(page, page.getByRole("tab", { name: "Topic" }), "Tab", "the Topic source tab");
+  }
   for (const stop of expectedOrder) {
     await page.keyboard.press("Tab");
     await expect(stop.locator, `${stop.description} is out of reading order`).toBeFocused();
@@ -175,6 +205,16 @@ test("Tab walks the create form in reading order and every stop shows a visible 
 test("a keyboard-only path selects a slide, edits it and survives a reload", async ({
   page,
 }, testInfo) => {
+  // 这条流程的第一步是用 Tab 走到胶片条里的幻灯片按钮。在 macOS 系统默认下 WebKit 根本不让 Tab
+  // 停在按钮上（见上面那段说明），所以这条用例在 WebKit 上无法执行，如实记为 skipped 而不是
+  // 改用鼠标点击后仍宣称"纯键盘"。chromium 与 firefox 上它真实跑通，证据以那两个引擎为准；
+  // WebKit 的这一条限制写进 docs/acceptance/browsers.md。
+  test.skip(
+    testInfo.project.name === WEBKIT_SKIPS_BUTTONS,
+    "WebKit follows the macOS Full Keyboard Access default, where buttons are not tab stops; " +
+      "this path cannot be driven by keyboard alone on this engine.",
+  );
+
   // A draft id per engine keeps the three projects from reading each other's IndexedDB rows.
   const draftId = `local-a11y-keyboard-${testInfo.project.name}`;
   const headline = `Keyboard edit ${testInfo.project.name}`;
@@ -187,7 +227,7 @@ test("a keyboard-only path selects a slide, edits it and survives a reload", asy
   await page.keyboard.press("Enter");
   await expect(secondSlide).toHaveAttribute("aria-pressed", "true");
 
-  const headlineField = page.getByLabel("Headline", { exact: true });
+  const headlineField = page.getByRole("textbox", { name: "Headline", exact: true });
   await focusByKey(page, headlineField, "Shift+Tab", "the headline field");
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.type(headline);
@@ -210,5 +250,9 @@ test("the export entry keeps its heading and announces its state in a live regio
   // Signed out, the export history request is rejected and the page says so in an alert
   // region instead of rendering an empty box that a screen reader would skip over.
   // The signed-in download itself is covered by the cloud-gated case in browsers.spec.ts.
-  await expect(page.getByRole("alert")).toHaveText("Exports are temporarily unavailable.");
+  // 在 main 内取这条播报：Next 自己在文档末尾挂了一个空的 route announcer，它也是 role="alert"，
+  // 不限定范围就会把框架噪声一起断言进来。
+  await expect(page.getByRole("main").getByRole("alert")).toHaveText(
+    "Exports are temporarily unavailable.",
+  );
 });

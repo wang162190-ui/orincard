@@ -24,7 +24,14 @@ export default defineConfig({
     {
       name: "firefox",
       testMatch: CROSS_BROWSER_SPECS,
-      use: { ...devices["Desktop Firefox"] },
+      use: {
+        ...devices["Desktop Firefox"],
+        // macOS 上 Firefox 默认只让 Tab 停在文本输入框，按钮、链接、tab 这类控件要开
+        // "Full Keyboard Access" 才进 Tab 序——这是操作系统惯例，不是页面的问题。依赖键盘的用户
+        // 本来就开着它。accessibility.tabfocus = 7 就是那个开关，这里显式打开，让 T093 的
+        // 键盘顺序断言量的是页面的 Tab 序，而不是鼠标用户的系统默认值。
+        launchOptions: { firefoxUserPrefs: { "accessibility.tabfocus": 7 } },
+      },
     },
     {
       name: "webkit",
