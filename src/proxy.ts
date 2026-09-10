@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { readBrowserEnvironment } from "./server/environment";
+import { isPrivateRoute } from "./server/metadata";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -25,6 +26,9 @@ export async function proxy(request: NextRequest) {
   );
 
   await client.auth.getUser();
+  if (process.env.VERCEL_ENV === "preview" || isPrivateRoute(request.nextUrl.pathname)) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
   return response;
 }
 

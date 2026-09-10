@@ -523,7 +523,7 @@
   - Check: `pnpm exec vitest run tests/unit/content-coverage.test.ts`
   - Expect: 至少一篇原创指南和输入/编辑/导出/恢复/账单帮助可读；无空指南目录或复制竞品文案。
 
-- [ ] T078 `src/app/robots.ts`, `src/app/sitemap.ts`, `src/server/metadata.ts`, `tests/e2e/seo.spec.ts` — 实现SEO和私有路由禁索引 → AC-011
+- [x] T078 `src/app/robots.ts`, `src/app/sitemap.ts`, `src/server/metadata.ts`, `tests/e2e/seo.spec.ts` — 实现SEO和私有路由禁索引 → AC-011
   - Batch: B10
   - Depends: T077
   - Check: `pnpm exec playwright test tests/e2e/seo.spec.ts`

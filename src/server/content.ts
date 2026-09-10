@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
 export type ContentKind = "help" | "guide";
 
@@ -22,7 +22,7 @@ type CatalogEntry = {
   readonly file: string;
 };
 
-const CONTENT_ROOT = fileURLToPath(new URL("../../content/", import.meta.url));
+const CONTENT_ROOT = resolve(process.cwd(), "content");
 const CATALOG: readonly CatalogEntry[] = [
   { kind: "help", slug: "getting-started", file: "help/getting-started.mdx" },
   { kind: "help", slug: "export-and-restore", file: "help/export-and-restore.mdx" },
@@ -111,6 +111,6 @@ export async function readContent(kind: ContentKind, slug: string): Promise<Cont
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new ContentNotFoundError();
   const entry = CATALOG.find((candidate) => candidate.kind === kind && candidate.slug === slug);
   if (!entry) throw new ContentNotFoundError();
-  const source = await readFile(new URL(entry.file, `file://${CONTENT_ROOT}/`), "utf8");
+  const source = await readFile(resolve(CONTENT_ROOT, entry.file), "utf8");
   return parseTrustedMarkdown(source, { kind, slug });
 }
