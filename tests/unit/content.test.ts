@@ -6,7 +6,7 @@ describe("T076 trusted content", () => {
     const article = await readContent("help", "getting-started");
     expect(article.title).toBe("Getting started with Orincard");
     expect(article.blocks.filter((block) => block.kind === "heading").map((block) => block.text)).toEqual(expect.arrayContaining(["Choose an input", "Export", "Restore a project", "Manage billing"]));
-    expect(listContent("help")).toEqual(["getting-started"]);
+    expect(listContent("help")).toContain("getting-started");
   });
 
   it.each(["../project", "..%2fproject", "/etc/passwd", "getting_started", "Getting-Started"])("rejects a non-catalog or traversal slug: %s", async (slug) => {

@@ -53,6 +53,6 @@ test("T075 keeps the template visible when copy creation fails", async ({ page }
   await page.getByRole("button", { name: "Use this template" }).click();
 
   await expect(page).toHaveURL(/\/templates\/bold-launch$/);
-  await expect(page.getByRole("alert")).toHaveText("Sign in to create a project.");
+  await expect(page.locator('p[role="alert"]')).toHaveText("Sign in to create a project.");
   await expect(page.getByRole("button", { name: "Use this template" })).toBeEnabled();
 });

@@ -25,6 +25,9 @@ type CatalogEntry = {
 const CONTENT_ROOT = fileURLToPath(new URL("../../content/", import.meta.url));
 const CATALOG: readonly CatalogEntry[] = [
   { kind: "help", slug: "getting-started", file: "help/getting-started.mdx" },
+  { kind: "help", slug: "export-and-restore", file: "help/export-and-restore.mdx" },
+  { kind: "help", slug: "billing-and-cancellation", file: "help/billing-and-cancellation.mdx" },
+  { kind: "guide", slug: "text-to-carousel", file: "guides/text-to-carousel.mdx" },
 ];
 
 export class ContentNotFoundError extends Error {

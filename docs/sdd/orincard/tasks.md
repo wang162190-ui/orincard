@@ -499,25 +499,25 @@
 
 ## B10
 
-- [ ] T074 `src/app/page.tsx`, `src/app/pricing/page.tsx`, `src/features/marketing/home.tsx`, `tests/e2e/marketing.spec.ts` — 完成原创营销首页和价格页 → AC-001, AC-011
+- [x] T074 `src/app/page.tsx`, `src/app/pricing/page.tsx`, `src/features/marketing/home.tsx`, `tests/e2e/marketing.spec.ts` — 完成原创营销首页和价格页 → AC-001, AC-011
   - Batch: B10
   - Depends: T073
   - Check: `pnpm exec playwright test tests/e2e/marketing.spec.ts`
   - Expect: 沿现有风格补稿并review，未配置真实价格不公开测试数字。
 
-- [ ] T075 `src/app/templates/page.tsx`, `src/app/templates/[slug]/page.tsx`, `content/templates.json`, `tests/e2e/templates.spec.ts` — 完成模板案例索引和创建副本 → AC-004, AC-011
+- [x] T075 `src/app/templates/page.tsx`, `src/app/templates/[slug]/page.tsx`, `content/templates.json`, `tests/e2e/templates.spec.ts` — 完成模板案例索引和创建副本 → AC-004, AC-011
   - Batch: B10
   - Depends: T074
   - Check: `pnpm exec playwright test tests/e2e/templates.spec.ts`
   - Expect: 原创分类/案例可索引，选择模板进入真实创建路径。
 
-- [ ] T076 `src/server/content.ts`, `src/app/help/[slug]/page.tsx`, `src/app/guides/[slug]/page.tsx`, `content/help/getting-started.mdx`, `tests/unit/content.test.ts` — 完成帮助指南与受控MDX内容 → AC-011
+- [x] T076 `src/server/content.ts`, `src/app/help/[slug]/page.tsx`, `src/app/guides/[slug]/page.tsx`, `content/help/getting-started.mdx`, `tests/unit/content.test.ts` — 完成帮助指南与受控MDX内容 → AC-011
   - Batch: B10
   - Depends: T075
   - Check: `pnpm exec vitest run tests/unit/content.test.ts`
   - Expect: 内容仅仓库受信MDX，帮助覆盖输入/导出/保存/账单/恢复目录，无任意用户脚本。
 
-- [ ] T077 `content/guides/text-to-carousel.mdx`, `content/help/export-and-restore.mdx`, `content/help/billing-and-cancellation.mdx`, `tests/unit/content-coverage.test.ts` — 补齐实际帮助指南与案例内容 → AC-011
+- [x] T077 `content/guides/text-to-carousel.mdx`, `content/help/export-and-restore.mdx`, `content/help/billing-and-cancellation.mdx`, `tests/unit/content-coverage.test.ts` — 补齐实际帮助指南与案例内容 → AC-011
   - Batch: B10
   - Depends: T076
   - Check: `pnpm exec vitest run tests/unit/content-coverage.test.ts`
