@@ -529,31 +529,31 @@
   - Check: `pnpm exec playwright test tests/e2e/seo.spec.ts`
   - Expect: canonical/sitemap/SSR正文正确，私有/Preview无index；robots不充当访问控制。
 
-- [ ] T079 `supabase/definitions/growth.sql`, `supabase/tests/growth.sql`, `tests/db/growth.test.ts` — 定义Affiliate/工单数据与反冲规则 → AC-011
+- [x] T079 `supabase/definitions/growth.sql`, `supabase/tests/growth.sql`, `tests/db/growth.test.ts` — 定义Affiliate/工单数据与反冲规则 → AC-011
   - Batch: B10
   - Depends: T078
   - Check: `pnpm exec vitest run tests/db/growth.test.ts`
   - Expect: 申请/审批/唯一码、同意/窗口/自荐/唯一归因/佣金反冲、注释和脱敏隔离通过。
 
-- [ ] T080 `src/server/affiliate.ts`, `src/app/affiliate/page.tsx`, `src/app/affiliate/dashboard/page.tsx`, `src/app/api/v1/affiliate/attribute/route.ts`, `tests/cloud/affiliate.test.ts` — 实现Affiliate申请和统计页面 → AC-011
+- [x] T080 `src/server/affiliate.ts`, `src/app/affiliate/page.tsx`, `src/app/affiliate/dashboard/page.tsx`, `src/app/api/v1/affiliate/attribute/route.ts`, `tests/cloud/affiliate.test.ts` — 实现Affiliate申请和统计页面 → AC-011
   - Batch: B10
   - Depends: T079
   - Check: `pnpm exec vitest run tests/cloud/affiliate.test.ts`
   - Expect: 审批前无佣金链接、未同意不写归因cookie、退款反冲、无购买者隐私。
 
-- [ ] T081 `src/app/api/v1/affiliate/apply/route.ts`, `src/app/api/v1/affiliate/dashboard/route.ts`, `scripts/affiliate-review.mjs`, `tests/cloud/affiliate-approval.test.ts` — 接通Affiliate申请/汇总和受控审批 → AC-011
+- [x] T081 `src/app/api/v1/affiliate/apply/route.ts`, `src/app/api/v1/affiliate/dashboard/route.ts`, `scripts/affiliate-review.mjs`, `tests/cloud/affiliate-approval.test.ts` — 接通Affiliate申请/汇总和受控审批 → AC-011
   - Batch: B10
   - Depends: T080
   - Check: `pnpm exec vitest run tests/cloud/affiliate-approval.test.ts`
   - Expect: 申请审批状态可追溯；仅批准后产生唯一码；审批命令需授权、环境确认和审计，客户端不能自批。
 
-- [ ] T082 `src/app/api/v1/support/route.ts`, `src/features/support/form.tsx`, `src/app/legal/[slug]/page.tsx`, `content/legal/README.md`, `tests/e2e/support.spec.ts` — 实现支持/版权与法律页面 → AC-007, AC-011
+- [x] T082 `src/app/api/v1/support/route.ts`, `src/features/support/form.tsx`, `src/app/legal/[slug]/page.tsx`, `content/legal/README.md`, `tests/e2e/support.spec.ts` — 实现支持/版权与法律页面 → AC-007, AC-011
   - Batch: B10
   - Depends: T081
   - Check: `pnpm exec playwright test tests/e2e/support.spec.ts`
   - Expect: 诊断仅用户选择ID；法律文本未经确认不伪称已审核。
 
-- [ ] T083 `content/legal/privacy.mdx`, `content/legal/terms.mdx`, `content/legal/affiliate.mdx`, `tests/unit/legal-policy.test.ts` — 建立可审核的生产法律文本包 → AC-007, AC-009, AC-011
+- [x] T083 `content/legal/privacy.mdx`, `content/legal/terms.mdx`, `content/legal/affiliate.mdx`, `tests/unit/legal-policy.test.ts` — 建立可审核的生产法律文本包 → AC-007, AC-009, AC-011
   - Batch: B10
   - Depends: T082
   - Check: `pnpm exec vitest run tests/unit/legal-policy.test.ts`
