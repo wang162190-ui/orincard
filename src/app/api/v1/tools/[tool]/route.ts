@@ -3,11 +3,11 @@ import { cookies } from "next/headers";
 import { parseToolRequest, TOOL_IDS, type ToolId } from "@/domain/tools";
 import { readServerEnvironment } from "@/server/environment";
 import { assertTrustedWriteRequest } from "@/server/projects";
-import { toTextWorkerRequest } from "@/server/tools/application";
-import { TEXT_TOOL_NAMES } from "@/server/tools/text-tools";
+import { getToolDefinition } from "@/features/tools/registry";
+import { toTextWorkerRequest, toVisualWorkerRequest, VISUAL_TOOL_IDS } from "@/server/tools/application";
 import { createAdminSupabaseClient, createServerSupabaseClient, requireVerifiedUser } from "@/server/supabase";
 import { idempotencyKeys, tasks } from "@trigger.dev/sdk";
-import { TEXT_TOOL_TASK_ID } from "@/trigger/dispatch";
+import { TEXT_TOOL_TASK_ID, VISUAL_TOOL_TASK_ID } from "@/trigger/dispatch";
 
 function json(body: unknown, status: number) { return Response.json(body, { status, headers: { "Cache-Control": "private, no-store" } }); }
 
@@ -30,8 +30,8 @@ export async function POST(request: Request, context: { readonly params: Promise
     try { owner = await ownerId(); } catch { return json({ error: { code: "AUTH_REQUIRED", message: "Sign in to use tools.", retryable: false }, requestId }, 401); }
     const tool = toolId((await context.params).tool);
     const parsed = parseToolRequest(tool, await request.json());
-    if (!TEXT_TOOL_NAMES.includes(tool as (typeof TEXT_TOOL_NAMES)[number])) return json({ error: { code: "TOOL_UNAVAILABLE", message: "This tool provider is not deployed yet.", retryable: true }, requestId }, 503);
-    const inputRef = toTextWorkerRequest(parsed);
+    const visual = VISUAL_TOOL_IDS.includes(tool as (typeof VISUAL_TOOL_IDS)[number]);
+    const inputRef = visual ? toVisualWorkerRequest(parsed) : toTextWorkerRequest(parsed);
     const key = request.headers.get("idempotency-key")?.trim() || randomUUID();
     if (key.length > 200) return json({ error: { code: "INVALID_REQUEST", message: "Idempotency key is too long.", retryable: false }, requestId }, 400);
     const admin = createAdminSupabaseClient();
@@ -46,10 +46,10 @@ export async function POST(request: Request, context: { readonly params: Promise
     }
     if (job.state === "pending_dispatch") {
       const triggerKey = await idempotencyKeys.create(`tool:${job.id}`, { scope: "global" });
-      const run = await tasks.trigger(TEXT_TOOL_TASK_ID, { jobId: job.id, schemaVersion: 1, requestId }, { idempotencyKey: triggerKey });
+      const run = await tasks.trigger(visual ? VISUAL_TOOL_TASK_ID : TEXT_TOOL_TASK_ID, { jobId: job.id, schemaVersion: 1, requestId }, { idempotencyKey: triggerKey });
       await admin.from("jobs").update({ state: "queued", provider_run_id: run.id, updated_at: new Date().toISOString() }).eq("id", job.id).eq("owner_id", owner).eq("state", "pending_dispatch");
     }
-    return json({ data: { jobId: job.id, resultType: "text" }, requestId }, 202);
+    return json({ data: { jobId: job.id, resultType: getToolDefinition(tool).resultType }, requestId }, 202);
   } catch (error) {
     const invalid = error instanceof Error && (error.message === "UNKNOWN_TOOL" || error.name === "ZodError" || error instanceof SyntaxError);
     return json({ error: { code: invalid ? "INVALID_REQUEST" : "SERVICE_UNAVAILABLE", message: invalid ? "Tool request is invalid." : "Tool service is temporarily unavailable.", retryable: !invalid }, requestId }, invalid ? 400 : 503);
@@ -66,7 +66,10 @@ export async function GET(request: Request, context: { readonly params: Promise<
     const result = await createAdminSupabaseClient().from("jobs").select("id,state,progress,result_ref,error_code").eq("id", jobId).eq("owner_id", owner).eq("kind", "tool").maybeSingle();
     if (result.error) throw result.error;
     if (!result.data) return json({ error: { code: "NOT_FOUND", message: "Tool result was not found.", retryable: false }, requestId }, 404);
-    const candidate = result.data.result_ref && typeof result.data.result_ref === "object" ? (result.data.result_ref as Record<string, unknown>).candidate : null;
+    const resultRef = result.data.result_ref && typeof result.data.result_ref === "object" && !Array.isArray(result.data.result_ref) ? result.data.result_ref as Record<string, unknown> : null;
+    // A text candidate is nested under `candidate`; a visual candidate references its stored
+    // tool output at the top level and never carries the rendered bytes.
+    const candidate = resultRef ? resultRef.candidate ?? (typeof resultRef.tool === "string" ? resultRef : null) : null;
     if (candidate && typeof candidate === "object" && (candidate as { tool?: unknown }).tool !== tool) return json({ error: { code: "NOT_FOUND", message: "Tool result was not found.", retryable: false }, requestId }, 404);
     return json({ data: { jobId, state: result.data.state, progress: result.data.progress, candidate, errorCode: result.data.error_code }, requestId }, 200);
   } catch {
