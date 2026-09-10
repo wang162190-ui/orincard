@@ -1,15 +1,16 @@
 # Changelog
 
-## 2026-09-09
-
-- Added Pexels stock-image search and provider-verified import. Imported images are copied into private Storage and preserve author, source, license confirmation, and quota metadata.
-
 Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 格式。
 
 ## [Unreleased]
 
 ### Completed
 
+- 完成 B10 T074–T084：营销站与定价/等待名单入口、受控轮播模板、可信帮助与指南、公开 SEO 与私有 noindex、Affiliate 申请与归因、受控审批流、支持工单与三份法务草稿。三份法务文档保持 `draft` 且 `noindex`，未经人工批准精确版本与内容哈希不得发布。
+- 完成 B09 T068–T072：版本化权益策略、隔离的 Stripe Checkout 与 Portal、计费事件账本与客户持久化、签名事件对账、计费工作台 UI。
+- 完成 B08 T062–T067：显式工具契约与上下文选择、三项文本工具、仅候选的视觉工具、独立工具产物与授权下载、工具页面与显式应用。生成不改动项目，应用才创建新 revision。
+- 完成 B07 T054–T061：可编辑 PPTX 导出、带授权音轨的 MP4 导出、恢复包检查与确认导入、版本浏览与恢复、项目库搜索/复制/归档、分阶段项目与账号删除、偏好与私有账号数据包。
+- 完成 B06 T045–T053：Pexels 授权图库搜索与来源可核对的导入、隔离页面截图、AI 图片与 Portrait 候选、编辑器素材面板、素材生命周期与引用保护删除、Brand Kit 创建/应用/复制/删除影响确认。导入图片复制进私有 Storage，并保留作者、来源、许可确认与配额元数据。
 - 完成 B05 T038–T044：六类来源、私有直传与实际文件验证、安全 URL 抓取、PDF/OCR、PPTX、视频解析，以及成本闸门和失败恢复形成真实云端闭环；无字幕视频使用豆包录音文件识别模型 2.0 异步转写。
 - 完成 B04 T027–T037：Topic/Text 来源写入、DeepSeek Responses 结构化生成、注册生成任务与进度 UI、匿名临时生成与反滥用、局部 AI 提案与整套重新生成、PNG/JPG/PDF 云端导出、导出预检与授权下载，构成第一条真实可导出闭环。
 - 修复生成任务领取逻辑：`server_claim_generation_job` 为集合返回函数，supabase-js 返回行数组，`src/trigger/generate.ts` 原按对象读取导致全部任务失败为 `SOURCE_UNAVAILABLE`。
@@ -29,6 +30,12 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Verified
 
+- B09 计费迁移 `20260910160000_b09_billing.sql` 已应用到开发库，`supabase/tests/billing.sql` 经 IPv4 Session pooler 通过 27/27；含对账任务的 Trigger `20260910.2` 部署成功。该门禁只证明事件账本、顺序规则、只追加审计与 owner 隔离，不证明 Stripe 签名校验或任何真实订阅生命周期。
+- B08 迁移 `20260910130000_b08_tool_outputs.sql` 已应用到开发库，`supabase/tests/tool-outputs.sql` 通过 10/10；文本工具经 Trigger `20260910.1` 的 DeepSeek worker 契约完成。本机直连开发库为 IPv6-only，最终数据库验证改走 IPv4 Session pooler。
+- B07 在开发云端产出真实持久 PPTX 与 MP4：PPTX 解包验证 6 个含可编辑 DrawingML 文本的 slide，并由 Microsoft PowerPoint 16.109.1 打开识别 6 页；MP4 经 `ffprobe` 验证为 1080×1350 H.264，页序与时长与选项一致（Trigger `20260909.8`）。T059 分阶段删除在 Trigger `20260909.10` 完成，项目在清理前即不可访问。
+- B07 恢复与隐私：私有 ZIP 经检查并确认后，恢复出的项目、素材行与 owner 前缀 Storage 对象全部获得新 ID/新 key，恢复字节与包内字节一致；真实账号数据包 `account.json` 通过递归敏感字段扫描，无外账号标记、Storage key、凭据或支付字段。T061 组合验收 2026-09-10 在开发云端一次跑通 `1 passed (4.2m)`，独立隐私契约 `2 passed`。
+- B06 于 2026-09-09 在开发 Supabase、Trigger 与真实供应商环境完成 T053：Pexels 真实导入、隔离截图真实 PNG、两次真实 APIMart GPT-Image-2 调用（最低成本 `1k` / `1:1`）、跨账号不可列出/不可删除、Brand Kit 应用与删除影响清单，Playwright 单 worker `1 passed (2.8m)`。
+- B06 修复并验证 AI 图片预算原子性：候选创建、图片额度与环境成本预留在同一事务提交，worker 成功后结算供应商返回成本、失败释放预留；开发库真实事务验证前后余额守恒。
 - B05 最终门禁通过：豆包真实视频转写 34/34、六来源 Playwright E2E 2/2、远程 pgTAP 72/72、规划检查 19/19；Trigger 开发部署 `20260908.7` 已同步加密转写变量。
 - B04 的 5 条云测试在最终部署版本 `20260907.6` 上串行全部通过：`text-source` 10/10、`generation` 7/7、`generation-job` 19/19、`text-generation` 3/3、`walking-skeleton` 1/1。
 - 真实导出产物经字节层面复核：PDF `207581` 字节以 `%PDF-` 开头，ZIP 内 4 个 PNG 分别为 `142931`/`86199`/`84359`/`96507` 字节且首 8 字节均为 PNG 签名；下载字节数与授权接口返回一致，未认证下载被拒绝。产物 SHA-256 见 `docs/acceptance/walking-skeleton.md`。
@@ -55,6 +62,13 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Known limitations
 
+- B08 的四条视觉工具路由（Quote Card、Infographic、Portrait、Carousel to Video）当前返回可重试的 `503 TOOL_UNAVAILABLE`，其 worker 尚未部署。候选渲染与供应商契约只经本地验证，**真实视觉供应商验收是发布阻塞项**；没有任何 mock 响应被记为供应商成功。
+- T073 支付生命周期阻塞：开发环境缺经批准的 Stripe **测试** Price 映射（`STRIPE_TEST_MONTHLY_PRICES_JSON`）与 Sandbox 显式启用。升级、续费、扣款失败、期末取消、退款五条路径均未取得真实 Sandbox 结论。
+- T084 的 Affiliate 申请与看板浏览器检查使用受控路由 fixture，仅为可复现 UI 状态，**不作为开发 Supabase 或支付供应商证据**；付费转化、佣金与退款冲正生命周期同样阻塞于真实 Sandbox。
+- T085/T086/T087 代码已落地且 Check 在本地通过，但 GitHub Actions 与 Vercel 均未初始化，`tests/cloud/backup.test.ts` 与 `tests/cloud/operations.test.ts` 使用注入适配器，未连接任何云资源。三项按规则保持未勾选，不以本地断言充当真实发布、真实到期清理或真实隔离恢复演练。
+- Keynote 14.4 导入导出的 PPTX 在自动化阶段超过 60 秒未返回，记为兼容性限制而非通过；字体不嵌入，跨 Office 版本不承诺像素级一致。
+- T053 只验证应用 Brand Kit 后的项目快照，不生成最终导出产物；预览与实际导出的一致性由 B07 的真实导出验收覆盖。
+- 云端 MP4 的授权音轨路径只用真实本地 AAC 转码产物验证；云端音轨样本仍需专用的已授权测试素材，不得用许可未确认的音频代替。
 - `src/trigger/reconcile-jobs.ts` 向 `reconcileJobs` 传入的 `triggerDispatcher` 只会触发做校验即返回的 `orincard-job-dispatch`，停滞的生成任务无法被真正重新派发。该文件属 B03 任务基础设施、不在 T029 文件清单内，且不影响 B04 正常路径，登记为待办。
 - `tests/cloud/generation-job.test.ts` 创建的任务不做清理；在每用户并发上限为 1 的约束下，一次失败运行会持续占用名额，使后续运行返回 `CONCURRENCY_LIMIT`。
 - `tests/cloud/text-source.test.ts` 在最终复跑序列的首次执行中出现过 1 项失败，随后连续 10 次全部通过，未能复现，根因未确认。

@@ -8,6 +8,22 @@ T084 passes the local public-entry, consent refusal, application, status, suppor
 
 The paid conversion, commission, and refund lifecycle remains **blocked for real Sandbox acceptance**. No approved test Price mapping and complete signed payment lifecycle were available for this run. Mocked conversions or refunds are not counted as passing evidence.
 
+## Database migration state — unverified
+
+Three growth migrations exist in the repository with no recorded evidence that they were applied to the development project:
+
+- `supabase/migrations/20260910124717_growth_affiliate_support.sql`
+- `supabase/migrations/20260910210000_affiliate_review_audit.sql`
+- `supabase/migrations/20260910211000_fix_referral_hash.sql`
+
+Commit `469d74d Fix referral hashing in remote database` implies at least one remote application, but no acceptance record confirms it and this is **not** recorded as verified. Confirm before any further B10 work with a terminal that already holds `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD`:
+
+```bash
+pnpm exec supabase migration list --project-ref <development-project-ref>
+```
+
+Record the real Remote column values here. Do not assume applied state from the presence of a migration file.
+
 ## Acceptance matrix
 
 | Path | Evidence | Verdict |

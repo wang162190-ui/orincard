@@ -599,39 +599,44 @@
 
 ## B12
 
-- [ ] T090 `tests/fixtures/corpus.json`, `tests/fixtures/rights.json`, `tests/unit/corpus.test.ts` — 建立20份授权全量验收语料清单 → AC-002, AC-005, AC-006
+- [ ] T090 [P] `tests/fixtures/corpus.json`, `tests/fixtures/rights.json`, `tests/unit/corpus.test.ts` — 建立20份授权全量验收语料清单 → AC-002, AC-005, AC-006
   - Batch: B12
-  - Depends: T089
+  - Parallel: B12-MATRIX/A
+  - Depends: T087
   - Check: `pnpm exec vitest run tests/unit/corpus.test.ts`
   - Expect: 20份原创/授权样本涵盖六来源、混排/OCR/媒体/恶意输入，来源和授权可核对。
 
-- [ ] T091 `tests/visual/export-matrix.spec.ts`, `docs/acceptance/visual.md` — 执行主题×平台×页数视觉矩阵 → AC-004, AC-005, AC-006
+- [ ] T091 [P] `tests/visual/export-matrix.spec.ts`, `docs/acceptance/visual.md` — 执行主题×平台×页数视觉矩阵 → AC-004, AC-005, AC-006
   - Batch: B12
+  - Parallel: B12-MATRIX/A
   - Depends: T090
   - Check: `pnpm exec playwright test tests/visual/export-matrix.spec.ts`
   - Expect: 6主题×3平台×4/6/12页及长词/中文/Emoji通过，无裁切缺字缺资源。
 
-- [ ] T092 `tests/cloud/security-matrix.test.ts`, `docs/acceptance/isolation.md` — 执行跨账号与故障幂等矩阵 → AC-001, AC-002, AC-007, AC-008, AC-009
+- [ ] T092 [P] `tests/cloud/security-matrix.test.ts`, `docs/acceptance/isolation.md` — 执行跨账号与故障幂等矩阵 → AC-001, AC-002, AC-007, AC-008, AC-009
   - Batch: B12
-  - Depends: T091
+  - Parallel: B12-MATRIX/B
+  - Depends: T087
   - Check: `pnpm exec vitest run tests/cloud/security-matrix.test.ts`
   - Expect: 盗ID/改owner/过期JWT/删除后下载/并发保存/重复回调/未知上游状态全部断言。
 
-- [ ] T093 `tests/e2e/accessibility.spec.ts`, `tests/e2e/browsers.spec.ts`, `docs/acceptance/browsers.md` — 执行可访问性和浏览器兼容验收 → AC-001, AC-004, AC-006
+- [ ] T093 [P] `tests/e2e/accessibility.spec.ts`, `tests/e2e/browsers.spec.ts`, `docs/acceptance/browsers.md` — 执行可访问性和浏览器兼容验收 → AC-001, AC-004, AC-006
   - Batch: B12
-  - Depends: T092
+  - Parallel: B12-MATRIX/C
+  - Depends: T087
   - Check: `pnpm exec playwright test tests/e2e/accessibility.spec.ts tests/e2e/browsers.spec.ts`
   - Expect: Chrome/Firefox/Safari桌面核心流与窄屏可用，键盘/焦点/下载兼容有证据。
 
-- [ ] T094 `tests/cloud/performance.test.ts`, `docs/acceptance/costs.md` — 测量真实成本和内存边界 → AC-002, AC-006, AC-009
+- [ ] T094 [P] `tests/cloud/performance.test.ts`, `docs/acceptance/costs.md` — 测量真实成本和内存边界 → AC-002, AC-006, AC-009
   - Batch: B12
+  - Parallel: B12-MATRIX/C
   - Depends: T093
   - Check: `pnpm exec vitest run tests/cloud/performance.test.ts`
   - Expect: 记录样本token/分钟/渲染秒/峰值内存/流量，修正预算估计，不把mock时延当实测。
 
 - [ ] T095 `tests/e2e/full-product.spec.ts`, `docs/acceptance/release.md`, `tests/contracts/api-coverage.test.ts` — 完成全产品集成冒烟与发布清单 → AC-001, AC-002, AC-003, AC-004, AC-005, AC-006, AC-007, AC-008, AC-009, AC-010, AC-011
   - Batch: B12
-  - Depends: T094
+  - Depends: T088, T089, T094
   - Check: `pnpm exec vitest run tests/contracts/api-coverage.test.ts && pnpm exec playwright test tests/e2e/full-product.spec.ts`
   - Expect: 逐方法逐路径契约覆盖、全部模块和L01–L07证据齐全，经用户验收；未配置能力不能计为完成。
 
