@@ -39,3 +39,30 @@ pnpm exec playwright test --project=chromium tests/visual/export-matrix.spec.ts
 ```
 
 需要截图证据时附加 `ORINCARD_CAPTURE_VISUALS=1`。
+
+## 验收结论（协调线，2026-09-11）
+
+```
+pnpm exec playwright test --project=chromium tests/visual/export-matrix.spec.ts
+8 passed (28.1s)
+```
+
+6 个主题各 1 条用例覆盖 3 平台 × 3 页数 = 9 组，合计 54 组，另加长词与缺资源两条反向用例。全部 54 组的 `TEXT_OVERFLOW` / `ASSET_MISSING` / `ASSET_NOT_READY` / `FONT_NOT_READY` / `MEASUREMENT_FAILED` 均为空。
+
+### 首轮 7 条失败牵出两个真实产品缺陷（已修，非削弱断言）
+
+首轮 7 条用例全部报 `FONT_NOT_READY`，根因在 `src/render/preflight.ts`，两处都是预检自身的判定写错，与用例无关：
+
+1. **字体就绪判定不看要渲染的字**。原实现调 `fonts.check(font)` 不带文本参数。浏览器对不带文本的查询按"该字族是否有任何已加载的面"回答，而语料里有中文与 Emoji 卡片，命中的是后备字体，于是每张卡都被判成未就绪。改为先 `fonts.load(font, text)` 再 `fonts.check(font, text)`，其中 `text` 取该张卡片自己的正文——即真正要渲染的那些字形。
+
+2. **溢出测量量错了盒子**。原实现拿卡片根元素的盒子当边界。模板的背景形状按设计会越过卡片边缘（这是视觉效果，不是溢出），因此根元素的 `scrollWidth/Height` 恒大于边界，把正常卡片误报成裁切。改为测量 `[data-slide-content]` 的内容盒——那才是"文字有没有被裁掉"该看的范围。
+
+两处修复同步反映在 `tests/ui/preflight.test.tsx` 与本文件的矩阵用例里。**没有放宽任何断言**：五类问题仍要求全为空，反向用例仍要求长词被报为 `TEXT_OVERFLOW`、缺图被报为 `ASSET_MISSING`。
+
+### 仍未闭合的一点
+
+`preflightVisualExport` 与 `createDomPreflightAdapter` 在 `src/` 下**没有任何调用方**。也就是说这套预检目前只被验收用例驱动，真实导出路径并不会在导出前跑它。矩阵证明了渲染结果本身没有裁切缺字缺资源，但**没有**证明产品会在用户导出时主动拦截这些问题。接线属于独立工作，如实记录于此。
+
+### 结论
+
+T091 真实通过，可勾选。

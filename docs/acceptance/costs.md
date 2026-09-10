@@ -52,3 +52,70 @@ ORINCARD_RUN_PERFORMANCE_CLOUD=1 RUN_CLOUD_PROBES=1 \
   ORINCARD_TRIGGER_MACHINE_MEMORY_BYTES=<该任务 machine preset 的真实内存字节数> \
   pnpm exec vitest run tests/cloud/performance.test.ts
 ```
+
+## 验收结论（协调线，2026-09-11）— Blocked
+
+```
+ORINCARD_RUN_PERFORMANCE_CLOUD=1 RUN_CLOUD_PROBES=1 \
+  ORINCARD_TRIGGER_MACHINE_MEMORY_BYTES=536870912 \
+  pnpm exec vitest run tests/cloud/performance.test.ts
+Tests  2 failed | 5 passed (7)   17.68s
+```
+
+### 机器规格是实测反推的，不是猜的
+
+`trigger.config.ts` 与 `src/trigger/probe.ts` 都没有 pin `machine`，所以部署跑的是 Trigger 的默认 preset。Trigger 的 REST API 不回报 machine 字段，于是改用它自己的计费数据反推：
+
+| 运行 | `costInCents` | `durationMs` | 折算 |
+|---|---|---|---|
+| `orincard-foundation-render-probe` | 0.0074925 | 2220 | $0.00003375/s |
+| `orincard-reconcile-jobs` | 0.003256875 | 965 | $0.00003375/s |
+
+两次独立运行折算出同一个费率，且与官方 small-1x 的 $0.0000338/s 一致 → 部署机器为 **small-1x（0.5 vCPU / 0.5 GB）**，内存上限 536,870,912 字节。`costInCents` 不含 `baseCostInCents`（每次调用 0.0025 cents），两次数据均印证。
+
+### 真实测得的数字
+
+探针运行 `run_06g8ovk2tsi5lkijqm1jnigo01`，部署版本 `20260910.3`：
+
+| 指标 | 实测值 |
+|---|---|
+| 渲染耗时（进程内计时） | 2,094 ms |
+| Trigger 计的整段机器时间 | 2,220 ms |
+| 进程峰值 RSS | 140,996,608 B ≈ 134.5 MiB |
+| 相对 0.5 GB 机器上限 | **26.3%**，余量充裕 |
+| PNG / PDF / PPTX 字节 | 14,981 / 18,168 / 45,836 B（合计 78,985 B） |
+| 单次运行成本 | 0.0074925 + 0.0025 = **0.0099925 cents ≈ $0.0001** |
+
+三个成品的 sha256 与 PNG/PDF 文件头均已校验，`metrics.*Bytes` 与实际字节数逐一相等——这些是真产物的字节，不是估算。
+
+另有 3 条用例真实读通并通过：`public.jobs` 的终态任务墙钟耗时按 `kind` 分组、`public.usage_ledger` 的计费单位（采样窗口内 `reserve` 与 `settle`/`release` 账目对得上）、`exports` 桶里 `ready` 对象的真实出站字节。
+
+### 阻断 1 — 缺陷：`private` schema 走 Data API 永远失败（生产缺陷）
+
+`supabase/config.toml` 的 Data API 只暴露 `["public", "graphql_public"]`，且每张 `private.*` 表都 `revoke all ... from public, anon, authenticated, service_role`。仓库里所有生产路径都遵循同一范式：经 `public.server_*` 的 `security definer` 函数访问，仅 `grant execute ... to service_role`。
+
+但 [`src/trigger/retention.ts:58`](../../src/trigger/retention.ts) 例外——它直接用 PostgREST 读私有表：
+
+```ts
+client.schema("private").from("cost_reservations").select("id", { count: "exact", head: true })
+```
+
+这条调用**永远**返回 `PGRST106 Invalid schema: private`，因而 `reconciliationHealth()` 必抛错，`runRetentionMaintenance` 必失败。Trigger 上的证据：`orincard-retention-maintenance` 是每小时定时任务，最近 2 次运行（2026-09-10 16:17 与 17:17）**2/2 全部 FAILED**。也就是说**过期清理与对账巡检目前从未成功执行过一次**。
+
+`performance.test.ts` 的两条成本用例照抄了这个写法（本文件上一节也据此写着"与 `src/trigger/retention.ts` 的既有做法一致"——那句话的前提是错的），因此同样栽在 `PGRST106`，读不到 `private.cost_reservations` / `cost_budgets` / `cost_attempts`。
+
+**本轮不修，如实记为 Blocked。** 修复方向：新增 `public.server_*` 只读 `security definer` 函数（仅 grant `service_role`），`retention.ts` 改调 `rpc`。**不得改为暴露 `private` schema**——那会削弱既有的安全边界。
+
+### 阻断 2 — 真实结论：实测用量链路是断的（设计内失败）
+
+上一节已预先写明，实测确认：`private.cost_attempts` 里没有任何 `state = 'settled'` 的样本，因为没有任何生产路径调用 `private.settle_cost_attempt`。`public.server_finalize_generation_job` 走的是 `private.b04_finish_job_with_unknown_cost`（把尝试标成 `unknown`），而 `src/server/ai.ts` 的 DeepSeek 适配器只取 `output_text`，供应商返回的 `usage` 直接丢弃。
+
+**因此当前唯一有数字的成本口径是预留估值，不是实测 token。** 预算估计只能被预留值修正，不能被实测用量修正。**不允许塞入估算数字让这条变绿。**
+
+### 预算消耗
+
+本次验收在 Trigger 上真跑一次渲染探针，成本约 $0.0001；未调用任何 AI、转写或图像供应商，`AI_MONTHLY_BUDGET_USD=10` 未受实质影响。
+
+### 结论
+
+内存与渲染边界已用真实云端数字取证并且余量充裕；**成本口径的两条链路都断着**（私有 schema 读不到、实测用量从不落库）。**T094 记为 Blocked，保持未勾选。**

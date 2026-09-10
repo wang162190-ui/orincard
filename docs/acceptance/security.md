@@ -46,3 +46,57 @@ export RUN_STRIPE_SANDBOX_LIFECYCLE=1
 export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
 pnpm typecheck && pnpm test
 ```
+
+## 验收结论（协调线，2026-09-11）— Blocked
+
+```
+pnpm exec vitest run tests/cloud/release-guards.test.ts
+Tests  6 failed | 13 passed (19)
+```
+
+**这 6 条失败全部是设计内的发布阻断，不是代码缺陷。** 它们需要运维/账号侧动作才能解除，因此 **T088 保持未勾选**，不因为"本地测试绿了"而补勾。
+
+### 守卫 1 — 未知许可（1 条阻断）
+
+```
+docs/design/reference/assets/img/avatar-elena.jpg → 许可「未知」/ 证据「无」
+```
+
+守卫 4 的「无许可素材不得随发布提交」同一根因再报一次（合计 2 条失败，1 个根因）。两条闭合路径已写在 `docs/licenses/assets.md`：补齐可核对的许可与来源证据，或从仓库移除该文件并撤下清单行。**未擅自删除该文件**——它属于设计参考资产，去留由你决定。
+
+其余许可检查全绿：`src/render/font-manifest.json` 声明的字体逐一登记；清单与 `tests/fixtures/rights.json` 双向一致；语料只引用 `rights.json` 真实定义的 rights id；无陈旧清单行。
+
+### 守卫 2 — 模型资格（全绿）
+
+源码真实调用的模型逐一登记了用途与商用资格，无未登记模型，也无代码已停用却仍留在清单里的行。
+
+### 守卫 3 — 支付配置与政策（4 条阻断）
+
+| 失败 | 内容 |
+|---|---|
+| `.env.example` 未记录 | `src/` 读取但 `.env.example` 未记录的 4 个变量：`STRIPE_TEST_SECRET_KEY`、`STRIPE_TEST_MONTHLY_PRICES_JSON`、`STRIPE_TEST_YEARLY_PRICES_JSON`、`STRIPE_TEST_PROMOTION_CODES_JSON` |
+| 测试环境未配置 | 同上 4 个变量在运行者 shell 中缺失 |
+| 非测试态密钥 | `STRIPE_TEST_SECRET_KEY` 缺失或非 `sk_test_` 前缀（**值全程未打印**） |
+| 政策文案未审定 | `content/legal/terms.mdx` 的 `publicationStatus` 仍为 `draft`，审定态是发布前置条件 |
+
+前三条与 T073 / T084 的阻塞同源：Stripe 测试环境按你的决定暂不配置。**这就是正确结果，不放宽这条守卫。** 第 4 条只需把条款文案改为 `approved`，属于内容审定动作。
+
+`.env.example` 那条是唯一一条可以立刻闭合的：补 4 行变量说明即可（只写变量名与用途，不写值）。本轮未改，如实记录。
+
+订阅、取消、退款三项条款覆盖检查本身通过。
+
+### 守卫 4 — 发布内容扫描（1 条阻断，与守卫 1 同源）
+
+未跟踪除 `.env.example` 以外的环境文件；未提交任何形似密钥的字面量；`tests/fixtures` 之外未提交语料正文。唯一失败是上面那张头像。
+
+### 依赖阻塞
+
+`Depends: T087` 仍未闭合（备份与隔离恢复演练需另建隔离 Supabase 项目）。**即使上述 6 条全部解除，T087 闭合前 T088 仍不勾选。**
+
+### 环境安全现状（如实保留）
+
+Supabase Auth 的泄露密码保护**仍未开启**，开发项目存在 **1 项 WARN**。不写成 0 项。
+
+### 结论
+
+T088 的三条阻断检查真实生效并真实拦下了当前发布，**T088 记为 Blocked，保持未勾选。**

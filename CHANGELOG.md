@@ -6,6 +6,20 @@ Orincard 的重要变更记录在此文件中。版本日期采用 `YYYY-MM-DD` 
 
 ### Completed
 
+- 完成 B12 T091 / T092 / T093 三项真实验收。T091 视觉矩阵 54 组（6 主题 × 3 平台 × 3 页数）预检五类问题全空，8 条用例通过；T092 跨账号与故障幂等矩阵 7/7 真实云端通过；T093 可访问性与浏览器兼容在 chromium / firefox / webkit 三引擎真实执行，29 通过 4 跳过。
+- 修复乐观并发冲突的 SQLSTATE：`private.save_project` 等 11 个函数的 13 处业务冲突从 `40001`（`serialization_failure`）改为 `PT409`。PostgREST 会对 `40001` 无限自动重试，而 revision 不匹配是确定性的，重试永不成功，导致冲突请求**永不返回**；改后立即以 HTTP 409 回答。新增 `src/server/db-errors.ts` 统一识别，`40001` 仍被认作冲突（真正的串行化失败对调用方意味着同一件事）。迁移 `supabase/migrations/20260911000000_conflict_errcode_pt409.sql` 已真实推送到开发项目。
+- 修复导出预检的两处误报：字体就绪判定原先调用不带文本参数的 `fonts.check(font)`，浏览器按「该字族是否有任何已加载的面」回答，中文与 Emoji 卡片因此恒被判为 `FONT_NOT_READY`；改为按该张卡片自己的正文 `fonts.load(font, text)` 后再 `fonts.check(font, text)`。溢出测量原先量卡片根元素，而模板背景形状按设计越过卡片边缘，正常卡片被误报为裁切；改为测量 `[data-slide-content]` 的内容盒。
+- 修正 T093 的可访问性定位方式：三个下拉与多个 `<textarea>` 的 `<label>` 是包住控件的，`getByLabel` 精确匹配对不上 label 的纯文本，改用 `getByRole(..., { name, exact: true })` 断言读屏软件真正拿到的**可访问名**。产品端未改动。`/exports` 的播报断言收窄到 `main` 内，排除 Next 自己挂的空 route announcer。
+
+### Blocked
+
+- T088 许可与安全发布检查：19 条守卫 13 通过 6 阻断，全部为设计内的发布阻断——`docs/design/reference/assets/img/avatar-elena.jpg` 许可未知（2 条）、Stripe 测试环境未配置（3 条）、`content/legal/terms.mdx` 仍为 `draft`（1 条）。另 `Depends: T087` 未闭合。保持未勾选。
+- T094 真实成本与内存边界：渲染边界已取得真实云端数字（峰值 RSS 134.5 MiB，占 small-1x 机器 0.5 GB 的 26.3%；渲染 2,094 ms；单次运行约 $0.0001），但成本口径的两条链路都断着，保持未勾选。
+- 缺陷（未修，已记录）：`src/trigger/retention.ts` 用 `client.schema("private")` 经 PostgREST 读私有表，而 Data API 只暴露 `public` / `graphql_public`，该调用永远返回 `PGRST106`。每小时的 `orincard-retention-maintenance` 定时任务因此**从未成功执行过**（Trigger 上最近 2 次运行 2/2 失败），过期清理与对账巡检实际处于停摆状态。修复方向是新增仅授予 `service_role` 的 `public.server_*` 只读 `security definer` 函数，**不得改为暴露 `private` schema**。
+- 缺陷（未修，已记录）：没有任何生产路径调用 `private.settle_cost_attempt`，供应商返回的 token 用量从不落库，因此预算估计只能被预留估值修正，不能被实测用量修正。
+- 缺陷（未修，已记录）：已下载过的私有导出对象，在授权撤销后仍会在缓存有效期内被供给。判别实验证明 RLS 授权撤销本身有效，从未下载过的同权限对象会被立即拒绝。
+- `preflightVisualExport` 与 `createDomPreflightAdapter` 在 `src/` 下没有任何调用方：预检目前只被验收用例驱动，真实导出路径不会在导出前运行它。
+
 - 闭合 B08 视觉工具发布阻塞项：新增 `src/trigger/visual-tool.ts` worker，路由把 Quote Card / Infographic / Portrait / Carousel to Video 从 `503 TOOL_UNAVAILABLE` 分支移出，走与文本工具同一条幂等与任务派发路径。该错误码已从代码库中消失。Portrait 按 job id 预留并结算真实图片预算，生成物仍是候选，用户显式接受前不带 `accepted_at`。
 - 完成 B12 T090：20 份原创或明确授权的验收语料覆盖六来源与混排/OCR/媒体/恶意输入，授权登记在 `tests/fixtures/rights.json`，全部为 Orincard 原创或「不读取任何外部内容」，无版权不明素材。
 - 新增 `tests/cloud/visual-tools-live.test.ts`：由 `ORINCARD_RUN_VISUAL_TOOLS_CLOUD=1` 显式开启的真实端到端视觉工具验收驱动，缺变量时显式失败而非 skip。

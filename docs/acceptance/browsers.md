@@ -53,3 +53,57 @@ pnpm exec playwright test --project=firefox tests/e2e/browsers.spec.ts
 # 附带真实登录下载（开发项目，串行执行）
 ORINCARD_RUN_BROWSERS_E2E=1 pnpm exec playwright test tests/e2e/browsers.spec.ts
 ```
+
+## 验收结论（协调线，2026-09-11）
+
+三个引擎真实执行，运行于 `next build && next start` 的生产构建（`PLAYWRIGHT_BASE_URL=http://127.0.0.1:3100`），单 worker：
+
+```
+29 passed, 4 skipped (14.5s)
+```
+
+| project | 结果 |
+|---|---|
+| chromium | 11 条：10 通过，1 skipped（真实登录下载，未开 `ORINCARD_RUN_BROWSERS_E2E`） |
+| firefox | 11 条：10 通过，1 skipped（同上） |
+| webkit | 11 条：9 通过，2 skipped（真实登录下载 + 纯键盘核心流，见下） |
+
+`browsers.spec.ts` 的三引擎自检用例在每个 project 上真实读了 `navigator.userAgent` 并比对引擎特征，因此这三列不是同一个 chromium 冒充出来的。
+
+### 定位方式的修正（不是放宽断言）
+
+`src/features/generation/options.tsx` 里三个下拉的 `<label>` 是**包住** `<select>` 的，`<label>` 的纯文本因此连着当前选项文字（`"Platform" + "LinkedIn…"`）。Playwright 的 `getByLabel` 匹配的是 `<label>` 元素的原始文本，`exact: true` 对不上；而读屏软件读的是**可访问名**，实测就是 `Platform`。同理 `Instructions` / `Headline` / `Source text` 这几个已有取值的 `<textarea>`。
+
+因此这些断言改用 `getByRole("combobox" | "textbox", { name, exact: true })`。这是收紧而不是放宽：它断言的正是读屏软件拿到的那个名字，也就是这条用例本来要证的契约。**产品端未做任何改动**——可访问名一直是对的，错的是测试的定位方式。
+
+`/exports` 的播报断言从 `page.getByRole("alert")` 收窄为 `page.getByRole("main").getByRole("alert")`：Next 自己在文档末尾挂了一个空的 `<div role="alert" id="__next-route-announcer__">`，不限定范围会把框架噪声一起断言进来。
+
+### Firefox：无头模式下 Tab 焦点不回绕
+
+Firefox 无头走到最后一个可聚焦元素后不再前进——有界面时它会把焦点交给浏览器 UI，无头下没有 UI，于是原地不动。`blur()` 无效，因为 Firefox 记的是**顺序焦点导航起点**而不是当前焦点。解法是先点一下不可聚焦的一级标题把起点挪回页面顶部，再走整条读序。断言的停靠点一个没少。
+
+`playwright.config.ts` 的 firefox project 显式设了 `accessibility.tabfocus = 7`。事后探针证明 Firefox 本来就会 Tab 到按钮和链接，这个 pref **不是**修好这条用例的原因；保留它是为了让 Tab 序不受本机系统设置左右，无害且已注明。
+
+### WebKit：macOS「全键盘控制」系统惯例（如实记录，未绕过）
+
+`defaults read -g AppleKeyboardUIMode` 在本机**未设置**，即 macOS 默认。该默认下 Tab 只停在文本框与列表上，**按钮、链接、`role=tab` 一律不进 Tab 序**。Safari/WebKit 照办，Chrome 与 Firefox 不照办。实测 WebKit 的 Tab 序是：
+
+```
+INPUT(Topic) → SELECT(Platform) → SELECT(Template) → INPUT(Language)
+→ SELECT(Content format) → INPUT(Number of slides) → TEXTAREA(Instructions) → BODY
+```
+
+顺序与另两个引擎完全一致，只是少了 5 个来源 tab 与提交按钮。这是**操作系统惯例，对所有网站一视同仁，不是本产品的缺陷**；依赖键盘的 Mac 用户本来就开着「全键盘控制」，开启后 Safari 的 Tab 序与另两个引擎一致。**未修改本机系统设置。**
+
+据此：
+
+- **Tab 阅读顺序与可见焦点**：在 WebKit 上仍真实执行，只断言 WebKit 确实会停靠的 7 个控件的顺序与焦点环。含 5 个 tab 与提交按钮的完整 13 站读序，证据以 chromium 与 firefox 为准。
+- **纯键盘走核心流**：第一步就要 Tab 到胶片条里的幻灯片按钮，在 WebKit 上无法执行。**显式 `test.skip` 并写明原因**，报告里计为 skipped，不改用鼠标点击后仍宣称「纯键盘」。这条流程在 chromium 与 firefox 上真实跑通。
+
+### 未取证的部分
+
+`signed-in download`（3 个引擎各 1 条）未运行：需要 `ORINCARD_RUN_BROWSERS_E2E=1` 与真实开发账号凭据，且开发账号需先有一件 `ready` 导出。**跨浏览器的真实下载路径因此尚无证据**，`browsers.spec.ts` 里断言的 `download` 事件、文件名与落盘只在开关打开后才成立。
+
+### 结论
+
+T093 的可访问性与三引擎兼容取证在 chromium / firefox 上完整成立，在 webkit 上按平台惯例部分成立且已逐条注明。**没有为了让用例变绿而削弱断言或跳过整个浏览器。**

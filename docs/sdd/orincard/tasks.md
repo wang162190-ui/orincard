@@ -606,21 +606,21 @@
   - Check: `pnpm exec vitest run tests/unit/corpus.test.ts`
   - Expect: 20份原创/授权样本涵盖六来源、混排/OCR/媒体/恶意输入，来源和授权可核对。
 
-- [ ] T091 [P] `tests/visual/export-matrix.spec.ts`, `docs/acceptance/visual.md` — 执行主题×平台×页数视觉矩阵 → AC-004, AC-005, AC-006
+- [x] T091 [P] `tests/visual/export-matrix.spec.ts`, `docs/acceptance/visual.md` — 执行主题×平台×页数视觉矩阵 → AC-004, AC-005, AC-006
   - Batch: B12
   - Parallel: B12-MATRIX/A
   - Depends: T090
   - Check: `pnpm exec playwright test tests/visual/export-matrix.spec.ts`
   - Expect: 6主题×3平台×4/6/12页及长词/中文/Emoji通过，无裁切缺字缺资源。
 
-- [ ] T092 [P] `tests/cloud/security-matrix.test.ts`, `docs/acceptance/isolation.md` — 执行跨账号与故障幂等矩阵 → AC-001, AC-002, AC-007, AC-008, AC-009
+- [x] T092 [P] `tests/cloud/security-matrix.test.ts`, `docs/acceptance/isolation.md` — 执行跨账号与故障幂等矩阵 → AC-001, AC-002, AC-007, AC-008, AC-009
   - Batch: B12
   - Parallel: B12-MATRIX/B
   - Depends: T087
   - Check: `pnpm exec vitest run tests/cloud/security-matrix.test.ts`
   - Expect: 盗ID/改owner/过期JWT/删除后下载/并发保存/重复回调/未知上游状态全部断言。
 
-- [ ] T093 [P] `tests/e2e/accessibility.spec.ts`, `tests/e2e/browsers.spec.ts`, `docs/acceptance/browsers.md` — 执行可访问性和浏览器兼容验收 → AC-001, AC-004, AC-006
+- [x] T093 [P] `tests/e2e/accessibility.spec.ts`, `tests/e2e/browsers.spec.ts`, `docs/acceptance/browsers.md` — 执行可访问性和浏览器兼容验收 → AC-001, AC-004, AC-006
   - Batch: B12
   - Parallel: B12-MATRIX/C
   - Depends: T087
