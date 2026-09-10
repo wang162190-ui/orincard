@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { createHash } from "node:crypto";
 
 export type ContentKind = "help" | "guide" | "legal";
 
@@ -14,6 +15,9 @@ export type ContentDocument = {
   readonly title: string;
   readonly description: string;
   readonly blocks: readonly ContentBlock[];
+  readonly publicationStatus?: "draft" | "approved";
+  readonly policyVersion?: string;
+  readonly contentHash?: string;
 };
 
 type CatalogEntry = {
@@ -28,9 +32,9 @@ const CATALOG: readonly CatalogEntry[] = [
   { kind: "help", slug: "export-and-restore", file: "help/export-and-restore.mdx" },
   { kind: "help", slug: "billing-and-cancellation", file: "help/billing-and-cancellation.mdx" },
   { kind: "guide", slug: "text-to-carousel", file: "guides/text-to-carousel.mdx" },
-  { kind: "legal", slug: "privacy", file: "legal/README.md" },
-  { kind: "legal", slug: "terms", file: "legal/README.md" },
-  { kind: "legal", slug: "affiliate", file: "legal/README.md" },
+  { kind: "legal", slug: "privacy", file: "legal/privacy.mdx" },
+  { kind: "legal", slug: "terms", file: "legal/terms.mdx" },
+  { kind: "legal", slug: "affiliate", file: "legal/affiliate.mdx" },
 ];
 
 export class ContentNotFoundError extends Error {
@@ -49,7 +53,7 @@ function frontmatter(source: string) {
     if (separator <= 0) throw new Error("Trusted content has invalid frontmatter.");
     const key = line.slice(0, separator).trim();
     const value = line.slice(separator + 1).trim();
-    if (!["title", "description"].includes(key) || !value) throw new Error("Trusted content has invalid frontmatter.");
+    if (!["title", "description", "publicationStatus", "policyVersion"].includes(key) || !value) throw new Error("Trusted content has invalid frontmatter.");
     metadata[key] = value;
   }
   if (!metadata.title || !metadata.description) throw new Error("Trusted content is missing metadata.");
@@ -103,7 +107,44 @@ export function parseTrustedMarkdown(source: string, identity: { readonly kind: 
   }
   flush();
   if (blocks.length === 0) throw new Error("Trusted content is empty.");
-  return { ...identity, title: metadata.title, description: metadata.description, blocks };
+  if (identity.kind === "legal" && (!(["draft", "approved"] as const).includes(metadata.publicationStatus as "draft" | "approved") || !metadata.policyVersion)) throw new Error("Legal content is missing publication metadata.");
+  return {
+    ...identity,
+    title: metadata.title,
+    description: metadata.description,
+    blocks,
+    ...(identity.kind === "legal" ? {
+      publicationStatus: metadata.publicationStatus as "draft" | "approved",
+      policyVersion: metadata.policyVersion,
+      contentHash: createHash("sha256").update(source.replaceAll("\r\n", "\n")).digest("hex"),
+    } : {}),
+  };
+}
+
+export type LegalApprovalEvidence = {
+  readonly slug: string;
+  readonly policyVersion: string;
+  readonly contentHash: string;
+  readonly approvedBy: string;
+  readonly approvedAt: string;
+  readonly approvalId: string;
+};
+
+export function legalPublicationDecision(document: ContentDocument, evidence?: LegalApprovalEvidence) {
+  if (document.kind !== "legal") return { publishable: false as const, reason: "NOT_LEGAL_CONTENT" as const };
+  if (document.publicationStatus !== "approved") return { publishable: false as const, reason: "DRAFT_CONTENT" as const };
+  if (!evidence) return { publishable: false as const, reason: "APPROVAL_REQUIRED" as const };
+  const approvedAt = Date.parse(evidence.approvedAt);
+  if (
+    evidence.slug !== document.slug ||
+    evidence.policyVersion !== document.policyVersion ||
+    evidence.contentHash !== document.contentHash ||
+    !evidence.approvalId.startsWith("legal-approval-") ||
+    evidence.approvedBy.trim().length < 3 ||
+    /^(ai|automation|system)$/i.test(evidence.approvedBy.trim()) ||
+    !Number.isFinite(approvedAt)
+  ) return { publishable: false as const, reason: "APPROVAL_MISMATCH" as const };
+  return { publishable: true as const, reason: "APPROVED" as const };
 }
 
 export function listContent(kind: ContentKind) {
