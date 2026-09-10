@@ -1,5 +1,6 @@
 import { createHash, createHmac } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isRevisionConflictCode } from "./db-errors";
 import {
   parseCarouselDocument,
   type CarouselDocument,
@@ -182,7 +183,7 @@ function databaseFailure(error: unknown): DatabaseFailure {
 
 function throwDatabaseError(error: unknown): never {
   const failure = databaseFailure(error);
-  if (failure.code === "40001") {
+  if (isRevisionConflictCode(failure.code)) {
     throw new ProjectServiceError(
       "VERSION_CONFLICT",
       "This project changed in another tab. Keep your local copy or load the cloud version.",

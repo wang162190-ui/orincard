@@ -28,7 +28,8 @@ describe("project database definition", () => {
     expect(sql).toMatch(/function private\.save_project\([\s\S]+security definer[\s\S]+set search_path = ''/);
     expect(sql).toContain("where id = p_project_id");
     expect(sql).toContain("and revision = p_expected_revision");
-    expect(sql).toContain("raise exception using errcode = '40001'");
+    expect(sql).toContain("raise exception using errcode = 'PT409'");
+    expect(sql, "40001 is retried forever by PostgREST").not.toContain("'40001'");
     expect(sql).toContain("revoke execute on function private.save_project");
     expect(sql).toMatch(/grant execute on function private\.save_project[\s\S]+to service_role/);
     expect(policyTests).toContain("two CAS saves cannot both succeed");

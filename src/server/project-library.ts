@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isRevisionConflictCode } from "./db-errors";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const IDEMPOTENCY_KEY_PATTERN = /^[\x21-\x7e]{8,200}$/;
@@ -46,7 +47,7 @@ function resultFrom(value: unknown): ProjectLibraryResult {
 }
 
 function mapDatabaseError(error: Readonly<{ code?: string }>): never {
-  if (error.code === "40001") throw new ProjectLibraryError("VERSION_CONFLICT", "This project changed in another tab. Refresh and try again.", 409);
+  if (isRevisionConflictCode(error.code)) throw new ProjectLibraryError("VERSION_CONFLICT", "This project changed in another tab. Refresh and try again.", 409);
   if (error.code === "23505") throw new ProjectLibraryError("IDEMPOTENCY_CONFLICT", "This operation key was already used for a different request.", 409);
   if (error.code === "55000") throw new ProjectLibraryError("OPERATION_EXPIRED", "This operation has expired. Start a new operation.", 410);
   if (error.code === "42501") throw new ProjectLibraryError("NOT_FOUND", "Project not found.", 404);

@@ -338,7 +338,7 @@ begin
   if target.id is null then return false; end if;
   if target.state in ('succeeded', 'failed', 'canceled') then return target.state = 'succeeded'; end if;
   if target.state <> 'running' or target.lease_token is distinct from p_lease_token then
-    raise exception using errcode = '40001', message = 'stale generation worker lease';
+    raise exception using errcode = 'PT409', message = 'stale generation worker lease';
   end if;
   if (p_document is null) = (p_error_code is null) then
     raise exception using errcode = '22023', message = 'exactly one generation result is required';
@@ -433,7 +433,7 @@ begin
   if target.state <> 'running' or p_proposal ->> 'proposalJobId' <> target.id::text
     or p_proposal ->> 'projectId' <> target.project_id::text
     or (p_proposal ->> 'projectRevision')::bigint <> (target.input_ref ->> 'projectRevision')::bigint then
-    raise exception using errcode = '40001', message = 'stale rewrite proposal completion';
+    raise exception using errcode = 'PT409', message = 'stale rewrite proposal completion';
   end if;
   perform private.b04_finish_job_with_unknown_cost(target.id, true, jsonb_build_object('proposal', p_proposal), null);
   return jsonb_build_object('proposal', p_proposal);
@@ -537,7 +537,7 @@ begin
     or p_candidate ->> 'candidateJobId' <> target.id::text
     or p_candidate ->> 'projectId' <> target.project_id::text
     or (p_candidate ->> 'projectRevision')::bigint <> (target.input_ref ->> 'projectRevision')::bigint then
-    raise exception using errcode = '40001', message = 'stale regeneration candidate completion';
+    raise exception using errcode = 'PT409', message = 'stale regeneration candidate completion';
   end if;
   perform private.b04_finish_job_with_unknown_cost(target.id, true, jsonb_build_object('candidate', p_candidate), null);
   return jsonb_build_object('candidate', p_candidate);
@@ -631,10 +631,10 @@ begin
   end if;
   select * into target from public.projects where id = p_project_id and owner_id = p_owner_id and state in ('draft', 'archived') for update;
   if target.id is null then raise exception using errcode = '42501', message = 'project is not accessible'; end if;
-  if target.revision <> p_expected_revision then raise exception using errcode = '40001', message = 'project revision conflict'; end if;
+  if target.revision <> p_expected_revision then raise exception using errcode = 'PT409', message = 'project revision conflict'; end if;
   select id into version_id from public.project_versions
   where project_id = p_project_id and owner_id = p_owner_id and revision = p_expected_revision;
-  if version_id is null then raise exception using errcode = '40001', message = 'project version is unavailable'; end if;
+  if version_id is null then raise exception using errcode = 'PT409', message = 'project version is unavailable'; end if;
   foreach requested in array p_formats loop
     insert into public.jobs (owner_id, project_id, kind, input_ref, idempotency_key, request_hash)
     values (
@@ -689,7 +689,7 @@ begin
     or p_result_ref ->> 'projectVersionId' <> target_export.project_version_id::text
     or p_result_ref ->> 'format' <> target_export.format::text
     or jsonb_typeof(p_manifest) <> 'object' or p_finished_at > now() + interval '5 minutes' then
-    raise exception using errcode = '40001', message = 'export finalization binding failed';
+    raise exception using errcode = 'PT409', message = 'export finalization binding failed';
   end if;
   update public.exports set manifest = p_manifest, asset_id = p_asset_id, state = 'ready'
   where id = target_export.id;

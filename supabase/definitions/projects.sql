@@ -181,7 +181,7 @@ begin
   returning * into saved_project;
 
   if saved_project.id is null then
-    raise exception using errcode = '40001', message = 'project revision conflict';
+    raise exception using errcode = 'PT409', message = 'project revision conflict';
   end if;
 
   insert into public.project_versions (project_id, owner_id, revision, document, reason)

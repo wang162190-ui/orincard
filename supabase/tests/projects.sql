@@ -59,7 +59,7 @@ select throws_ok(
     $$select private.save_project('31111111-1111-1111-1111-111111111111', %L, 1, 'Stale save', 'tiktok', '{"schemaVersion":1,"title":"Stale save","platform":"tiktok"}'::jsonb, 'manual')$$,
     (select id from public.projects where owner_id = '31111111-1111-1111-1111-111111111111')
   ),
-  '40001', 'project revision conflict', 'two CAS saves cannot both succeed'
+  'PT409', 'project revision conflict', 'two CAS saves cannot both succeed'
 );
 reset role;
 

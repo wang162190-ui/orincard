@@ -429,7 +429,7 @@ begin
   select * into target_job from public.jobs where id = p_job_id and owner_id = p_owner_id for update;
   if target_job.id is null then raise exception using errcode = '42501', message = 'job is not accessible'; end if;
   if target_job.state in ('succeeded', 'partial', 'failed', 'canceled') then return target_job; end if;
-  if target_job.lease_token is distinct from p_lease_token then raise exception using errcode = '40001', message = 'stale worker lease'; end if;
+  if target_job.lease_token is distinct from p_lease_token then raise exception using errcode = 'PT409', message = 'stale worker lease'; end if;
   final_state := case when target_job.cancel_requested_at is not null then 'canceled'::public.job_state else p_requested_state end;
 
   select account_id, units into usage_account_id, reserved_units from public.usage_ledger
@@ -520,7 +520,7 @@ begin
   where id = p_project_id and owner_id = p_owner_id and state in ('draft', 'archived')
     and revision = p_expected_revision
   returning * into saved_project;
-  if saved_project.id is null then raise exception using errcode = '40001', message = 'project revision conflict'; end if;
+  if saved_project.id is null then raise exception using errcode = 'PT409', message = 'project revision conflict'; end if;
   insert into public.project_versions (project_id, owner_id, revision, document, reason)
   values (saved_project.id, saved_project.owner_id, saved_project.revision, saved_project.document, p_reason);
   response := jsonb_build_object('projectId', saved_project.id, 'revision', saved_project.revision, 'state', saved_project.state, 'httpStatus', 200);

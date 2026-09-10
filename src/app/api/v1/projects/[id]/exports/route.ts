@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { EXPORT_FORMATS, type ExportFormat } from "@/render/render-deck";
+import { isRevisionConflictCode } from "@/server/db-errors";
 import { readServerEnvironment } from "@/server/environment";
 import { createSupabaseJobStore, dispatchPendingJob } from "@/server/jobs";
 import { assertTrustedWriteRequest } from "@/server/projects";
@@ -90,7 +91,7 @@ export function createSupabaseProjectExportStore(client: SupabaseClient): Projec
       });
       if (error) {
         const code = (error as { code?: string }).code;
-        if (code === "40001") throw new ProjectExportError("VERSION_CONFLICT", "This project changed. Run export checks again.", 409);
+        if (isRevisionConflictCode(code)) throw new ProjectExportError("VERSION_CONFLICT", "This project changed. Run export checks again.", 409);
         if (code === "23505") throw new ProjectExportError("IDEMPOTENCY_CONFLICT", "This export key was already used with different options.", 409);
         if (code === "P0001") throw new ProjectExportError("EXPORT_PREFLIGHT_FAILED", "Fix the listed export issues before retrying.", 422);
         throw new ProjectExportError("SERVICE_UNAVAILABLE", "Export creation is temporarily unavailable.", 503, true);

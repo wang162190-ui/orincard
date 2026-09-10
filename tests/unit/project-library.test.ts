@@ -22,6 +22,9 @@ describe("project library operations", () => {
   });
 
   it.each([
+    ["PT409", "VERSION_CONFLICT", 409],
+    // 40001 no longer comes from the RPCs, but a genuine serialization failure from
+    // Postgres itself still means "re-read and retry", not "service unavailable".
     ["40001", "VERSION_CONFLICT", 409],
     ["42501", "NOT_FOUND", 404],
     ["23505", "IDEMPOTENCY_CONFLICT", 409],

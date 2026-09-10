@@ -138,7 +138,7 @@ describe("T023 project service", () => {
     const service = createProjectService({
       store: store({
         save: vi.fn().mockRejectedValue(
-          Object.assign(new Error("project revision conflict"), { code: "40001" }),
+          Object.assign(new Error("project revision conflict"), { code: "PT409" }),
         ),
       }),
       requestHashSecret: "test-only-request-hash-secret",
