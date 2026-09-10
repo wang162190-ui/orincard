@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const CROSS_BROWSER_SPECS = ["e2e/accessibility.spec.ts", "e2e/browsers.spec.ts"];
+
 export default defineConfig({
   testDir: "./tests",
   testMatch: ["e2e/**/*.spec.ts", "visual/**/*.spec.ts"],
@@ -16,6 +18,18 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+    },
+    // Firefox and WebKit only carry the T093 cross-browser acceptance specs. Running
+    // every suite three times would triple the real cloud logins those specs perform.
+    {
+      name: "firefox",
+      testMatch: CROSS_BROWSER_SPECS,
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "webkit",
+      testMatch: CROSS_BROWSER_SPECS,
+      use: { ...devices["Desktop Safari"] },
     },
   ],
 });
