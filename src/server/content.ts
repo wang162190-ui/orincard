@@ -9,9 +9,14 @@ export type ContentBlock =
   | { readonly kind: "paragraph"; readonly text: string }
   | { readonly kind: "list"; readonly ordered: boolean; readonly items: readonly string[] };
 
+export type ContentLocale = "en" | "zh-Hans";
+
+export const CONTENT_LOCALES: readonly ContentLocale[] = ["en", "zh-Hans"];
+
 export type ContentDocument = {
   readonly kind: ContentKind;
   readonly slug: string;
+  readonly locale: ContentLocale;
   readonly title: string;
   readonly description: string;
   readonly blocks: readonly ContentBlock[];
@@ -26,7 +31,6 @@ type CatalogEntry = {
   readonly file: string;
 };
 
-const CONTENT_ROOT = resolve(process.cwd(), "content");
 const CATALOG: readonly CatalogEntry[] = [
   { kind: "help", slug: "getting-started", file: "help/getting-started.mdx" },
   { kind: "help", slug: "export-and-restore", file: "help/export-and-restore.mdx" },
@@ -71,7 +75,7 @@ function rejectExecutableMarkup(source: string) {
   }
 }
 
-export function parseTrustedMarkdown(source: string, identity: { readonly kind: ContentKind; readonly slug: string }): ContentDocument {
+export function parseTrustedMarkdown(source: string, identity: { readonly kind: ContentKind; readonly slug: string; readonly locale?: ContentLocale }): ContentDocument {
   rejectExecutableMarkup(source);
   const { metadata, body } = frontmatter(source.replaceAll("\r\n", "\n"));
   const blocks: ContentBlock[] = [];
@@ -110,6 +114,7 @@ export function parseTrustedMarkdown(source: string, identity: { readonly kind: 
   if (identity.kind === "legal" && (!(["draft", "approved"] as const).includes(metadata.publicationStatus as "draft" | "approved") || !metadata.policyVersion)) throw new Error("Legal content is missing publication metadata.");
   return {
     ...identity,
+    locale: identity.locale ?? "en",
     title: metadata.title,
     description: metadata.description,
     blocks,
@@ -151,10 +156,25 @@ export function listContent(kind: ContentKind) {
   return CATALOG.filter((entry) => entry.kind === kind).map(({ slug }) => slug);
 }
 
-export async function readContent(kind: ContentKind, slug: string): Promise<ContentDocument> {
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new ContentNotFoundError();
+// 英文留在原路径，中文放 content/zh-Hans/ 下的同名镜像。英文 URL 与既有文件一个都没动，
+// 加语言时也不需要给每份文件改名。
+export function contentFile(kind: ContentKind, slug: string, locale: ContentLocale): string {
   const entry = CATALOG.find((candidate) => candidate.kind === kind && candidate.slug === slug);
   if (!entry) throw new ContentNotFoundError();
-  const source = await readFile(resolve(CONTENT_ROOT, entry.file), "utf8");
-  return parseTrustedMarkdown(source, { kind, slug });
+  return locale === "en" ? `content/${entry.file}` : `content/${locale}/${entry.file}`;
+}
+
+export function listContentEntries() {
+  return CATALOG.map(({ kind, slug }) => ({ kind, slug }));
+}
+
+export async function readContent(kind: ContentKind, slug: string, locale: ContentLocale = "en"): Promise<ContentDocument> {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new ContentNotFoundError();
+  const resolved = CONTENT_LOCALES.includes(locale) ? locale : "en";
+  // 缺中文文件时**不静默回落英文**：那样中文站会挂着英文正文而没人发现。
+  // 缺失由 tests/unit/content-locales.test.ts 在构建前拦下，运行期直接按找不到处理。
+  const source = await readFile(resolve(process.cwd(), contentFile(kind, slug, resolved)), "utf8").catch(() => {
+    throw new ContentNotFoundError();
+  });
+  return parseTrustedMarkdown(source, { kind, slug, locale: resolved });
 }

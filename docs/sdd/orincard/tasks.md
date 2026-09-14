@@ -2,7 +2,7 @@
 
 > source: docs/sdd/orincard/spec.md
 
-2026-09-04，HARD-GATE 2 已批准。共 95 项任务，12 批；按依赖执行，标记 `[P]` 的任务按 `Parallel` 组在最多三条隔离工作线中并行，未标记者串行收口。
+2026-09-04，HARD-GATE 2 已批准（95 项 / 12 批）。**2026-09-14 追加 B13 共 4 项，对应 spec 新增的 AC-012。**现共 99 项任务，13 批；按依赖执行，标记 `[P]` 的任务按 `Parallel` 组在最多三条隔离工作线中并行，未标记者串行收口。
 
 ## 执行约定
 
@@ -627,7 +627,7 @@
   - Check: `pnpm exec playwright test tests/e2e/accessibility.spec.ts tests/e2e/browsers.spec.ts`
   - Expect: Chrome/Firefox/Safari桌面核心流与窄屏可用，键盘/焦点/下载兼容有证据。
 
-- [ ] T094 [P] `tests/cloud/performance.test.ts`, `docs/acceptance/costs.md` — 测量真实成本和内存边界 → AC-002, AC-006, AC-009
+- [x] T094 [P] `tests/cloud/performance.test.ts`, `docs/acceptance/costs.md` — 测量真实成本和内存边界 → AC-002, AC-006, AC-009
   - Batch: B12
   - Parallel: B12-MATRIX/C
   - Depends: T093
@@ -640,6 +640,34 @@
   - Check: `pnpm exec vitest run tests/contracts/api-coverage.test.ts && pnpm exec playwright test tests/e2e/full-product.spec.ts`
   - Expect: 逐方法逐路径契约覆盖、全部模块和L01–L07证据齐全，经用户验收；未配置能力不能计为完成。
 
+## B13
+
+> 2026-09-14 追加。AC-012（编辑器对话助手）是 spec 在 HARD-GATE 2 之后新增的一条验收，因此另起一批，不改动 B01–B12 已冻结的任务编号与依赖。
+
+- [ ] T096 `docs/design/prototype/assistant.html`, `docs/design/prototype/assistant-conflict.html`, `docs/design/prototype/index.html`, `docs/design/prototype/README.md` — 出助手四态与冲突态原型并交产品所有者过图 → AC-012
+  - Batch: B13
+  - Depends: T095
+  - Check: `node scripts/check-planning.mjs`
+  - Expect: 两屏可直接打开，四态（思考中/提出改动/确认或拒绝/apply 失败且源 revision 未变）与过期 revision 冲突态各自可见；只用 reference 设计系统的既有 class 与 token，不新增全局 class 与图片；`docs/design/reference/` 仍报 15 unchanged design files。**产品所有者过图前不进入 T097。**
+
+- [ ] T097 `src/app/api/v1/copilot/route.ts`, `src/server/copilot.ts`, `tests/cloud/copilot.test.ts` — 自托管对话 runtime，每轮先预留预算后按实测结算 → AC-009, AC-012
+  - Batch: B13
+  - Depends: T096
+  - Check: `pnpm exec vitest run tests/cloud/copilot.test.ts`
+  - Expect: 每轮对话调用模型前走 `server_submit_job` 预留、响应后走 `settle_cost_attempt` 结算；连发多轮 `reserved + spent ≤ limit` 恒成立；预算打满后下一轮被拒绝而不是照跑；不接入 CopilotKit Cloud。
+
+- [ ] T098 `src/features/editor/assistant.tsx`, `src/features/editor/editor.tsx`, `messages/en.json`, `messages/zh-Hans.json`, `tests/ui/assistant.test.tsx` — 接入编辑器，只读上下文 + 人工确认后才写 → AC-005, AC-012
+  - Batch: B13
+  - Depends: T097
+  - Check: `pnpm exec vitest run tests/ui/assistant.test.tsx`
+  - Expect: `useCopilotReadable` 暴露的项目/幻灯片/Brand Kit 上下文只读；确认动作打到既有的 `apply-proposal` 路由，不新开写入口；拒绝一条提议后项目逐列不变；两份词条 key 集合仍一致。
+
+- [ ] T099 `tests/e2e/assistant.spec.ts`, `docs/acceptance/assistant.md` — 助手端到端集成冒烟与并发冲突验收 → AC-005, AC-009, AC-012
+  - Batch: B13
+  - Depends: T098
+  - Check: `pnpm exec playwright test tests/e2e/assistant.spec.ts`
+  - Expect: 真实浏览器里走完「提问 → 看 diff → 确认 → 新 revision」；制造 `expectedRevision` 冲突时 apply 返回 409 且源 revision 逐列不变；预算耗尽一轮被拒绝且未产生 revision；未配置能力不得计为完成。
+
 ## AC覆盖索引
 
 | AC | 任务 |
@@ -648,10 +676,11 @@
 | AC-002 | T018, T019, T024, T025, T027, T028, T029, T030, T031, T037, T039, T040, T041, T042, T043, T044, T086, T090, T092, T094, T095 |
 | AC-003 | T003, T009, T012, T014, T017, T023, T028, T029, T032, T033, T037, T095 |
 | AC-004 | T003, T005, T007, T011, T013, T014, T034, T051, T075, T091, T093, T095 |
-| AC-005 | T009, T012, T014, T018, T038, T045, T046, T047, T048, T049, T053, T064, T088, T090, T091, T095 |
+| AC-005 | T009, T012, T014, T018, T038, T045, T046, T047, T048, T049, T053, T064, T088, T090, T091, T095, T098, T099 |
 | AC-006 | T002, T003, T004, T005, T006, T011, T019, T024, T025, T034, T035, T036, T037, T054, T055, T056, T061, T064, T065, T090, T091, T093, T094, T095 |
 | AC-007 | T004, T006, T010, T015, T016, T017, T020, T021, T022, T023, T026, T035, T036, T037, T049, T056, T057, T058, T059, T060, T061, T082, T083, T085, T086, T087, T088, T089, T092, T095 |
 | AC-008 | T013, T015, T018, T020, T026, T038, T050, T051, T052, T053, T059, T088, T092, T095 |
-| AC-009 | T019, T020, T024, T025, T044, T068, T069, T070, T071, T072, T073, T083, T085, T086, T088, T089, T092, T094, T095 |
+| AC-009 | T019, T020, T024, T025, T044, T068, T069, T070, T071, T072, T073, T083, T085, T086, T088, T089, T092, T094, T095, T097, T099 |
 | AC-010 | T062, T063, T064, T065, T066, T067, T095 |
 | AC-011 | T001, T008, T066, T074, T075, T076, T077, T078, T079, T080, T081, T082, T083, T084, T085, T089, T095 |
+| AC-012 | T096, T097, T098, T099 |

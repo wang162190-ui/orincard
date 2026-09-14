@@ -109,7 +109,7 @@ async function deckHtml(
   width: number,
   height: number,
 ): Promise<string> {
-  const [slideCss, inter, serif, noto] = await Promise.all([
+  const [slideCss, inter, serif, noto, notoBold] = await Promise.all([
     // Bundlers rewrite import.meta.url to the entry module, which in the deployed
     // Trigger worker resolved to src/trigger/. Anchor on the working directory so the
     // same path holds for the Next.js server and the worker container.
@@ -117,11 +117,15 @@ async function deckHtml(
     loadExportFont("inter-latin-variable", require.resolve("@fontsource-variable/inter/package.json")),
     loadExportFont("source-serif-4-latin-variable", require.resolve("@fontsource-variable/source-serif-4/package.json")),
     loadExportFont("noto-sans-sc-simplified-400", require.resolve("@fontsource/noto-sans-sc/package.json")),
+    // 中文标题是粗的。只嵌 400 的话浏览器会合成伪粗体，笔画糊成一团，
+    // 而且和 PPTX 里真正的 Noto Sans SC Bold 对不上。
+    loadExportFont("noto-sans-sc-simplified-700", require.resolve("@fontsource/noto-sans-sc/package.json")),
   ]);
   const fontCss = [
     ["Inter Variable", inter],
     ["Source Serif 4 Variable", serif],
     ["Noto Sans SC", noto],
+    ["Noto Sans SC", notoBold],
   ].map(([family, font]) => {
     const loaded = font as Awaited<ReturnType<typeof loadExportFont>>;
     return `@font-face{font-family:${family};font-style:${loaded.entry.style};font-weight:${loaded.entry.weight};font-display:block;src:url(data:font/woff2;base64,${loaded.bytes.toString("base64")}) format("woff2")}`;

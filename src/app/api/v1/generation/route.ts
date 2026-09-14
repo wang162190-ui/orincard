@@ -1,7 +1,7 @@
 import { createHmac, randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { GenerationOptions } from "../../../../server/generation";
+import { isGenerationLanguage, type GenerationOptions } from "../../../../server/generation";
 import {
   createSupabaseJobStore,
   dispatchPendingJob,
@@ -227,8 +227,7 @@ function parseGenerationBody(body: unknown): {
   if (
     typeof value.sourceId !== "string" ||
     !UUID_PATTERN.test(value.sourceId) ||
-    typeof value.language !== "string" ||
-    !value.language.trim() ||
+    !isGenerationLanguage(value.language) ||
     typeof value.format !== "string" ||
     !value.format.trim() ||
     !Number.isInteger(value.pageCount) ||

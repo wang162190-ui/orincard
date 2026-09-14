@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Editor assistant · Orincard</title>
+<link rel="stylesheet" href="../reference/assets/orincard.css" />
+<style>
+  /* ─── workbench ──────────────────────────────────────────────────
+     Same three-column frame as ../reference/editor.html, with the assistant
+     taking the right column that the slide inspector holds there. This is the
+     decision on the table: the assistant does not float over the canvas, it
+     takes a column, and the canvas gets narrower because of it. The old
+     inspector moves behind the "Slide" tab in the same column. */
+  .workbench {
+    display: grid; align-items: start;
+    grid-template-columns: 300px minmax(0, 1fr) 360px;
+    gap: var(--gap-md);
+    padding: 20px var(--gutter) 40px;
+  }
+  @media (max-width: 1180px) { .workbench { grid-template-columns: 1fr 360px; } .pane-left { display: none; } }
+  @media (max-width: 900px)  { .workbench { grid-template-columns: 1fr; } }
+
+  .pane {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+    position: sticky; top: 76px;
+    max-height: calc(100vh - 100px); display: flex; flex-direction: column;
+  }
+  .pane .tabs { flex: none; }
+  .pane-body { padding: 16px; overflow-y: auto; min-height: 0; }
+
+  /* ─── stage ─────────────────────────────────────────────────────── */
+  .stage { display: flex; flex-direction: column; gap: var(--gap-sm); min-width: 0; }
+  .stage-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pager {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 5px 14px; border-radius: var(--radius-pill);
+    border: 1px solid var(--border); background: var(--surface);
+    font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums;
+  }
+  .stage-canvas { display: grid; place-items: center; padding: 4px 0 0; }
+  /* 400px in the snapshot. The assistant column costs the canvas 60px, which is
+     the part of this change you can only judge by looking at it. */
+  .canvas-wrap { width: min(100%, 340px); }
+  .canvas-wrap .slide { border: 1px solid var(--fg); border-radius: 4px; }
+  .canvas-cap { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; gap: 12px; }
+
+  .film { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px 14px; margin-top: 6px; }
+  .film-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  #filmList { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+  .film-item { position: relative; width: 116px; flex: none; }
+  .film-item .role { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 5px; }
+  .film-item[aria-current="true"] .slide-frame { box-shadow: 0 0 0 2px var(--fg); }
+  /* a pending proposal outranks "this is the slide you are looking at" — the
+     selected slide is already obvious from the canvas above it */
+  .film-item[data-touched="true"] .slide-frame { box-shadow: 0 0 0 2px var(--sig-pink); }
+
+  /* ─── assistant column ──────────────────────────────────────────── */
+  .asst { display: flex; flex-direction: column; min-height: 0; }
+  .asst-head { flex: none; padding: 13px 15px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 9px; }
+  .asst-head .who { min-width: 0; }
+  .asst-head .who b { display: block; font-size: 13.5px; }
+  .asst-head .who span { display: block; font-size: 11.5px; color: var(--muted); }
+
+  /* The reservation is not a footnote. Every turn takes money before the model
+     is called, so it sits at the top where it is read before the send button. */
+  .asst-budget { flex: none; padding: 10px 15px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 7px; }
+  .asst-budget .line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 12px; }
+  .asst-budget .line .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  .thread { flex: 1 1 auto; overflow-y: auto; min-height: 0; padding: 15px; display: flex; flex-direction: column; gap: 13px; }
+  .turn { display: flex; flex-direction: column; gap: 7px; }
+  .turn .bubble { font-size: 13.5px; line-height: 1.55; border-radius: var(--radius); padding: 10px 12px; border: 1px solid var(--border); }
+  .turn[data-from="user"] { align-items: flex-end; }
+  .turn[data-from="user"] .bubble { background: var(--fg); color: var(--on-ink); border-color: var(--fg); max-width: 88%; }
+  .turn[data-from="ori"] .bubble { background: var(--surface-2); max-width: 100%; }
+  .turn .stamp { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); }
+
+  /* thinking: three dots, no fake percentage. The prototype must not imply a
+     progress number the runtime has no way to know. */
+  .thinking { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); }
+  .thinking i { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); display: inline-block; animation: blink 1.1s infinite; }
+  .thinking i:nth-child(2) { animation-delay: 0.18s; }
+  .thinking i:nth-child(3) { animation-delay: 0.36s; }
+  @keyframes blink { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .thinking i { animation: none; opacity: 0.55; } }
+
+  /* ─── proposal ──────────────────────────────────────────────────── */
+  .proposal { border: 1px solid var(--fg-line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+  .proposal-head { padding: 11px 13px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .proposal-head .label { margin: 0; }
+  .proposal-body { padding: 13px; display: flex; flex-direction: column; gap: 12px; }
+
+  .edit { display: flex; flex-direction: column; gap: 6px; }
+  .edit-top { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .edit-top .n { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .edit-top .field-name { color: var(--muted); }
+  .edit-top .drop { margin-left: auto; }
+
+  .diff { display: flex; flex-direction: column; font-size: 13px; line-height: 1.5; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  .diff div { padding: 7px 10px 7px 26px; position: relative; }
+  .diff div + div { border-top: 1px solid var(--border); }
+  .diff div::before { position: absolute; left: 10px; top: 7px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .diff .was { background: var(--danger-soft); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--danger) 55%, transparent); }
+  .diff .was::before { content: "−"; }
+  .diff .now { background: var(--sig-mist); }
+  .diff .now::before { content: "+"; }
+  .diff .none { color: var(--muted); font-style: italic; }
+
+  .proposal-foot { padding: 11px 13px; border-top: 1px solid var(--border); background: var(--surface-2); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .proposal-foot .spend { margin-right: auto; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+
+  .composer { flex: none; border-top: 1px solid var(--border); padding: 12px 15px 14px; display: flex; flex-direction: column; gap: 9px; }
+  .composer .row-between { align-items: center; }
+
+  .state-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail" data-od-id="rail">
+    <div class="rail-brand">
+      <span class="mark" aria-hidden="true">
+        <svg class="ori ori-mark" viewBox="0 0 24 24"><polygon points="8.8,13.4 6.4,20.4 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 16.6,12.8 14.6,16.2 8.8,13.4" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="16.6,12.8 22.8,15.6 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 21.2,3 16.6,12.8" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="5.4,4.8 11,11 8.8,13.4 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="1.8,8.6 5.4,4.8 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="word">Orincard</span>
+    </div>
+    <nav class="rail-nav" aria-label="Main">
+      <a class="nav-item" href="../reference/projects.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="10" rx="1.5"/></svg><span>Projects</span></a>
+      <a class="nav-item" href="../reference/generator.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg><span>New carousel</span></a>
+      <a class="nav-item" href="../reference/brand-kits.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg><span>Brand Kits</span></a>
+      <a class="nav-item" href="assistant.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h16"/><path d="M14.5 4.5a2.1 2.1 0 0 1 3 3L9 16l-4 1 1-4Z"/></svg><span>Editor</span></a>
+      <a class="nav-item" href="exports.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Exports</span></a>
+      <a class="nav-item" href="billing.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg><span>Billing</span></a>
+      <a class="nav-item" href="settings.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.3 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 2.7 7.3"/></svg><span>Settings</span></a>
+      <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span>Prototype map</span></a>
+    </nav>
+    <div class="rail-foot">
+      <div class="plan-card">
+        <p class="label" style="margin-bottom: 6px;">Assistant budget</p>
+        <p style="margin: 0; font-size: 12.5px; line-height: 1.45;">Each turn reserves before the model runs and settles on what it actually used. <span class="badge badge-quiet">ILLUSTRATIVE</span></p>
+      </div>
+      <a class="account" href="settings.html">
+        <img class="avatar" src="../reference/assets/img/avatar-elena.jpg" alt="" width="28" height="28" />
+        <span class="who" style="min-width: 0;">
+          <span style="display: block; font-size: 13px; font-weight: 550;">Elena Marsh</span>
+          <span class="meta" style="display: block; font-size: 11.5px;">Creator plan</span>
+        </span>
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar" data-od-id="topbar">
+      <div class="crumbs">
+        <a class="link" href="../reference/projects.html">Projects</a>
+        <span class="sep">/</span>
+        <strong>Notes on writing in public</strong>
+        <span class="badge badge-quiet" id="revBadge" style="margin-left: 8px;">v5 · saved</span>
+      </div>
+      <div class="row">
+        <a class="btn btn-secondary btn-sm" href="../reference/editor.html">Snapshot editor</a>
+        <a class="btn btn-primary btn-sm" href="exports.html">Export</a>
+      </div>
+    </header>
+
+    <div style="padding: 22px var(--gutter) 0;" data-od-id="page-head">
+      <div class="row-between" style="align-items: flex-end; gap: var(--gap-md); flex-wrap: wrap;">
+        <div style="min-width: 0;">
+          <h1 style="font-size: clamp(26px, 3vw, 34px);">Editor assistant</h1>
+          <p class="lead" style="margin-top: 7px;">AC-012. The assistant reads the project; it never writes it. Every change it suggests arrives as a per-slide diff and waits for you.</p>
+        </div>
+        <div class="voice" style="flex: 0 1 360px;">
+          <span id="voiceOri" aria-hidden="true"></span>
+          <p>Dismissing a proposal leaves the project byte for byte where it was. There is no half-applied state.</p>
+        </div>
+      </div>
+
+      <div class="notice" style="margin-top: var(--gap-md);" data-od-id="scope-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><path d="M12 8h.01"/></svg>
+        <p><strong>What this screen is asking you to approve.</strong> The assistant takes the right column, so the canvas drops from 400&nbsp;px to 340&nbsp;px and the filmstrip thumbnails from 140&nbsp;px to 116&nbsp;px. The old slide inspector moves behind the <em>Slide</em> tab in the same column. Changing this later is a layout change across the whole editor.</p>
+      </div>
+
+      <div class="card" style="margin-top: var(--gap-md); display: flex; align-items: center; gap: var(--gap-md); flex-wrap: wrap;" data-od-id="state-picker">
+        <div style="min-width: 0;">
+          <p class="label" style="margin-bottom: 4px;">Walk the four states</p>
+          <p class="meta" style="margin: 0;" id="stateNote">Static demo. Nothing below calls a model, saves a revision, or spends anything.</p>
+        </div>
+        <div class="state-picker" style="margin-left: auto;" id="statePicker">
+          <button class="btn btn-secondary btn-sm" type="button" data-state="thinking">1 · Thinking</button>
+          <button class="btn btn-secondary btn-sm" type="button" data-state="proposal">2 · Proposal</button>
+          <button class="btn btn-secondary btn-sm" type="button" data-state="applied">3a · Applied</button>
+          <button class="btn btn-secondary btn-sm" type="button" data-state="dismissed">3b · Dismissed</button>
+          <button class="btn btn-secondary btn-sm" type="button" data-state="failed">4 · Apply failed</button>
+          <button class="btn btn-secondary btn-sm" type="button" data-state="broke">5 · Out of budget</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="workbench" data-od-id="workbench">
+
+      <!-- ─────────── left: the deck, read-only context ─────────── -->
+      <aside class="pane pane-left" data-od-id="context-pane" aria-label="Project context">
+        <div class="pane-body">
+          <p class="label" style="margin-bottom: 9px;">What the assistant can read</p>
+          <table class="ds-table">
+            <tbody>
+              <tr><th scope="row">Project</th><td>Notes on writing in public</td></tr>
+              <tr><th scope="row">Revision</th><td class="num" id="ctxRev">v5</td></tr>
+              <tr><th scope="row">Slides</th><td>6</td></tr>
+              <tr><th scope="row">Brand Kit</th><td>Marsh Studio</td></tr>
+              <tr><th scope="row">Preset</th><td>LinkedIn · 1080 × 1350</td></tr>
+            </tbody>
+          </table>
+          <div class="notice" style="margin-top: var(--gap-md);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4.5" y="10.5" width="15" height="9" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+            <p>Read-only. Assets, other projects and other Brand Kits are not in scope for this thread.</p>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ─────────── centre: canvas + filmstrip ─────────── -->
+      <section class="stage" data-od-id="canvas">
+        <div class="stage-bar">
+          <span class="pager" id="pager">3 / 6</span>
+          <span class="meta" style="margin-left: auto;">LinkedIn · 1080 × 1350</span>
+        </div>
+
+        <div class="stage-canvas">
+          <div class="canvas-wrap">
+            <div class="slide t-ink is-content r-4-5" id="canvasSlide">
+              <span class="slide-counter">3 / 6</span>
+              <p class="slide-eyebrow" id="cvEyebrow">02</p>
+              <div class="slide-main">
+                <h2 class="slide-title" id="cvTitle">Write for one person</h2>
+                <p class="slide-body" id="cvBody">Improve efficiency by narrowing who you are talking to.</p>
+              </div>
+            </div>
+            <div class="canvas-cap">
+              <span class="meta" id="capacityNote">Showing the saved v5. Proposals never touch the canvas.</span>
+              <span class="meta num">Text fits</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="film" data-od-id="filmstrip">
+          <div class="film-head">
+            <span class="label" id="filmCount">6 slides · 0 with a pending proposal</span>
+          </div>
+          <div id="filmList"></div>
+        </div>
+      </section>
+
+      <!-- ─────────── right: the assistant ─────────── -->
+      <aside class="pane asst" data-od-id="assistant" aria-label="Assistant">
+        <div class="tabs" role="tablist" aria-label="Right column">
+          <button class="tab" role="tab" aria-selected="true">Assistant</button>
+          <button class="tab" role="tab" aria-selected="false">Slide</button>
+        </div>
+
+        <div class="asst-head">
+          <span id="asstOri" aria-hidden="true"></span>
+          <span class="who">
+            <b>Ori</b>
+            <span id="asstSub">Reading v5 · 6 slides</span>
+          </span>
+          <span class="badge badge-quiet" style="margin-left: auto;" id="asstState">Idle</span>
+        </div>
+
+        <div class="asst-budget" data-od-id="budget">
+          <div class="line">
+            <span>This month <span class="badge badge-quiet">ILLUSTRATIVE</span></span>
+            <span class="num" id="budgetFigure">$2.14 spent · $0.02 held</span>
+          </div>
+          <div class="progress"><span id="budgetBar" style="width: 22%;"></span></div>
+          <p class="meta" style="margin: 0;" id="budgetNote">A turn reserves before the model is called and settles on measured usage. Reserve refused → the turn does not run.</p>
+        </div>
+
+        <div class="thread" id="thread" data-od-id="thread"></div>
+
+        <div class="composer" data-od-id="composer">
+          <label class="visually-hidden" for="ask">Ask the assistant</label>
+          <textarea class="textarea" id="ask" rows="2" placeholder="Ask for a rewrite, a reorder, or one more slide…"></textarea>
+          <div class="row-between">
+            <span class="meta" id="composerNote">Proposals need your confirmation before anything is saved.</span>
+            <button class="btn btn-primary btn-sm" type="button" id="send">Send</button>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</div>
+
+<script src="../reference/assets/ori.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* Same illustrative world as ../reference/projects.html: today is Sep 2 2026,
+     Elena Marsh, Creator plan. The project is p6, "Notes on writing in public",
+     which that file records at v5. Slide 3 below carries the phrase the
+     assistant offers to replace. Nothing here calls a model or saves anything.
+
+     [ILLUSTRATIVE-EXAMPLE: design demo data, not a real business record] */
+
+  var SLIDES = [
+    { role: 'intro',   title: 'Notes on writing in public' },
+    { role: 'content', title: 'Publishing is the edit' },
+    { role: 'content', title: 'Write for one person' },
+    { role: 'content', title: 'Cut the throat-clearing' },
+    { role: 'content', title: 'Ship before it is finished' },
+    { role: 'outro',   title: 'Start the next one today' }
+  ];
+
+  /* One proposal, two edits, both on the same slide. Keeping it small is the
+     point: a proposal that rewrites six slides at once cannot be reviewed, and
+     an unreviewable diff defeats the confirmation it is asking for. */
+  var PROPOSAL = {
+    id: 'prp_8c41',
+    basedOn: 'v5',
+    turnCost: '$0.004',
+    reserved: '$0.02',
+    edits: [
+      {
+        slide: 3, field: 'Body',
+        was: 'Improve efficiency by narrowing who you are talking to.',
+        now: 'Picture one reader. Write the sentence that person needs, and delete the other four.'
+      },
+      {
+        slide: 3, field: 'Eyebrow',
+        was: '02',
+        now: null
+      }
+    ]
+  };
+
+  var thread = document.getElementById('thread');
+  var asstState = document.getElementById('asstState');
+  var asstSub = document.getElementById('asstSub');
+  var stateNote = document.getElementById('stateNote');
+  var composerNote = document.getElementById('composerNote');
+  var revBadge = document.getElementById('revBadge');
+  var ctxRev = document.getElementById('ctxRev');
+  var filmCount = document.getElementById('filmCount');
+  var budgetFigure = document.getElementById('budgetFigure');
+  var budgetBar = document.getElementById('budgetBar');
+  var budgetNote = document.getElementById('budgetNote');
+  var sendBtn = document.getElementById('send');
+  var ask = document.getElementById('ask');
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function film(touched) {
+    document.getElementById('filmList').innerHTML = SLIDES.map(function (s, i) {
+      var n = i + 1;
+      var isTouched = touched && touched.indexOf(n) >= 0;
+      return '<div class="film-item" data-touched="' + (isTouched ? 'true' : 'false') + '"' +
+        (n === 3 ? ' aria-current="true"' : '') + '>' +
+        '<span class="role">' + esc(s.role) + '</span>' +
+        '<div class="slide slide-frame t-ink is-' + s.role + ' r-4-5" style="pointer-events:none;">' +
+          '<span class="slide-counter">' + n + '</span>' +
+          '<div class="slide-main"><h3 class="slide-title">' + esc(s.title) + '</h3></div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    filmCount.textContent = '6 slides · ' + (touched ? touched.length : 0) + ' with a pending proposal';
+  }
+
+  function userTurn(text) {
+    return '<div class="turn" data-from="user"><div class="bubble">' + esc(text) + '</div>' +
+      '<span class="stamp">You · 11:04</span></div>';
+  }
+
+  function oriTurn(inner, stamp) {
+    return '<div class="turn" data-from="ori">' + inner +
+      '<span class="stamp">' + esc(stamp || 'Ori · 11:04') + '</span></div>';
+  }
+
+  function diffRows(e) {
+    var was = e.was === null
+      ? '<div class="none">empty</div>'
+      : '<div class="was">' + esc(e.was) + '</div>';
+    var now = e.now === null
+      ? '<div class="now none">removed — nothing takes its place</div>'
+      : '<div class="now">' + esc(e.now) + '</div>';
+    return '<div class="diff">' + was + now + '</div>';
+  }
+
+  function proposalCard(opts) {
+    var foot = opts.foot;
+    return '<div class="proposal" data-od-id="proposal">' +
+      '<div class="proposal-head">' +
+        '<p class="label">Proposed · ' + PROPOSAL.edits.length + ' changes on slide 3</p>' +
+        '<span class="badge badge-quiet">based on ' + esc(PROPOSAL.basedOn) + '</span>' +
+      '</div>' +
+      '<div class="proposal-body">' +
+        PROPOSAL.edits.map(function (e) {
+          return '<div class="edit">' +
+            '<div class="edit-top">' +
+              '<span class="n">Slide ' + e.slide + '</span>' +
+              '<span class="field-name">' + esc(e.field) + '</span>' +
+              (e.now === null ? '<span class="badge badge-warn drop">Deletion</span>' : '') +
+            '</div>' + diffRows(e) +
+          '</div>';
+        }).join('') +
+      '</div>' +
+      (foot ? '<div class="proposal-foot">' + foot + '</div>' : '') +
+    '</div>';
+  }
+
+  var STATES = {
+
+    /* 1 — thinking. The reserve has already happened; showing it here is the
+       honest order of events, because a refused reserve never reaches this
+       state at all. */
+    thinking: function () {
+      asstState.textContent = 'Thinking';
+      asstState.className = 'badge badge-warn';
+      asstSub.textContent = 'Reading v5 · 6 slides';
+      stateNote.textContent = 'The reserve is taken before the model is called, so a refusal costs nothing and produces no turn.';
+      composerNote.textContent = 'Held $0.02 for this turn. Settles on measured usage when it returns.';
+      sendBtn.disabled = true;
+      film([]);
+      thread.innerHTML =
+        userTurn('Slide 3 says “improve efficiency”. Make it concrete.') +
+        oriTurn('<div class="bubble"><span class="thinking"><i></i><i></i><i></i> Reading slides 1–6 and the Marsh Studio kit…</span></div>', 'Ori · reserved $0.02');
+      budget('$2.14 spent · $0.02 held', 22);
+    },
+
+    /* 2 — proposal. Nothing is written yet; the canvas and the revision badge
+       are unchanged, and the filmstrip only flags which slide is involved. */
+    proposal: function () {
+      asstState.textContent = 'Waiting on you';
+      asstState.className = 'badge badge-warn';
+      asstSub.textContent = 'Proposal ' + PROPOSAL.id + ' · based on v5';
+      stateNote.textContent = 'Two changes, one slide. The canvas still shows the saved v5 — a proposal is never previewed as if it had been applied.';
+      composerNote.textContent = 'Nothing is saved yet. v5 is still the current revision.';
+      sendBtn.disabled = false;
+      film([3]);
+      thread.innerHTML =
+        userTurn('Slide 3 says “improve efficiency”. Make it concrete.') +
+        oriTurn(
+          '<div class="bubble">Slide 3 makes a claim without an example, and the eyebrow repeats the counter in the corner. Here is what I would change.</div>' +
+          proposalCard({
+            foot:
+              '<span class="spend">turn cost ' + PROPOSAL.turnCost + ' · settled</span>' +
+              '<button class="btn btn-secondary btn-sm" type="button" data-act="dismiss">Dismiss</button>' +
+              '<button class="btn btn-primary btn-sm" type="button" data-act="apply">Apply to a new revision</button>'
+          }),
+          'Ori · 11:04 · ' + PROPOSAL.turnCost);
+      budget('$2.14 spent · $0.00 held', 22);
+    },
+
+    /* 3a — applied. A new revision exists and the canvas moves to it. The old
+       one is not overwritten, which is what makes this reversible. */
+    applied: function () {
+      asstState.textContent = 'Applied';
+      asstState.className = 'badge badge-ok';
+      asstSub.textContent = 'Wrote v6 · based on v5';
+      stateNote.textContent = 'Confirmation is what writes. The assistant goes through the same apply-proposal path a manual edit uses — there is no second write entrypoint.';
+      composerNote.textContent = 'v6 saved. v5 is still in version history.';
+      sendBtn.disabled = false;
+      film([]);
+      setCanvas({
+        eyebrow: null,
+        body: PROPOSAL.edits[0].now
+      });
+      revBadge.textContent = 'v6 · saved';
+      revBadge.className = 'badge badge-ok';
+      ctxRev.textContent = 'v6';
+      thread.innerHTML =
+        userTurn('Slide 3 says “improve efficiency”. Make it concrete.') +
+        oriTurn(
+          '<div class="bubble">Slide 3 makes a claim without an example, and the eyebrow repeats the counter in the corner. Here is what I would change.</div>' +
+          proposalCard({ foot: '<span class="spend">turn cost ' + PROPOSAL.turnCost + ' · settled</span><span class="badge badge-ok"><span class="dot"></span>Applied</span>' }),
+          'Ori · 11:04 · ' + PROPOSAL.turnCost) +
+        oriTurn(
+          '<div class="notice notice-ok" style="margin:0;">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 13 4 4L19 7"/></svg>' +
+            '<p><strong>Saved as v6.</strong> v5 is untouched in version history, so <a class="link" href="../reference/editor.html">reverting</a> is one click and does not need the assistant.</p>' +
+          '</div>', 'Ori · 11:05');
+      budget('$2.14 spent · $0.00 held', 22);
+    },
+
+    /* 3b — dismissed. The strong claim on this screen: nothing changed. So the
+       state has to show the revision badge and the canvas sitting still. */
+    dismissed: function () {
+      asstState.textContent = 'Dismissed';
+      asstState.className = 'badge badge-quiet';
+      asstSub.textContent = 'Still on v5 · nothing written';
+      stateNote.textContent = 'A dismissed proposal writes nothing: no revision, no asset, no Brand Kit change. The turn that produced it was still paid for.';
+      composerNote.textContent = 'Still on v5. The dismissed proposal is not recoverable — ask again.';
+      sendBtn.disabled = false;
+      film([]);
+      thread.innerHTML =
+        userTurn('Slide 3 says “improve efficiency”. Make it concrete.') +
+        oriTurn(
+          '<div class="bubble" style="opacity: 0.6;">Slide 3 makes a claim without an example, and the eyebrow repeats the counter in the corner.</div>' +
+          '<div class="notice" style="margin:0;">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+            '<p><strong>Dismissed.</strong> The project is exactly as it was: still <strong>v5</strong>, slide 3 unchanged, no revision created. ' +
+            'The turn itself cost ' + PROPOSAL.turnCost + ' and that is already settled — dismissing does not refund the model call.</p>' +
+          '</div>', 'Ori · 11:04 · ' + PROPOSAL.turnCost);
+      budget('$2.14 spent · $0.00 held', 22);
+    },
+
+    /* 4 — apply failed. The proposal was built against v5 but v5 is no longer
+       the head, so the write is refused whole. Partial application is the one
+       outcome that must be impossible. */
+    failed: function () {
+      asstState.textContent = 'Apply refused';
+      asstState.className = 'badge badge-danger';
+      asstSub.textContent = 'Proposal based on v5 · head is now v6';
+      stateNote.textContent = 'The write is refused as a whole. Half a proposal landing is the failure mode this check exists to prevent.';
+      composerNote.textContent = 'Nothing was written. Ask again against v6.';
+      sendBtn.disabled = false;
+      film([3]);
+      thread.innerHTML =
+        userTurn('Slide 3 says “improve efficiency”. Make it concrete.') +
+        oriTurn(
+          '<div class="bubble">Slide 3 makes a claim without an example, and the eyebrow repeats the counter in the corner.</div>' +
+          proposalCard({ foot: '<span class="spend">turn cost ' + PROPOSAL.turnCost + ' · settled</span><span class="badge badge-danger">Not applied</span>' }),
+          'Ori · 11:04 · ' + PROPOSAL.turnCost) +
+        oriTurn(
+          '<div class="notice notice-danger" style="margin:0;">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v5"/><path d="M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>' +
+            '<p><strong>Could not apply — the project moved.</strong> This proposal was built against <strong>v5</strong>, but the project is now on <strong>v6</strong>. ' +
+            'Applying it would overwrite an edit made after the assistant last read the deck, so the whole write was refused and <strong>v5 was left column for column as it was</strong>.</p>' +
+          '</div>' +
+          '<table class="ds-table" style="margin-top: 10px;"><tbody>' +
+            '<tr><th scope="row">Proposal built on</th><td class="num">v5</td></tr>' +
+            '<tr><th scope="row">Current head</th><td class="num">v6</td></tr>' +
+            '<tr><th scope="row">Rows written</th><td class="num">0</td></tr>' +
+          '</tbody></table>' +
+          '<div class="row" style="gap: 8px; margin-top: 11px;">' +
+            '<button class="btn btn-primary btn-sm" type="button" data-act="reask">Ask again against v6</button>' +
+            '<a class="btn btn-secondary btn-sm" href="assistant-conflict.html">See the full conflict</a>' +
+          '</div>', 'Ori · 11:06');
+      budget('$2.14 spent · $0.00 held', 22);
+    },
+
+    /* 5 — out of budget. AC-012 says the turn must be refused rather than run,
+       so this state has no thinking dots and no proposal: the model is never
+       called. */
+    broke: function () {
+      asstState.textContent = 'Refused';
+      asstState.className = 'badge badge-danger';
+      asstSub.textContent = 'Budget exhausted · no model call made';
+      stateNote.textContent = 'The reserve is refused, so this turn never reaches a model. The cap is enforced before spending, not reported after it.';
+      composerNote.textContent = 'Sending is blocked until the cap is raised or the month rolls over.';
+      sendBtn.disabled = true;
+      film([]);
+      thread.innerHTML =
+        userTurn('Can you tighten slides 4 and 5 too?') +
+        oriTurn(
+          '<div class="notice notice-danger" style="margin:0;">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v5"/><path d="M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>' +
+            '<p><strong>This turn did not run.</strong> Reserving for it would put the month over its cap, so the request was refused before any model was called. ' +
+            'Nothing was spent on this message and no proposal exists.</p>' +
+          '</div>' +
+          '<div class="row" style="gap: 8px; margin-top: 11px;">' +
+            '<a class="btn btn-primary btn-sm" href="billing.html">Review the cap</a>' +
+            '<a class="btn btn-secondary btn-sm" href="../reference/editor.html">Edit slide 4 by hand</a>' +
+          '</div>', 'Ori · 11:12 · $0.00');
+      budget('$10.00 spent · $0.00 held', 100);
+      budgetNote.innerHTML = 'Cap reached. Reserves are refused, so turns stop instead of running on. <span class="badge badge-quiet">ILLUSTRATIVE</span>';
+    }
+  };
+
+  function budget(text, pct) {
+    budgetFigure.textContent = text;
+    budgetBar.style.width = pct + '%';
+    budgetNote.textContent = 'A turn reserves before the model is called and settles on measured usage. Reserve refused → the turn does not run.';
+  }
+
+  function setCanvas(next) {
+    var eyebrow = document.getElementById('cvEyebrow');
+    eyebrow.hidden = next.eyebrow === null;
+    if (next.eyebrow !== null) eyebrow.textContent = next.eyebrow;
+    document.getElementById('cvBody').textContent = next.body;
+  }
+
+  function resetCanvas() {
+    var eyebrow = document.getElementById('cvEyebrow');
+    eyebrow.hidden = false;
+    eyebrow.textContent = '02';
+    document.getElementById('cvBody').textContent = PROPOSAL.edits[0].was;
+    revBadge.textContent = 'v5 · saved';
+    revBadge.className = 'badge badge-quiet';
+    ctxRev.textContent = 'v5';
+  }
+
+  function go(name) {
+    resetCanvas();
+    Array.prototype.forEach.call(document.querySelectorAll('#statePicker button'), function (b) {
+      var on = b.dataset.state === name;
+      b.className = 'btn btn-sm ' + (on ? 'btn-primary' : 'btn-secondary');
+    });
+    STATES[name]();
+    thread.scrollTop = 0;
+  }
+
+  document.getElementById('statePicker').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-state]');
+    if (b) go(b.dataset.state);
+  });
+
+  thread.addEventListener('click', function (e) {
+    var act = e.target.closest('[data-act]');
+    if (!act) return;
+    if (act.dataset.act === 'apply') return go('applied');
+    if (act.dataset.act === 'dismiss') return go('dismissed');
+    if (act.dataset.act === 'reask') return go('thinking');
+  });
+
+  sendBtn.addEventListener('click', function () {
+    if (!ask.value.trim()) { ask.focus(); return; }
+    go('thinking');
+  });
+
+  document.getElementById('voiceOri').innerHTML = Ori.mark(20);
+  document.getElementById('asstOri').innerHTML = Ori.crane(24, 'rest');
+  go('proposal');
+})();
+</script>
+</body>
+</html>

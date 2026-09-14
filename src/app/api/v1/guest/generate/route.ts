@@ -9,6 +9,12 @@ import {
   type GuestGenerationBody,
 } from "../../../../../server/guest-guards";
 import { generateCarouselDocument } from "../../../../../server/generation";
+import { guestAttemptKey } from "../../../../../server/cost";
+import {
+  createMeasurementCollector,
+  registerGuestCostAttempt,
+  settleGuestUsage,
+} from "../../../../../server/cost-settlement";
 import { createAdminSupabaseClient } from "../../../../../server/supabase";
 
 async function jsonBody(request: Request): Promise<GuestGenerationBody> {
@@ -62,11 +68,32 @@ export async function POST(request: Request) {
       );
     }
     const ai = createDeepSeekResponsesAdapter(createDeepSeekResponsesClient(apiKey));
+    const admin = createAdminSupabaseClient();
+    // 访客路径没有 jobs 行，SQL 侧也没人替它登记尝试行，所以和 text tool 一样自己 register。
+    // schema 修复重试的多次调用共用同一个 key，收集后合并成一笔结算。
+    const collector = createMeasurementCollector();
     const service = createGuestGenerationService({
-      store: createSupabaseGuestGuardStore(createAdminSupabaseClient()),
+      store: createSupabaseGuestGuardStore(admin),
       hashSecret: environment.supabaseSecretKey,
       environment: environment.appEnvironment,
-      generate: ({ source, options }) => generateCarouselDocument({ ai, source, options }),
+      generate: ({ source, options }) =>
+        generateCarouselDocument({ ai, source, options, onMeasurement: collector.onMeasurement }),
+      cost: {
+        register: (guardId) =>
+          registerGuestCostAttempt({
+            client: admin,
+            guardId,
+            attemptKey: guestAttemptKey(guardId),
+          }),
+        settle: async (guardId) => {
+          await settleGuestUsage({
+            client: admin,
+            guardId,
+            attemptKey: guestAttemptKey(guardId),
+            measurements: collector.collected(),
+          });
+        },
+      },
     });
     const document = await service.generate(await jsonBody(request), {
       operationKey: request.headers.get("idempotency-key") ?? "",

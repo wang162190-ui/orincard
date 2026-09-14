@@ -29,7 +29,7 @@ const JOB_ID = "22222222-2222-4222-8222-222222222222";
 const NOW = new Date("2026-09-06T12:00:00.000Z");
 
 const options: GenerationOptions = {
-  language: "English",
+  language: "en",
   format: "educational",
   pageCount: 6,
   instructions: "Keep it practical.",

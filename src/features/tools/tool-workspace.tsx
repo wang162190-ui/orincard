@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui";
 import type { ToolId } from "@/domain/tools";
@@ -25,6 +26,9 @@ function requestInput(tool: ToolId, text: string) {
 }
 
 export function ToolWorkspace({ tool }: { readonly tool: ToolId }) {
+  const t = useTranslations("ToolWorkspace");
+  // 工具名归在 Tools 命名空间（工具列表页也用同一批 key），所以这里取第二个翻译函数。
+  const toolName = useTranslations("Tools");
   const definition = getToolDefinition(tool);
   const [text, setText] = useState("");
   const [projectId, setProjectId] = useState("");
@@ -33,7 +37,7 @@ export function ToolWorkspace({ tool }: { readonly tool: ToolId }) {
   const [useCaption, setUseCaption] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<unknown>(null);
-  const [notice, setNotice] = useState("Enter content or explicitly select project context.");
+  const [notice, setNotice] = useState(t("idle"));
   const [confirmed, setConfirmed] = useState(false);
   const output = useMemo(() => candidateText(candidate), [candidate]);
 
@@ -42,29 +46,29 @@ export function ToolWorkspace({ tool }: { readonly tool: ToolId }) {
     const timer = window.setInterval(() => {
       void fetch(`/api/v1/tools/${tool}?jobId=${encodeURIComponent(jobId)}`, { cache: "no-store" }).then(async (response) => {
         const body = await response.json();
-        if (!response.ok) throw new Error(body.error?.message ?? "Could not read tool result.");
-        if (body.data.candidate) { setCandidate(body.data.candidate); setNotice("Candidate ready. Review it before applying."); }
-        else if (body.data.state === "failed") { setJobId(null); setNotice("Generation failed. Your project was not changed."); }
-        else setNotice(`Generating candidate… ${body.data.progress}%`);
-      }).catch((error) => setNotice(error instanceof Error ? error.message : "Could not read tool result."));
+        if (!response.ok) throw new Error(body.error?.message ?? t("readFailed"));
+        if (body.data.candidate) { setCandidate(body.data.candidate); setNotice(t("candidateReady")); }
+        else if (body.data.state === "failed") { setJobId(null); setNotice(t("generationFailed")); }
+        else setNotice(t("generatingProgress", { progress: body.data.progress }));
+      }).catch((error) => setNotice(error instanceof Error ? error.message : t("readFailed")));
     }, 1_500);
     return () => window.clearInterval(timer);
-  }, [candidate, jobId, tool]);
+  }, [candidate, jobId, t, tool]);
 
   async function generate() {
-    setCandidate(null); setNotice("Starting…");
+    setCandidate(null); setNotice(t("starting"));
     const context = projectId && revision && (useTitle || useCaption) ? { projectId, expectedRevision: Number(revision), fields: { title: useTitle || undefined, caption: useCaption || undefined } } : undefined;
     const response = await fetch(`/api/v1/tools/${tool}`, { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ input: requestInput(tool, text), ...(context ? { context } : {}) }) });
     const body = await response.json();
-    if (!response.ok) { setNotice(body.error?.message ?? "Could not start tool."); return; }
-    setJobId(body.data.jobId); setNotice("Generating candidate…");
+    if (!response.ok) { setNotice(body.error?.message ?? t("startFailed")); return; }
+    setJobId(body.data.jobId); setNotice(t("generating"));
   }
 
   async function apply() {
     if (!jobId) return;
     const response = await fetch(`/api/v1/tools/${tool}/apply`, { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ resultJobId: jobId, projectId, expectedRevision: Number(revision), confirmed, target: { kind: "caption" } }) });
     const body = await response.json();
-    setNotice(response.ok ? `Applied as project revision ${body.data.revision}.` : `${body.error?.message ?? "Apply failed."} Your project was not changed.`);
+    setNotice(response.ok ? t("applied", { revision: body.data.revision }) : t("unchangedSuffix", { message: body.error?.message ?? t("applyFailed") }));
     if (response.ok) setRevision(String(body.data.revision));
   }
 
@@ -77,18 +81,18 @@ export function ToolWorkspace({ tool }: { readonly tool: ToolId }) {
   return (
     <div className="stack-lg">
       <section className="card stack">
-        <h1>{definition.label}</h1>
-        <label>Input<textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="Describe what you want to create" /></label>
-        <fieldset className="stack"><legend>Optional project context</legend>
-          <label>Project ID<input value={projectId} onChange={(event) => setProjectId(event.target.value)} /></label>
-          <label>Expected revision<input type="number" min={1} value={revision} onChange={(event) => setRevision(event.target.value)} /></label>
-          <label><input type="checkbox" checked={useTitle} onChange={(event) => setUseTitle(event.target.checked)} /> Include title</label>
-          <label><input type="checkbox" checked={useCaption} onChange={(event) => setUseCaption(event.target.checked)} /> Include caption</label>
+        <h1>{toolName(definition.messageKey)}</h1>
+        <label>{t("input")}<textarea value={text} onChange={(event) => setText(event.target.value)} placeholder={t("inputPlaceholder")} /></label>
+        <fieldset className="stack"><legend>{t("contextLegend")}</legend>
+          <label>{t("projectId")}<input value={projectId} onChange={(event) => setProjectId(event.target.value)} /></label>
+          <label>{t("expectedRevision")}<input type="number" min={1} value={revision} onChange={(event) => setRevision(event.target.value)} /></label>
+          <label><input type="checkbox" checked={useTitle} onChange={(event) => setUseTitle(event.target.checked)} /> {t("includeTitle")}</label>
+          <label><input type="checkbox" checked={useCaption} onChange={(event) => setUseCaption(event.target.checked)} /> {t("includeCaption")}</label>
         </fieldset>
-        <div><Button onClick={() => void generate()}>Generate candidate</Button></div>
+        <div><Button onClick={() => void generate()}>{t("generate")}</Button></div>
       </section>
-      {candidate ? <section className="card stack"><h2>Candidate result</h2><pre style={{ whiteSpace: "pre-wrap" }}>{output || JSON.stringify(candidate, null, 2)}</pre><div className="row"><Button variant="secondary" onClick={() => void navigator.clipboard.writeText(output)}>Copy</Button><Button variant="secondary" onClick={download}>Export</Button></div>
-        {output ? <><label><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /> I reviewed this candidate and want to apply it to the project caption.</label><Button disabled={!confirmed || !projectId || !revision} onClick={() => void apply()}>Apply to project</Button></> : null}
+      {candidate ? <section className="card stack"><h2>{t("resultHeading")}</h2><pre style={{ whiteSpace: "pre-wrap" }}>{output || JSON.stringify(candidate, null, 2)}</pre><div className="row"><Button variant="secondary" onClick={() => void navigator.clipboard.writeText(output)}>{t("copy")}</Button><Button variant="secondary" onClick={download}>{t("export")}</Button></div>
+        {output ? <><label><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /> {t("confirm")}</label><Button disabled={!confirmed || !projectId || !revision} onClick={() => void apply()}>{t("apply")}</Button></> : null}
       </section> : null}
       <p role="status" className="meta">{notice}</p>
     </div>

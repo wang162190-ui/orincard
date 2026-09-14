@@ -8,13 +8,22 @@ import {
   type Platform,
 } from "../domain/document";
 import { themes, type ThemeId } from "../render/templates";
-import { AIServiceError, type StructuredAI } from "./ai";
+import { AIServiceError, type StructuredAI, type StructuredOutputRequest } from "./ai";
 import type { AppEnvironment } from "./environment";
 import { buildGenerationPrompt, buildSchemaRepairPrompt } from "./prompts";
 import type { SourceRecord } from "./sources";
 
+// 语言从自由文本收成枚举：自由文本框里写什么都行（"中文"/"zh"/"Chinese, please"），
+// 模型对每种写法的反应不一样，导出字体也没法据此判断。枚举之后才谈得上按语言验收。
+export const GENERATION_LANGUAGES = ["en", "zh-Hans"] as const;
+export type GenerationLanguage = (typeof GENERATION_LANGUAGES)[number];
+
+export function isGenerationLanguage(value: unknown): value is GenerationLanguage {
+  return typeof value === "string" && (GENERATION_LANGUAGES as readonly string[]).includes(value);
+}
+
 export interface GenerationOptions {
-  readonly language: string;
+  readonly language: GenerationLanguage;
   readonly format: string;
   readonly pageCount: number;
   readonly instructions: string;
@@ -264,7 +273,7 @@ function validateOptions(options: GenerationOptions): void {
     !Number.isInteger(options.pageCount) ||
     options.pageCount < MIN_SLIDE_COUNT ||
     options.pageCount > MAX_SLIDE_COUNT ||
-    !options.language.trim() ||
+    !isGenerationLanguage(options.language) ||
     !options.format.trim() ||
     options.instructions.length > 2_000 ||
     !themes[options.templateId]
@@ -353,6 +362,11 @@ export async function generateCarouselDocument(input: {
   readonly source: SourceRecord;
   readonly options: GenerationOptions;
   readonly createId?: () => string;
+  /**
+   * 供应商回报实测用量时逐次回调。修复重试会回调两次，但两次共用同一个 attempt_key，
+   * 调用方必须合并后只结算一次（见 src/server/cost-settlement.ts）。
+   */
+  readonly onMeasurement?: StructuredOutputRequest["onMeasurement"];
 }): Promise<CarouselDocument> {
   validateOptions(input.options);
   const prompt = buildGenerationPrompt(input.source, input.options);
@@ -362,6 +376,7 @@ export async function generateCarouselDocument(input: {
       ...prompt,
       schemaName: "orincard_carousel",
       schema: generationJsonSchema,
+      onMeasurement: input.onMeasurement,
     });
   } catch (error) {
     if (!(error instanceof AIServiceError) || !error.schemaRepairable) {
@@ -385,6 +400,7 @@ export async function generateCarouselDocument(input: {
       ...repair,
       schemaName: "orincard_carousel",
       schema: generationJsonSchema,
+      onMeasurement: input.onMeasurement,
     });
     const validRepair = parseOutput(repaired, input.options.pageCount);
     if (validRepair) {
@@ -420,6 +436,11 @@ export async function createRegenerationCandidate(input: {
     readonly options: GenerationOptions;
   }) => Promise<CarouselDocument>;
   readonly store: RegenerationStore;
+  /**
+   * 拿到候选任务 ID 时立即回调，早于供应商调用。供应商失败时本函数会抛错、拿不到返回值，
+   * 但那次调用的 token 已经烧掉了——调用方需要这个 ID 才能在失败路径上结算。
+   */
+  readonly onCandidateJob?: (candidateJobId: string) => void;
 }): Promise<RegenerationCandidate> {
   requireRegenerationWrite(input.projectId, input.idempotencyKey);
   if (!input.confirmed) {
@@ -481,6 +502,7 @@ export async function createRegenerationCandidate(input: {
   if (begun.outcome !== "accepted" || !UUID_PATTERN.test(begun.candidateJobId)) {
     throw regenerationUnavailable();
   }
+  input.onCandidateJob?.(begun.candidateJobId);
 
   const candidate: RegenerationCandidate = {
     candidateJobId: begun.candidateJobId,

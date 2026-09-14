@@ -1,5 +1,7 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
+import { Link } from "@/i18n/navigation";
+import { LanguageSwitcher } from "./language-switcher";
 
 type WorkspaceShellProps = {
   children: ReactNode;
@@ -74,42 +76,44 @@ function CreateIcon() {
 }
 
 export function WorkspaceShell({ children, current, title }: WorkspaceShellProps) {
+  const t = useTranslations("Nav");
   return (
     <div className="app">
       <aside className="rail">
-        <Link className="rail-brand" href="/" aria-label="Orincard home">
+        <Link className="rail-brand" href="/" aria-label={t("home")}>
           <span className="mark">
             <CraneMark />
           </span>
           <span className="word">Orincard</span>
         </Link>
 
-        <nav className="rail-nav" aria-label="Main navigation">
+        <nav className="rail-nav" aria-label={t("main")}>
           <Link
             className="nav-item"
             href="/"
-            aria-label="Workspace"
+            aria-label={t("workspace")}
             aria-current={current === "workspace" ? "page" : undefined}
           >
             <WorkspaceIcon />
-            <span>Workspace</span>
+            <span>{t("workspace")}</span>
           </Link>
           <Link
             className="nav-item"
             href="/create"
-            aria-label="New carousel"
+            aria-label={t("newCarousel")}
             aria-current={current === "create" ? "page" : undefined}
           >
             <CreateIcon />
-            <span>New carousel</span>
+            <span>{t("newCarousel")}</span>
           </Link>
         </nav>
 
         <div className="rail-foot">
           <div className="plan-card">
-            <p className="label">Anonymous preview</p>
-            <p className="meta">No account is required to open the creator.</p>
+            <p className="label">{t("planLabel")}</p>
+            <p className="meta">{t("planMeta")}</p>
           </div>
+          <LanguageSwitcher />
         </div>
       </aside>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { CarouselDocument, Platform } from "../../domain/document";
 import {
   THEME_IDS,
@@ -27,6 +28,7 @@ export function ThemePanel({
   onChange,
   disabled = false,
 }: ThemePanelProps) {
+  const t = useTranslations("Theme");
   const selectedTheme = getThemeId(document);
   const currentPreview = previewAppearance(document, {});
 
@@ -39,9 +41,9 @@ export function ThemePanel({
   }
 
   return (
-    <section aria-label="Appearance" className="theme-panel">
+    <section aria-label={t("label")} className="theme-panel">
       <fieldset disabled={disabled}>
-        <legend>Theme</legend>
+        <legend>{t("theme")}</legend>
         <div className="theme-panel__themes">
           {THEME_IDS.map((themeId) => (
             <label key={themeId} className="theme-panel__option">
@@ -60,7 +62,7 @@ export function ThemePanel({
       </fieldset>
 
       <fieldset disabled={disabled}>
-        <legend>Platform</legend>
+        <legend>{t("platform")}</legend>
         <div className="theme-panel__platforms">
           {platforms.map((platform) => (
             <label key={platform.id}>
@@ -79,7 +81,7 @@ export function ThemePanel({
 
       <div role="status" aria-live="polite" aria-atomic="true">
         {currentPreview.conflicts.length === 0 ? (
-          <p>No layout conflicts.</p>
+          <p>{t("noConflicts")}</p>
         ) : (
           <ul>
             {currentPreview.conflicts.map((conflict) => (

@@ -38,6 +38,29 @@ describe("jobs and usage database definition", () => {
     expect(policyTests).toContain("concurrent reservations cannot overdraw an account");
     expect(policyTests).toContain("select * from finish(true)");
   });
+
+  // 访客结算函数是 private.settle_cost_attempt 的孪生体，只有「按 guest_guard_id 而不是 job_id
+  // 关联预留」这一处差异。两边的校验、幂等与 23505 冲突分支必须逐条一致，否则访客路径会在
+  // 一个没人看的角落里悄悄用另一套记账语义。这条断言把两个函数体归一化后要求完全相等。
+  it("keeps the guest settlement twin byte-for-byte in sync with the job one", async () => {
+    const [base, guest] = await Promise.all([
+      readFile(fileURLToPath(new URL("../../supabase/migrations/20260906000100_walking_skeleton.sql", import.meta.url)), "utf8"),
+      readFile(fileURLToPath(new URL("../../supabase/migrations/20260912010000_settlement_entrypoints.sql", import.meta.url)), "utf8"),
+    ]);
+    const bodyOf = (sql: string, name: string): string => {
+      const start = sql.indexOf(`create or replace function private.${name}(`);
+      expect(start, `${name} must exist`).toBeGreaterThan(-1);
+      const open = sql.indexOf("begin", start);
+      const close = sql.indexOf("\nend;", open);
+      expect(close, `${name} must have a body`).toBeGreaterThan(open);
+      return sql.slice(open, close).replace(/\s+/g, " ").trim();
+    };
+    const normalized = bodyOf(guest, "settle_guest_cost_attempt").replace(
+      "reservation.guest_guard_id = p_guard_id",
+      "reservation.job_id = p_job_id",
+    );
+    expect(normalized).toBe(bodyOf(base, "settle_cost_attempt"));
+  });
 });
 
 describe.runIf(process.env.RUN_DB_TESTS === "1")(

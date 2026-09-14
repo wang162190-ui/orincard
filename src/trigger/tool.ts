@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createDeepSeekResponsesAdapter, createDeepSeekResponsesClient } from "../server/ai";
 import { generateTextToolCandidate, parseTextToolRequest, selectProjectContext, type TextToolCandidate, type TextToolRequest } from "../server/tools/text-tools";
+import { createMeasurementCollector, registerJobCostAttempt, settleKeyedJobUsage } from "../server/cost-settlement";
 import { createAdminSupabaseClient } from "../server/supabase";
 import { TEXT_TOOL_TASK_ID } from "./dispatch";
 
@@ -75,6 +76,19 @@ export const textToolTask = task({
     const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
     if (!apiKey) throw new Error("DEEPSEEK_API_KEY is not configured for the text tool task");
     const ai = createDeepSeekResponsesAdapter(createDeepSeekResponsesClient(apiKey));
-    return runTextToolJob(createSupabaseTextToolWorkerStore(createAdminSupabaseClient()), (work) => generateTextToolCandidate({ ai, jobId: work.jobId, request: work.request, selectedProjectContext: work.selectedProjectContext }), payload);
+    const client = createAdminSupabaseClient();
+    // 文本工具是五个调用点里唯一没有 SQL 侧登记尝试行的，必须自己 register，
+    // 否则结算会因「cost attempt not found」失败。序号恒为 1：这条路径不递增 jobs.attempt，
+    // 重跑同一个任务应当复用同一行，而不是另开一行把同一笔预留计两遍。
+    const collector = createMeasurementCollector();
+    return runTextToolJob(createSupabaseTextToolWorkerStore(client), async (work) => {
+      await registerJobCostAttempt({ client, jobId: work.jobId, operation: "tool", sequence: 1 });
+      try {
+        return await generateTextToolCandidate({ ai, jobId: work.jobId, request: work.request, selectedProjectContext: work.selectedProjectContext, onMeasurement: collector.onMeasurement });
+      } finally {
+        // 失败也要结算：token 已经烧掉了。
+        await settleKeyedJobUsage({ client, jobId: work.jobId, operation: "tool", sequence: 1, measurements: collector.collected() });
+      }
+    }, payload);
   },
 });

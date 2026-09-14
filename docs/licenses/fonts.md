@@ -8,7 +8,10 @@ Orincard 的预览与导出只装载 `src/render/font-manifest.json` 声明且�
 |---|---|---|---|---|---|
 | 无衬线拉丁正文/界面 | Inter variable | `@fontsource-variable/inter@5.3.0` | `files/inter-latin-wght-normal.woff2` | `3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62` | SIL OFL 1.1 |
 | 拉丁标题 | Source Serif 4 variable | `@fontsource-variable/source-serif-4@5.3.0` | `files/source-serif-4-latin-wght-normal.woff2` | `c1df4596be5029233ed2afbb8b2f6ea20784b3fb1aa5d6b5c6519ccd85eb3dfb` | SIL OFL 1.1 |
-| 简体中文 fallback | Noto Sans SC 400 | `@fontsource/noto-sans-sc@5.3.0` | `files/noto-sans-sc-chinese-simplified-400-normal.woff2` | `95e3633b6a98f764ba3adfb54504a0cd4799328c009adf9081d6c1850f9c4c78` | SIL OFL 1.1 |
+| 简体中文正文 | Noto Sans SC 400 | `@fontsource/noto-sans-sc@5.3.0` | `files/noto-sans-sc-chinese-simplified-400-normal.woff2` | `95e3633b6a98f764ba3adfb54504a0cd4799328c009adf9081d6c1850f9c4c78` | SIL OFL 1.1 |
+| 简体中文标题 | Noto Sans SC 700 | `@fontsource/noto-sans-sc@5.3.0` | `files/noto-sans-sc-chinese-simplified-700-normal.woff2` | `e1df51edc00bce27b58044e829fb8ec6accc8a5daece475413de90d52818845c` | SIL OFL 1.1 |
+
+S18 起简体中文不再是「fallback」：中文文档的正文与标题都由 Noto Sans SC 承担，标题用真 700 而非浏览器合成的伪粗体。PPTX 是唯一不嵌字体的导出格式，它把家族名写进文件交给 PowerPoint 解析，因此这两个字重必须是真实存在的家族。
 
 上游来源：
 

@@ -29,7 +29,27 @@ function hex(value: string | undefined, fallback: string): string {
   return candidate && /^[0-9a-f]{6}$/i.test(candidate) ? candidate.toUpperCase() : fallback;
 }
 
-function fontFace(fontPairId: string, display: boolean): string {
+// PNG / PDF / MP4 都走浏览器渲染，字体栈里有 Noto Sans SC，中文正常。
+// 只有 PPTX 是把字体名写进文件、由 PowerPoint 自己去找——写 "Inter" 的话，
+// PowerPoint 对中文字符只能回落到它自己的默认 CJK 字体，出来的版式和预览对不上。
+const CJK = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u3000-\u303F\uFF00-\uFFEF]/;
+
+export function deckHasCjk(document: CarouselDocument): boolean {
+  return document.slides.some((slide) =>
+    CJK.test(
+      [
+        slide.eyebrow ?? "",
+        slide.title ?? "",
+        slide.cta ?? "",
+        ...slide.bodyBlocks.map((block) => (block.kind === "bullets" ? block.items.join("") : block.text)),
+      ].join(""),
+    ),
+  );
+}
+
+function fontFace(fontPairId: string, display: boolean, cjk: boolean): string {
+  // 中文一律走 Noto Sans SC：仓库里打包的就是它，导出件与预览用的是同一套字形。
+  if (cjk) return "Noto Sans SC";
   if (fontPairId === "source-serif-inter") {
     return display ? "Source Serif 4" : "Inter";
   }
@@ -123,14 +143,15 @@ export async function renderPptx(input: {
   pptx.author = "Orincard";
   pptx.subject = "Editable carousel export";
   pptx.title = "Orincard carousel";
-  pptx.theme = { headFontFace: fontFace(document.theme.fontPairId, true), bodyFontFace: fontFace(document.theme.fontPairId, false) };
+  const cjk = deckHasCjk(document);
+  pptx.theme = { headFontFace: fontFace(document.theme.fontPairId, true, cjk), bodyFontFace: fontFace(document.theme.fontPairId, false, cjk) };
 
   const colors = document.theme.colors ?? [];
   const background = hex(document.theme.background.value, "FFFFFF");
   const foreground = hex(colors[1], "111111");
   const accent = hex(colors[2], foreground);
-  const bodyFont = fontFace(document.theme.fontPairId, false);
-  const titleFont = fontFace(document.theme.fontPairId, true);
+  const bodyFont = fontFace(document.theme.fontPairId, false, cjk);
+  const titleFont = fontFace(document.theme.fontPairId, true, cjk);
   const align = textAlign(document.theme.alignment);
 
   document.slides.forEach((slide, index) => {

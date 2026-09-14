@@ -140,7 +140,7 @@ aiCarousels 的主页、模板选择、编辑器、三步引导、生成器、To
 
 | 决策 | 决定 | 状态 |
 |---|---|---|
-| 语言 | 英文界面/输出优先；模型可支持其他语言但不承诺完整本地化 | 已确认 |
+| 语言 | 界面与生成内容支持 en 与 zh-Hans 两种语言，两者都完整本地化；不做繁中/日文/阿拉伯语，因此不引入 RTL | 已确认（2026-09-14 变更） |
 | 认证 | 匿名生成/预览；保存、高清导出、持续使用需注册 | 已确认 |
 | 支付 | Free + Pro + Creator；国际支付优先 | 已确认 |
 | 保存 | 私有云项目、版本、恢复；个人账户多 Brand Kit | 已确认 |
@@ -285,6 +285,16 @@ Meta：`Turn a topic, text, URL, video, PDF, or slides into editable LinkedIn, I
 - 优先级：P2
 - EARS：WHEN a refunded payment is attributed to an affiliate THEN THE SYSTEM SHALL reverse its commission under the published policy.
 
+### AC-012 · 编辑器对话助手 (P1)
+- 起始条件：用户已打开某个项目的某个版本，且该版本已保存。
+- 触发：用户在助手侧栏提出修改请求（改写某页、调整语气、重排顺序、补一页）。
+- 预期产出：助手读到的项目上下文是只读的；它给出的每一项改动都以逐页 diff 呈现，**用户明确确认后**才写入新 revision；每一轮对话在调用模型**之前**预留预算、拿到响应后按实测用量结算。
+- 禁止副作用：未确认的提议不得写入任何 revision、素材或 Brand Kit；预算耗尽时必须**拒绝**该轮对话而不是照跑；基于过期 revision 的 apply 必须整体失败并保持源 revision 逐列不变；助手不得绕过既有的 apply-proposal 写入路径另开入口。
+- 验证方法：连发多轮确认 `reserved + spent ≤ limit` 恒成立、预算打满后下一轮被拒；制造 `expectedRevision` 冲突确认返回 409 且源 revision 未变；拒绝一条提议后确认项目逐列未变。
+- 示例：`[ILLUSTRATIVE-EXAMPLE: “Page 3 says ‘improve efficiency’. Replace with ‘cut three hours to twenty minutes’?” — Apply / Dismiss.]`
+- 优先级：P1
+- EARS：WHEN the assistant proposes a change THE SYSTEM SHALL require an explicit user confirmation before writing a new revision.
+
 ## 10. Out of scope
 
 - 团队工作区、实时协作、审批、评论、客户门户；
@@ -329,3 +339,4 @@ Meta：`Turn a topic, text, URL, video, PDF, or slides into editable LinkedIn, I
 - 开发先用 Sandbox；真实价目、退款窗口、Affiliate 佣金以及支付/模型账号资格仍是公开上线阻断，不以假账号或假支付代替。
 - 技术默认预算为开发 AI $10/月、每用户长任务并发 1、全局导出并发 2；这些是保护开发账单的技术限额，不是 Free/Pro/Creator 的销售权益。
 - 订阅优惠码机制包含在Stripe托管Checkout，服务端控制允许的promotion code配置；不另建优惠券营销引擎。公开售价、折扣和佣金数值仍受用户批准的政策约束。
+- **2026-09-14 语言决策变更**：第 12 节「语言」原为「英文界面/输出优先；模型可支持其他语言但不承诺完整本地化」，状态是**已确认**。产品所有者要求界面与生成内容都支持中英双语，这推翻了那条已拍板决策，故在此登记变更本身，而不是悄悄改表格。新决策：**支持 `en` 与 `zh-Hans` 两种语言，两者都完整本地化**——不再有「主语言/尽力而为语言」之分，中文的界面字符串、法律与帮助正文、生成内容质量与英文同级；中文法律文本同样必须走 `approved` 审定才能上线，不能靠英文版签字覆盖。范围明确**不含**繁体中文、日文、阿拉伯语，因此不引入 RTL，也不做逻辑属性布局改造。影响面：此前所有验收文档都是按单语（英文）写的，从本日起须按 en + zh-Hans 两种语言重读；PPTX 导出的 CJK 字体缺陷（`src/render/pptx.ts` 的 `fontFace()` 从不返回中文字体）因此从「无关紧要」升级为发布阻断项。

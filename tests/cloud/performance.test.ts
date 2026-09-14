@@ -309,12 +309,10 @@ cloud("T094 real cost and memory ceilings", () => {
   });
 
   it("reads the provider cost estimate the environment budget actually holds", async () => {
-    const reservationsResult = await admin
-      .schema("private")
-      .from("cost_reservations")
-      .select("id, period, environment, state, reserved_micro_usd, settled_micro_usd, released_micro_usd")
-      .order("created_at", { ascending: false })
-      .limit(500);
+    // 不能走 admin.schema("private")：Data API 只暴露 public / graphql_public，private.* 一律
+    // 回 PGRST106。这不是配置疏漏，而是刻意的安全边界（private 表对 service_role 也 revoke）。
+    // 读数一律经 public.server_* 的 security definer 只读入口，和生产代码同一条路径。
+    const reservationsResult = await admin.rpc("server_sample_cost_reservations", { p_limit: 500 });
     expect(reservationsResult.error).toBeNull();
     const reservations = requireSamples(
       (reservationsResult.data ?? []) as ReservationRow[],
@@ -334,13 +332,10 @@ cloud("T094 real cost and memory ceilings", () => {
     ).toBe(true);
 
     const period = new Date().toISOString().slice(0, 7);
-    const budgetResult = await admin
-      .schema("private")
-      .from("cost_budgets")
-      .select("period, environment, limit_micro_usd, reserved_micro_usd, spent_micro_usd")
-      .eq("period", period)
-      .eq("environment", "development")
-      .maybeSingle();
+    const budgetResult = await admin.rpc("server_read_cost_budget", {
+      p_period: period,
+      p_environment: "development",
+    });
     expect(budgetResult.error).toBeNull();
     const budget = budgetResult.data as BudgetRow | null;
     if (!budget) {
@@ -356,12 +351,8 @@ cloud("T094 real cost and memory ceilings", () => {
   });
 
   it("finds the sample token counts a corrected budget estimate needs", async () => {
-    const { data, error } = await admin
-      .schema("private")
-      .from("cost_attempts")
-      .select("attempt_key, state, usage, actual_micro_usd")
-      .order("started_at", { ascending: false })
-      .limit(500);
+    // 同上，经 public.server_sample_cost_attempts 读，不碰 private schema。
+    const { data, error } = await admin.rpc("server_sample_cost_attempts", { p_limit: 500 });
     expect(error).toBeNull();
     const attempts = requireSamples(
       (data ?? []) as AttemptRow[],
@@ -374,11 +365,12 @@ cloud("T094 real cost and memory ceilings", () => {
       (attempt) => Object.keys(numericUsage(attempt.usage)).length > 0,
     );
 
-    // 修正预算估计要的是真实用量，不是预留估值。目前没有任何生产路径调用
-    // private.settle_cost_attempt：server_finalize_generation_job 走的是
-    // private.b04_finish_job_with_unknown_cost，把尝试标成 unknown；而 src/server/ai.ts 的
-    // DeepSeek 适配器只取 output_text，供应商返回的 usage 直接丢掉。所以这条会失败，
-    // 失败本身就是 T094 要报的真实结论，不能靠塞一个估算数字让它变绿。
+    // 修正预算估计要的是真实用量，不是预留估值。
+    // 2026-09-12 之前这条注定失败：没有任何生产路径调用 private.settle_cost_attempt，
+    // 而 src/server/ai.ts 的 DeepSeek 适配器只取 output_text，供应商回的 usage 直接丢掉。
+    // 路线图 S1–S2 已把 usage 透传与五个调用点的结算接上（见 docs/acceptance/costs.md），
+    // 所以现在它衡量的是「接上的链路有没有真的通电」。仍然不许塞估算数字让它变绿：
+    // 没有真实结算样本就让它红着，红本身就是 T094 要报的结论。
     expect(
       settled.length,
       `${attempts.length} provider attempts sampled, none settled. Nothing calls ` +

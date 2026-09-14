@@ -235,6 +235,15 @@ export function createGuestGenerationService(input: {
   readonly hashSecret: string;
   readonly environment?: AppEnvironment;
   readonly now?: () => Date;
+  /**
+   * 成本记账钩子。guardId 只在这个函数内部存在，所以登记与结算必须在这里回调，
+   * 而不是由路由在外面拼。`register` 在供应商调用前跑，失败即中止（没有预留就不该发起调用）；
+   * `settle` 成功与失败都跑一次，且都在 `store.finish` 之前——token 是照烧的。
+   */
+  readonly cost?: {
+    readonly register: (guardId: string) => Promise<void>;
+    readonly settle: (guardId: string) => Promise<void>;
+  };
 }) {
   if (!input.hashSecret) {
     throw new Error("A server-only guest HMAC secret is required.");
@@ -286,15 +295,31 @@ export function createGuestGenerationService(input: {
         outcomeError(begun);
       }
 
+      if (input.cost) {
+        // 登记失败说明预留不在，此时发起供应商调用等于绕过预算，所以中止并把 guard 收掉。
+        try {
+          await input.cost.register(begun.guardId);
+        } catch {
+          try {
+            await input.store.finish({ guardId: begun.guardId, outcome: "failed" });
+          } catch {
+            // 响应仍然失败关闭；对账巡检负责回收这条 guard。
+          }
+          throw serviceUnavailable();
+        }
+      }
+
       try {
         const document = await input.generate({
           source: parsed.source,
           options: parsed.options,
         });
+        if (input.cost) await input.cost.settle(begun.guardId);
         await input.store.finish({ guardId: begun.guardId, outcome: "succeeded" });
         return document;
       } catch (error) {
         try {
+          if (input.cost) await input.cost.settle(begun.guardId);
           await input.store.finish({ guardId: begun.guardId, outcome: "failed" });
         } catch {
           // The response still fails closed; reconciliation must settle the guard.

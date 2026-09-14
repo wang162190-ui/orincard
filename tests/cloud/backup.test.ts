@@ -28,6 +28,29 @@ describe("recovery safety", () => {
     await expect(createBackup({ environment: "preview", target: directory, approval: "wrong", database, storage: { list: async () => [], download: async () => Buffer.alloc(0) } })).rejects.toThrow("approval");
   });
 
+  // 修复前只精确匹配小写 "production"，实跑确认 Production / PRODUCTION / prod 三种写法全部放行。
+  // 这是唯一的生产闸门（脚本看不到 project ref），黑名单在这里是错的做法。
+  it.each(["Production", "PRODUCTION", "prod", "staging", ""])(
+    "refuses the unapproved environment %j instead of only lowercase production",
+    async (environment) => {
+      const directory = await target();
+      const database = { dump: async () => { throw new Error("must not run"); }, inventory: async () => ({ references: [], tombstones: [] }) };
+      await expect(createBackup({ environment, target: directory, approval: approval(environment, directory), database, storage: { list: async () => [], download: async () => Buffer.alloc(0) } })).rejects.toThrow("forbidden");
+    },
+  );
+
+  // 适配器契约：活引用与 tombstone 必须互斥，否则两项检查会一起落空。
+  it("rejects an inventory that lists the same key as both active and tombstoned", async () => {
+    const directory = await target();
+    const database = { dump: async () => Buffer.from("db"), inventory: async () => ({ references: ["uploads/a"], tombstones: ["uploads/gone"] }) };
+    await createBackup({ environment: "development", target: directory, approval: approval("development", directory), database, storage: { list: async () => [], download: async () => Buffer.alloc(0) } });
+    await expect(verifyRestore({
+      environment: "development", target: directory, approval: approval("development", directory),
+      database: { inventory: async () => ({ references: ["uploads/a", "uploads/gone"], tombstones: ["uploads/gone"] }) },
+      storage: { download: async () => Buffer.from("original"), exists: async () => false },
+    })).rejects.toThrow("both active and tombstoned");
+  });
+
   it("fails on changed objects or resurrected tombstones", async () => {
     const directory = await target();
     const database = { dump: async () => Buffer.from("db"), inventory: async () => ({ references: ["uploads/a"], tombstones: ["uploads/gone"] }) };

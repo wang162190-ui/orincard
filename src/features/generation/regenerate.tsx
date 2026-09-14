@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import type {
   GenerationOptions,
@@ -14,6 +15,7 @@ export function Regenerate(props: {
   readonly options: GenerationOptions;
   readonly onConfirmed: (result: { readonly projectId: string; readonly revision: number }) => void;
 }) {
+  const t = useTranslations("Regenerate");
   const [open, setOpen] = useState(false);
   const [candidate, setCandidate] = useState<RegenerationCandidate | null>(null);
   const [generateConfirmed, setGenerateConfirmed] = useState(false);
@@ -39,7 +41,7 @@ export function Regenerate(props: {
       readonly data?: unknown;
       readonly error?: { readonly message?: string };
     };
-    if (!response.ok) throw new Error(payload.error?.message ?? "Regeneration failed.");
+    if (!response.ok) throw new Error(payload.error?.message ?? t("failed"));
     return payload.data;
   }
 
@@ -55,7 +57,7 @@ export function Regenerate(props: {
       setCandidate(data.candidate);
       setChoiceConfirmed(false);
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Regeneration failed.");
+      setError(failure instanceof Error ? failure.message : t("failed"));
     } finally {
       setPending(false);
     }
@@ -76,7 +78,7 @@ export function Regenerate(props: {
       props.onConfirmed(result);
       setOpen(false);
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Confirmation failed.");
+      setError(failure instanceof Error ? failure.message : t("confirmFailed"));
     } finally {
       setPending(false);
     }
@@ -97,47 +99,47 @@ export function Regenerate(props: {
 
   return (
     <>
-      <button type="button" onClick={openDialog}>Regenerate carousel</button>
+      <button type="button" onClick={openDialog}>{t("open")}</button>
       {open ? (
         <section role="dialog" aria-modal="true" aria-labelledby="regenerate-title">
-          <h2 id="regenerate-title">Regenerate carousel</h2>
+          <h2 id="regenerate-title">{t("heading")}</h2>
           {candidate ? (
             <>
-              <p>Candidate: {candidate.document.title}</p>
-              <p>Your current project is unchanged. Choose what to do with this candidate.</p>
+              <p>{t("candidate", { title: candidate.document.title })}</p>
+              <p>{t("unchanged")}</p>
               <label>
                 <input
                   type="checkbox"
                   checked={choiceConfirmed}
                   onChange={(event) => setChoiceConfirmed(event.target.checked)}
                 />
-                I confirm this candidate may replace the current revision or be saved as a copy.
+                {t("confirmChoice")}
               </label>
               <button type="button" disabled={pending || !choiceConfirmed} onClick={() => void confirm("save_copy")}>
-                Save as copy
+                {t("saveCopy")}
               </button>
               <button type="button" disabled={pending || !choiceConfirmed} onClick={() => void confirm("replace")}>
-                Replace current project
+                {t("replace")}
               </button>
             </>
           ) : (
             <>
-              <p>This creates a candidate and will not overwrite your edited project.</p>
+              <p>{t("intro")}</p>
               <label>
                 <input
                   type="checkbox"
                   checked={generateConfirmed}
                   onChange={(event) => setGenerateConfirmed(event.target.checked)}
                 />
-                I confirm that I want to generate a new candidate.
+                {t("confirmGenerate")}
               </label>
               <button type="button" disabled={pending || !generateConfirmed} onClick={() => void generate()}>
-                Generate candidate
+                {t("generate")}
               </button>
             </>
           )}
           {error ? <p role="alert">{error}</p> : null}
-          <button type="button" disabled={pending} onClick={() => setOpen(false)}>Cancel</button>
+          <button type="button" disabled={pending} onClick={() => setOpen(false)}>{t("cancel")}</button>
         </section>
       ) : null}
     </>

@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import type { CarouselDocument } from "../domain/document";
 import type { AppEnvironment } from "./environment";
-import { AIServiceError, type StructuredAI } from "./ai";
+import { AIServiceError, type StructuredAI, type StructuredOutputRequest } from "./ai";
 
 export type RewriteField = "title" | "eyebrow" | "cta" | `body:${number}`;
 export type RewriteAction =
@@ -214,6 +214,7 @@ async function rewrittenText(input: {
   before: string;
   action: RewriteAction;
   instruction: string;
+  onMeasurement?: StructuredOutputRequest["onMeasurement"];
 }) {
   const request = {
     instructions:
@@ -230,6 +231,7 @@ async function rewrittenText(input: {
       required: ["text"],
       properties: { text: { type: "string", minLength: 1 } },
     },
+    onMeasurement: input.onMeasurement,
   };
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -267,6 +269,14 @@ export async function createRewriteProposal(input: {
   readonly environment?: AppEnvironment;
   readonly ai: StructuredAI;
   readonly store: RewriteStore;
+  /** 内部有一次重试，两次调用共用同一个 attempt_key，调用方必须合并后只结算一次。 */
+  readonly onMeasurement?: StructuredOutputRequest["onMeasurement"];
+  /**
+   * 拿到候选任务 ID 时立即回调，早于供应商调用。
+   * 供应商失败时本函数会抛错、拿不到返回值，但那次调用的 token 已经烧掉了——
+   * 调用方需要这个 ID 才能在 catch 里结算。
+   */
+  readonly onProposalJob?: (proposalJobId: string) => void;
 }): Promise<RewriteProposal> {
   requireWriteIdentifiers(input.projectId, input.idempotencyKey);
   if (
@@ -319,6 +329,7 @@ export async function createRewriteProposal(input: {
     );
   }
   if (begun.outcome !== "accepted") throw unavailable();
+  input.onProposalJob?.(begun.proposalJobId);
   const proposal: RewriteProposal = {
     proposalJobId: begun.proposalJobId,
     projectId: input.projectId,
@@ -329,6 +340,7 @@ export async function createRewriteProposal(input: {
     before: selected.text,
     after: await rewrittenText({
       ai: input.ai,
+      onMeasurement: input.onMeasurement,
       before: selected.text,
       action: input.action,
       instruction: input.instruction,

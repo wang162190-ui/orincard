@@ -31,7 +31,7 @@ const source: SourceRecord = {
 };
 
 const options: GenerationOptions = {
-  language: "English",
+  language: "en",
   format: "educational",
   pageCount: 4,
   instructions: "Use concise, practical language.",

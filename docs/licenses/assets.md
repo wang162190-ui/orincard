@@ -44,6 +44,9 @@
 | `inter-latin-variable` | Inter | `@fontsource-variable/inter@5.3.0` | SIL OFL 1.1 | `src/render/font-manifest.json` 记录 SHA-256，装载前校验 |
 | `source-serif-4-latin-variable` | Source Serif 4 | `@fontsource-variable/source-serif-4@5.3.0` | SIL OFL 1.1 | 同上 |
 | `noto-sans-sc-simplified-400` | Noto Sans SC | `@fontsource/noto-sans-sc@5.3.0` | SIL OFL 1.1 | 同上 |
+| `noto-sans-sc-simplified-700` | Noto Sans SC | `@fontsource/noto-sans-sc@5.3.0` | SIL OFL 1.1 | 同上 |
+
+同一家族的不同字重是独立的二进制文件，因此逐个登记：Noto Sans SC 的 400 与 700 各占一行。700 是 S18 为中文标题补的——只嵌 400 时浏览器会合成伪粗体，和 PPTX 里 PowerPoint 解析出的真 Bold 对不上。
 
 字体二进制不在 Git 里，随构建从 npm 包取，因此不出现在第 1 节。守卫比对的是 `src/render/font-manifest.json` 的 `id` 集合与本表，多一个或少一个都失败。重新分发字体文件时必须一并保留各包的 `LICENSE`；裁剪、转格式或做衍生字体需重新审查 OFL 的 Reserved Font Name 条件。
 

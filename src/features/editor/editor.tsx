@@ -14,6 +14,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Button, Panel, PanelBody, PanelHeader } from "../../components/ui";
 import {
@@ -57,11 +58,11 @@ import { EditorMedia } from "../assets/editor-media";
 import { VersionHistory } from "./versions";
 
 const EMPTY_ASSETS: Readonly<Record<string, SlideRenderAsset | undefined>> = {};
-const MODES: ReadonlyArray<{ id: Slide["mode"]; label: string }> = [
-  { id: "text", label: "Text" },
-  { id: "text_image", label: "Text + image" },
-  { id: "image", label: "Image" },
-  { id: "screenshot", label: "Screenshot" },
+const MODES: ReadonlyArray<{ id: Slide["mode"]; messageKey: string }> = [
+  { id: "text", messageKey: "modeText" },
+  { id: "text_image", messageKey: "modeTextImage" },
+  { id: "image", messageKey: "modeImage" },
+  { id: "screenshot", messageKey: "modeScreenshot" },
 ];
 
 export interface EditorProps {
@@ -184,7 +185,9 @@ export function reorderEditorState(
     : editorReducer(state, moveSlide(activeId, toIndex));
 }
 
-function createStarterDocument(): CarouselDocument {
+// 起始文档是空白编辑器里唯一的内容，中文用户第一眼看到的是它。
+// 它是内容不是界面 chrome，但同样要跟着语言走，所以翻译函数从组件传进来。
+function createStarterDocument(t: (key: string) => string): CarouselDocument {
   const content = (id: string, title: string, eyebrow: string | null): Slide => ({
     id,
     revision: 1,
@@ -202,7 +205,7 @@ function createStarterDocument(): CarouselDocument {
 
   return carouselDocumentSchema.parse({
     schemaVersion: 1,
-    title: "Make one useful point at a time",
+    title: t("starterTitle"),
     platform: "linkedin",
     templateId: "paper",
     templateVersion: 1,
@@ -210,20 +213,20 @@ function createStarterDocument(): CarouselDocument {
     brandSnapshot: null,
     slides: [
       {
-        ...content("local-slide-01", "Make one useful point at a time", "WRITING"),
+        ...content("local-slide-01", t("starterTitle"), t("starterEyebrow")),
         role: "intro",
         layoutId: "intro-centered",
         counterVisible: false,
       },
-      content("local-slide-02", "Lead with the conclusion", "01"),
-      content("local-slide-03", "Give every page one job", "02"),
-      content("local-slide-04", "Make the next step obvious", "03"),
-      content("local-slide-05", "End before attention fades", "04"),
+      content("local-slide-02", t("starterSlide2"), "01"),
+      content("local-slide-03", t("starterSlide3"), "02"),
+      content("local-slide-04", t("starterSlide4"), "03"),
+      content("local-slide-05", t("starterSlide5"), "04"),
       {
-        ...content("local-slide-06", "Build the next useful page.", null),
+        ...content("local-slide-06", t("starterOutro"), null),
         role: "outro",
         layoutId: "outro-cta",
-        cta: "Save this for your next carousel.",
+        cta: t("starterCta"),
         counterVisible: false,
       },
     ],
@@ -245,8 +248,9 @@ export function Editor({
   draftOwner,
   draftStore,
 }: EditorProps) {
+  const t = useTranslations("Editor");
   const [state, setState] = useState(() =>
-    createEditorState(initialDocument ?? createStarterDocument()),
+    createEditorState(initialDocument ?? createStarterDocument(t)),
   );
   const [selectedSlideId, setSelectedSlideId] = useState(
     () => state.document.slides[0].id,
@@ -373,7 +377,7 @@ export function Editor({
       mode: "text",
       layoutId: themes[getThemeId(state.document)].layouts.content.text[0],
       eyebrow: null,
-      title: "New slide",
+      title: t("newSlide"),
       bodyBlocks: [],
       cta: null,
       assetSlots: [],
@@ -458,19 +462,19 @@ export function Editor({
     >
       <header className="row-between wrap">
         <div>
-          <p className="eyebrow">Carousel editor</p>
-          <h1 style={{ fontSize: 38 }}>Edit your carousel.</h1>
+          <p className="eyebrow">{t("eyebrow")}</p>
+          <h1 style={{ fontSize: 38 }}>{t("heading")}</h1>
           <p className="lead" style={{ fontSize: 16, marginTop: 8 }}>
-            Refine each slide before export.
+            {t("lead")}
           </p>
         </div>
         <div className="row">
           <p className="meta" data-testid="draft-status" role="status">
-            {draftStatus === "loading" ? "Loading local draft…" : null}
-            {draftStatus === "saving" ? "Saving locally…" : null}
-            {draftStatus === "saved" ? "Saved locally." : null}
+            {draftStatus === "loading" ? t("draftLoading") : null}
+            {draftStatus === "saving" ? t("draftSaving") : null}
+            {draftStatus === "saved" ? t("draftSaved") : null}
             {draftStatus === "unavailable"
-              ? "Local draft unavailable. Edits remain in this tab."
+              ? t("draftUnavailable")
               : null}
           </p>
           <Button
@@ -478,14 +482,14 @@ export function Editor({
             onClick={() => applyCommand(undo())}
             variant="ghost"
           >
-            Undo
+            {t("undo")}
           </Button>
           <Button
             disabled={state.future.length === 0}
             onClick={() => applyCommand(redo())}
             variant="ghost"
           >
-            Redo
+            {t("redo")}
           </Button>
         </div>
       </header>
@@ -588,24 +592,24 @@ export function Editor({
         }
       `}</style>
       <div className="editor-workbench">
-        <Panel aria-label="Slide content" className="editor-content">
-          <PanelHeader><h2 className="h3">Content</h2></PanelHeader>
+        <Panel aria-label={t("slideContent")} className="editor-content">
+          <PanelHeader><h2 className="h3">{t("content")}</h2></PanelHeader>
           <PanelBody className="stack">
             <label className="field">
-              <span>Eyebrow</span>
+              <span>{t("eyebrowField")}</span>
               <input
                 className="input"
                 onChange={(event) => editSelected((slide) => ({
                   ...slide,
                   eyebrow: event.target.value || null,
                 }))}
-                placeholder="Leave empty to hide"
+                placeholder={t("leaveEmpty")}
                 type="text"
                 value={selectedSlide.eyebrow ?? ""}
               />
             </label>
             <label className="field">
-              <span>Headline</span>
+              <span>{t("headline")}</span>
               <textarea
                 className="textarea"
                 onChange={(event) => editSelected((slide) => ({
@@ -616,7 +620,7 @@ export function Editor({
               />
             </label>
             <label className="field">
-              <span>Supporting line</span>
+              <span>{t("supporting")}</span>
               <textarea
                 className="textarea"
                 onChange={(event) => {
@@ -630,14 +634,14 @@ export function Editor({
               />
             </label>
             <label className="field">
-              <span>Call to action</span>
+              <span>{t("cta")}</span>
               <input
                 className="input"
                 onChange={(event) => editSelected((slide) => ({
                   ...slide,
                   cta: event.target.value || null,
                 }))}
-                placeholder="Leave empty to hide"
+                placeholder={t("leaveEmpty")}
                 type="text"
                 value={selectedSlide.cta ?? ""}
               />
@@ -645,7 +649,7 @@ export function Editor({
           </PanelBody>
         </Panel>
 
-        <section aria-label="Canvas" className="editor-canvas stack" style={{ alignItems: "center" }}>
+        <section aria-label={t("canvas")} className="editor-canvas stack" style={{ alignItems: "center" }}>
           <div style={{ maxWidth: 520, width: "100%" }}>
             <SlideRenderer
               input={{
@@ -660,14 +664,14 @@ export function Editor({
             />
           </div>
           <p className="meta" aria-live="polite">
-            Slide {selectedIndex + 1} of {slideCount} · {state.document.platform}
+            {t("slideOf", { current: selectedIndex + 1, total: slideCount, platform: state.document.platform })}
           </p>
 
           <Panel style={{ width: "100%" }}>
             <PanelHeader className="row-between">
-              <h2 className="h3">{slideCount} slides</h2>
+              <h2 className="h3">{t("slideCount", { count: slideCount })}</h2>
               <Button disabled={atMaximum} onClick={addNewSlide} size="small" variant="ghost">
-                Add slide
+                {t("addSlide")}
               </Button>
             </PanelHeader>
             <PanelBody>
@@ -681,7 +685,7 @@ export function Editor({
                   strategy={verticalListSortingStrategy}
                 >
                   <ol
-                    aria-label="Slides"
+                    aria-label={t("slides")}
                     className="editor-filmstrip"
                   >
                     {state.document.slides.map((slide, index) => (
@@ -709,11 +713,11 @@ export function Editor({
         </section>
 
         <div className="editor-controls stack">
-          <Panel aria-label="Slide controls">
-            <PanelHeader><h2 className="h3">Slide controls</h2></PanelHeader>
+          <Panel aria-label={t("slideControls")}>
+            <PanelHeader><h2 className="h3">{t("slideControls")}</h2></PanelHeader>
             <PanelBody className="stack">
               <fieldset>
-                <legend>Slide mode</legend>
+                <legend>{t("slideMode")}</legend>
                 {MODES.map((mode) => (
                   <label key={mode.id} style={{ display: "block", paddingBlock: 4 }}>
                     <input
@@ -722,7 +726,7 @@ export function Editor({
                       onChange={() => selectMode(mode.id)}
                       type="radio"
                       value={mode.id}
-                    />{" "}{mode.label}
+                    />{" "}{t(mode.messageKey)}
                   </label>
                 ))}
               </fieldset>
@@ -730,20 +734,20 @@ export function Editor({
               {selectedSlide.mode === "text" ? null : (
                 <>
                   <label className="field">
-                    <span>Image slot</span>
+                    <span>{t("imageSlot")}</span>
                     <select
                       className="select"
                       onChange={(event) => selectAsset(event.target.value)}
                       value={currentSlot?.assetId ?? ""}
                     >
-                      <option value="">No image selected</option>
+                      <option value="">{t("noImage")}</option>
                       {state.document.assetRefs.map((asset) => (
                         <option key={asset.id} value={asset.id}>{asset.id}</option>
                       ))}
                     </select>
                   </label>
                   <label className="field">
-                    <span>Image alt text</span>
+                    <span>{t("imageAlt")}</span>
                     <input
                       className="input"
                       disabled={!currentSlot}
@@ -767,12 +771,12 @@ export function Editor({
                 onClick={() => deleteCurrent(selectedSlide.id)}
                 variant="danger"
               >
-                Delete slide
+                {t("deleteSlide")}
               </Button>
             </PanelBody>
           </Panel>
 
-          <Panel aria-label="Media library">
+          <Panel aria-label={t("mediaLibrary")}>
             <PanelBody>
               <EditorMedia
                 document={state.document}
@@ -784,7 +788,7 @@ export function Editor({
           </Panel>
 
           <Panel>
-            <PanelHeader><h2 className="h3">Appearance</h2></PanelHeader>
+            <PanelHeader><h2 className="h3">{t("appearance")}</h2></PanelHeader>
             <PanelBody>
               <ThemePanel document={state.document} onChange={applyAppearance} />
             </PanelBody>

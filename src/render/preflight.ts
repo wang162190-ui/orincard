@@ -70,6 +70,7 @@ const FONT_PAIR_MANIFEST_IDS: Readonly<Record<string, readonly string[]>> = {
     "source-serif-4-latin-variable",
     "inter-latin-variable",
     "noto-sans-sc-simplified-400",
+    "noto-sans-sc-simplified-700",
   ],
 };
 
@@ -81,13 +82,16 @@ function selectedFontFamilies(fontPairId: string): readonly string[] {
 
   const manifest = fontManifestJson as FontManifest;
   const entries = ids.map((id) => manifest.fonts.find((font) => font.id === id));
-  return entries.every((entry) => entry !== undefined)
-    ? entries.map((entry) =>
-        entry.package.startsWith("@fontsource-variable/")
-          ? `${entry.family} Variable`
-          : entry.family,
-      )
-    : [];
+  if (!entries.every((entry) => entry !== undefined)) return [];
+  // 同一个字族的不同字重是多条 manifest 记录（Noto Sans SC 400 与 700），
+  // 但预检是按字族问浏览器 "这个字族就绪了吗"，去重后才不会把同一个问题问两遍。
+  return [
+    ...new Set(
+      entries.map((entry) =>
+        entry.package.startsWith("@fontsource-variable/") ? `${entry.family} Variable` : entry.family,
+      ),
+    ),
+  ];
 }
 
 function requiredAssetIds(input: SlideRenderInput): readonly (string | null)[] {

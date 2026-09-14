@@ -1,9 +1,31 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render as renderBare, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IDBFactory } from "fake-indexeddb";
+import { NextIntlClientProvider } from "next-intl";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import messages from "../../messages/en.json";
+
+// 编辑器页外面套的是 WorkspaceShell，它的导航文案来自词条文件；
+// 语言切换器用的 useRouter 在真实 SSR 里有挂载的 app router，jsdom 里没有。
+// 这里只短路 router，外壳渲染出的文案仍然读真实的 messages/en.json。
+vi.mock("next-intl/server", async () => (await import("../helpers/intl-server")).createIntlServerStub());
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  useRouter: () => ({ replace: () => {}, push: () => {}, refresh: () => {}, back: () => {}, forward: () => {}, prefetch: () => {} }),
+  usePathname: () => "/editor/local-route-draft",
+}));
+// 编辑器里的每个子组件都从词条文件取文案，脱离 Provider 渲染会直接抛错。
+// 用 RTL 的 wrapper 而不是手动套一层：rerender 会自动沿用 wrapper，手套的那层不会。
+function render(ui: ReactNode, options?: Parameters<typeof renderBare>[1]) {
+  return renderBare(ui as Parameters<typeof renderBare>[0], {
+    ...options,
+    wrapper: ({ children }) => <NextIntlClientProvider locale="en" messages={messages}>{children}</NextIntlClientProvider>,
+  });
+}
+
 import fixture from "../fixtures/base-document.json";
 import {
   MAX_SLIDE_COUNT,
@@ -21,7 +43,7 @@ import {
   LocalDraftStore,
   type DraftOwner,
 } from "../../src/features/editor/local-drafts";
-import EditorPage from "../../src/app/editor/[id]/page";
+import EditorPage from "../../src/app/[locale]/editor/[id]/page";
 
 function documentFixture(): CarouselDocument {
   return parseCarouselDocument(structuredClone(fixture));

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { JobState, JobStatus } from "../../server/jobs";
 
@@ -54,6 +55,7 @@ const terminalStates = new Set<JobState>([
 ]);
 
 export function GenerationProgress({ jobId }: { readonly jobId: string }) {
+  const t = useTranslations("Progress");
   const [snapshot, setSnapshot] = useState<GenerationProgressSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +72,7 @@ export function GenerationProgress({ jobId }: { readonly jobId: string }) {
           timer = setTimeout(refresh, 1_000);
         }
       } catch {
-        if (active) setError("Generation progress is temporarily unavailable.");
+        if (active) setError(t("unavailable"));
       }
     };
     void refresh();
@@ -78,13 +80,13 @@ export function GenerationProgress({ jobId }: { readonly jobId: string }) {
       active = false;
       if (timer) clearTimeout(timer);
     };
-  }, [jobId]);
+  }, [jobId, t]);
 
   if (error) return <p role="alert">{error}</p>;
-  if (!snapshot) return <p aria-live="polite">Starting generation…</p>;
+  if (!snapshot) return <p aria-live="polite">{t("starting")}</p>;
   return (
-    <section aria-label="Generation progress" aria-live="polite">
-      <p>{snapshot.state === "succeeded" ? "Draft ready" : `Generating: ${snapshot.stage}`}</p>
+    <section aria-label={t("label")} aria-live="polite">
+      <p>{snapshot.state === "succeeded" ? t("ready") : t("generating", { stage: snapshot.stage })}</p>
       <progress max={100} value={snapshot.progress}>
         {snapshot.progress}%
       </progress>

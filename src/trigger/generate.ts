@@ -6,6 +6,10 @@ import {
   createDeepSeekResponsesClient,
 } from "../server/ai";
 import {
+  createMeasurementCollector,
+  settleGenerationUsage,
+} from "../server/cost-settlement";
+import {
   generateCarouselDocument,
   type GenerationOptions,
 } from "../server/generation";
@@ -117,6 +121,11 @@ export async function runGenerationJob(
   store: GenerationWorkerStore,
   generate: (source: SourceRecord, options: GenerationOptions) => Promise<CarouselDocument>,
   payload: unknown,
+  /**
+   * 供应商调用结束后结算实测用量。成功与失败都会调用一次——token 是照烧的，
+   * 生成失败不等于这次调用没花钱。实现必须自己吞掉错误，不得向上冒泡。
+   */
+  settle?: (work: GenerationWork) => Promise<void>,
 ): Promise<{ readonly jobId: string; readonly state: "ignored" | "succeeded" }> {
   const accepted = validateGenerationJobPayload(payload);
   const work = await store.claim(accepted.jobId);
@@ -130,9 +139,19 @@ export async function runGenerationJob(
     await store.fail(work.jobId, work.leaseToken, "SOURCE_UNAVAILABLE");
     throw new Error("Generation source is no longer available");
   }
+  let document: CarouselDocument;
   try {
     await store.progress(work.jobId, work.leaseToken, "outline", 20);
-    const document = await generate(work.source, work.options);
+    document = await generate(work.source, work.options);
+  } catch (error) {
+    // 先结算再置失败：server_finalize_generation_job 会把预留收成 unknown，
+    // 那之后 lease 就不再有效，结算入口会拒绝这次用量。
+    if (settle) await settle(work);
+    await store.fail(work.jobId, work.leaseToken, "PROVIDER_FAILED");
+    throw error;
+  }
+  if (settle) await settle(work);
+  try {
     await store.progress(work.jobId, work.leaseToken, "layout", 90);
     await store.succeed(work.jobId, work.leaseToken, document);
     return { jobId: work.jobId, state: "succeeded" };
@@ -155,12 +174,24 @@ export const generateCarouselTask = task({
   run: async (payload: unknown) => {
     const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
     if (!apiKey) throw new Error("DEEPSEEK_API_KEY is not configured for the generation task");
-    const store = createSupabaseGenerationWorkerStore(createAdminSupabaseClient());
+    const client = createAdminSupabaseClient();
+    const store = createSupabaseGenerationWorkerStore(client);
     const ai = createDeepSeekResponsesAdapter(createDeepSeekResponsesClient(apiKey));
+    const collector = createMeasurementCollector();
     return runGenerationJob(
       store,
-      (source, options) => generateCarouselDocument({ ai, source, options }),
+      (source, options) =>
+        generateCarouselDocument({ ai, source, options, onMeasurement: collector.onMeasurement }),
       payload,
+      async (work) => {
+        // schema 修复重试会产生两次 measurement，但共用一个 attempt_key，合并后只结算一次。
+        await settleGenerationUsage({
+          client,
+          jobId: work.jobId,
+          leaseToken: work.leaseToken,
+          measurements: collector.collected(),
+        });
+      },
     );
   },
 });

@@ -9,6 +9,12 @@ export async function verifyRestore({ environment, target, approval, database, s
   const dump = await readFile(join(directory, manifest.database.file));
   if (sha256(dump) !== manifest.database.sha256) throw new Error("Database backup hash mismatch.");
   const restored = await database.inventory();
+  // 适配器契约：活引用与 tombstone 必须互斥。Orincard 的 assets.state 是单列枚举，
+  // 两份清单由 state<>'deleted' / state='deleted' 导出，天然满足；但 verifyRestore 接受任意适配器，
+  // 一个把「软删除行」同时算进两边的实现会让下面两项检查双双落空，已删数据复活却全绿。
+  // 这里把这条前提从「口头约定」变成断言，成本两行。
+  const bothActiveAndDeleted = restored.tombstones.filter((tombstone) => restored.references.includes(tombstone));
+  if (bothActiveAndDeleted.length) throw new Error(`Restored inventory lists ${bothActiveAndDeleted.length} keys as both active and tombstoned.`);
   const missingReferences = manifest.references.filter((reference) => !restored.references.includes(reference));
   const resurrectedTombstones = manifest.tombstones.filter((reference) => !restored.tombstones.includes(reference));
   if (missingReferences.length) throw new Error(`Restored database is missing ${missingReferences.length} references.`);

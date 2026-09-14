@@ -72,3 +72,47 @@ describe("T054 editable PPTX export (AC-006)", () => {
     await expect(renderPptx({ document, assets: {} })).rejects.toThrow("PPTX_ASSET_UNAVAILABLE");
   });
 });
+
+describe("S18 PPTX Chinese typeface", () => {
+  // PNG / PDF / MP4 走浏览器渲染，字体栈里有 Noto Sans SC。PPTX 是把字体名写进文件、
+  // 由 PowerPoint 自己去找，写 "Inter" 的话中文只能落到 PowerPoint 的默认 CJK 回退字体。
+  async function typefaces(document: CarouselDocument): Promise<string> {
+    const output = await renderPptx({ document, assets: {} });
+    const archive = await JSZip.loadAsync(output.bytes);
+    const slides = Object.keys(archive.files).filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name));
+    expect(slides.length).toBeGreaterThan(0);
+    return (await Promise.all(slides.map((name) => archive.file(name)!.async("string")))).join("");
+  }
+
+  it("writes Noto Sans SC for a Chinese deck and leaves the Latin deck untouched", async () => {
+    const chinese = structuredClone(await fixture());
+    for (const slide of chinese.slides) {
+      slide.title = "一次只讲清一个有用的点";
+      slide.eyebrow = "实用指南";
+      slide.mode = "text";
+      slide.assetSlots = [];
+      slide.bodyBlocks = [{ kind: "paragraph", text: "把一段原文整理成可编辑的页面序列。", emphasisRanges: [] }];
+    }
+
+    const chineseXml = await typefaces(chinese);
+    expect(chineseXml).toContain("Noto Sans SC");
+    expect(chineseXml).not.toContain("Source Serif 4");
+    expect(chineseXml).not.toContain("Inter");
+
+    // 英文档一个字节都不该受影响。
+    const latin = structuredClone(await fixture());
+    for (const slide of latin.slides) { slide.mode = "text"; slide.assetSlots = []; }
+    const latinXml = await typefaces(latin);
+    expect(latinXml).toContain("Source Serif 4");
+    expect(latinXml).not.toContain("Noto Sans SC");
+  });
+
+  it("switches on a single Chinese character anywhere in the deck", async () => {
+    const mixed = structuredClone(await fixture());
+    for (const slide of mixed.slides) { slide.mode = "text"; slide.assetSlots = []; }
+    expect(await typefaces(mixed)).not.toContain("Noto Sans SC");
+    // 一份英文稿里混进一个中文词（品牌名、引文）就足以让 PowerPoint 回落，所以判定按整份文档来。
+    mixed.slides[2]!.title = "Ship it 上线";
+    expect(await typefaces(mixed)).toContain("Noto Sans SC");
+  });
+});

@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Exports · Orincard</title>
+<link rel="stylesheet" href="../reference/assets/orincard.css" />
+<style>
+  .head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gap-lg); margin-bottom: 22px; }
+  .head .voice { flex: 0 1 380px; }
+
+  .toolbar { display: flex; align-items: center; gap: var(--gap-md); flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: var(--gap-md); }
+
+  /* Retention is the one number a creator has to trust, so it gets a line of
+     its own above the list rather than a footnote under it. */
+  .retention { display: flex; align-items: baseline; gap: 8px; margin: 0 0 var(--gap-md); font-size: 13px; color: var(--muted); }
+
+  .batches { display: flex; flex-direction: column; gap: var(--gap-md); }
+  .batch-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gap-md); flex-wrap: wrap; }
+  .batch-title { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .batch-title h2 { font-size: 16px; line-height: 1.3; }
+  .batch-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .batch-meta .sep { opacity: 0.45; }
+
+  .files { display: flex; flex-direction: column; }
+  .file { display: flex; align-items: center; gap: var(--gap-sm); padding: 11px 0; border-top: 1px solid var(--border); }
+  .file:first-child { border-top: 0; }
+  .file-name { flex: 1 1 auto; min-width: 0; font-size: 13.5px; }
+  .file-name .fmt { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 2px; }
+  .file-why { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+  .file-act { flex: none; display: flex; align-items: center; gap: 8px; }
+
+  /* A refused batch has no file rows at all — showing an empty table would
+     imply the files exist somewhere. The reason takes the whole body. */
+  .refused { display: flex; flex-direction: column; gap: 12px; }
+  .refused-formats { display: flex; gap: 6px; flex-wrap: wrap; }
+  .refused-formats .badge { text-decoration: line-through; }
+
+  .expiring { margin-left: auto; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail" data-od-id="rail">
+    <div class="rail-brand">
+      <span class="mark" aria-hidden="true">
+        <svg class="ori ori-mark" viewBox="0 0 24 24"><polygon points="8.8,13.4 6.4,20.4 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 16.6,12.8 14.6,16.2 8.8,13.4" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="16.6,12.8 22.8,15.6 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 21.2,3 16.6,12.8" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="5.4,4.8 11,11 8.8,13.4 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="1.8,8.6 5.4,4.8 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="word">Orincard</span>
+    </div>
+    <nav class="rail-nav" aria-label="Main">
+      <a class="nav-item" href="../reference/projects.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="10" rx="1.5"/></svg><span>Projects</span></a>
+      <a class="nav-item" href="../reference/generator.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg><span>New carousel</span></a>
+      <a class="nav-item" href="../reference/brand-kits.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg><span>Brand Kits</span></a>
+      <a class="nav-item" href="../reference/editor.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h16"/><path d="M14.5 4.5a2.1 2.1 0 0 1 3 3L9 16l-4 1 1-4Z"/></svg><span>Editor</span></a>
+      <a class="nav-item" href="exports.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Exports</span></a>
+      <a class="nav-item" href="billing.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg><span>Billing</span></a>
+      <a class="nav-item" href="settings.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.3 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 2.7 7.3"/></svg><span>Settings</span></a>
+      <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span>Prototype map</span></a>
+    </nav>
+    <div class="rail-foot">
+      <div class="plan-card">
+        <p class="label" style="margin-bottom: 6px;">Download window</p>
+        <p style="margin: 0; font-size: 12.5px; line-height: 1.45;">Finished files stay downloadable for <strong>30 days</strong>. After that the saved version regenerates them.</p>
+      </div>
+      <a class="account" href="settings.html">
+        <img class="avatar" src="../reference/assets/img/avatar-elena.jpg" alt="" width="28" height="28" />
+        <span class="who" style="min-width: 0;">
+          <span style="display: block; font-size: 13px; font-weight: 550;">Elena Marsh</span>
+          <span class="meta" style="display: block; font-size: 11.5px;">Creator plan</span>
+        </span>
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar" data-od-id="topbar">
+      <div class="crumbs"><strong>Exports</strong></div>
+      <div class="row">
+        <a class="btn btn-secondary btn-sm" href="../reference/projects.html">Projects</a>
+        <a class="btn btn-primary btn-sm" href="../reference/generator.html">New carousel</a>
+      </div>
+    </header>
+
+    <div class="work" data-od-id="export-centre">
+
+      <section class="head" data-od-id="page-head">
+        <div>
+          <h1 style="font-size: 32px;">Exports</h1>
+          <p class="lead" style="margin-top: 8px; font-size: 15.5px;">Every batch you have run, what it produced, and what stopped it. Files leave; the version they came from stays.</p>
+        </div>
+        <div class="voice">
+          <span id="voiceOri" aria-hidden="true"></span>
+          <p>A batch that was refused produced nothing. It says which slide to fix, not just that it failed.</p>
+        </div>
+      </section>
+
+      <section class="toolbar" data-od-id="filters">
+        <div class="seg" role="tablist" aria-label="Filter exports" id="seg">
+          <button role="tab" aria-selected="true" data-f="all">All</button>
+          <button role="tab" aria-selected="false" data-f="ready">Ready</button>
+          <button role="tab" aria-selected="false" data-f="action">Needs action</button>
+          <button role="tab" aria-selected="false" data-f="gone">Expired</button>
+        </div>
+        <p class="meta" id="countLine" style="margin: 0;"></p>
+      </section>
+
+      <p class="retention" data-od-id="retention">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:14px;height:14px;flex:none;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>Today is <strong class="num">Sep 2, 2026</strong>. Downloads expire 30 days after the batch finished. Regenerating rebuilds from the saved version, not from your current draft.</span>
+      </p>
+
+      <section class="batches" id="batches" data-od-id="batches"></section>
+
+      <div class="empty" id="emptyState" hidden>
+        <span id="emptyOri" aria-hidden="true"></span>
+        <h3 class="h3">Nothing in this filter</h3>
+        <p>No export batch matches what you picked. Clear the filter to see all five.</p>
+        <button class="btn btn-secondary btn-sm" id="clearFilter">Show all</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <div class="dialog-head">
+      <div>
+        <p class="label" style="margin-bottom: 5px;">Regenerate</p>
+        <h2 class="h3" id="dlgTitle">Rebuild from the saved version</h2>
+      </div>
+      <button class="btn btn-icon btn-ghost" id="dlgX" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body" id="dlgBody"></div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary btn-sm" id="dlgCancel">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="dlgGo">Regenerate</button>
+    </div>
+  </div>
+</div>
+
+<script src="../reference/assets/ori.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* Same world as ../reference/projects.html: today is Sep 2 2026, the account
+     is Elena Marsh, and every batch below names a project from that file's
+     `projects` array. p3 and p6 carry an `exp` object there; those two batches
+     reproduce it word for word so the two screens cannot drift apart. */
+  var TODAY = 'Sep 2, 2026';
+  var RETENTION_DAYS = 30;
+
+  var FORMATS = {
+    png_zip: 'PNG ZIP', jpg_zip: 'JPG ZIP', pdf: 'PDF',
+    pptx: 'PPTX', mp4: 'MP4', caption: 'Caption'
+  };
+
+  var batches = [
+    {
+      id: 'b1', project: 'A calmer way to plan your week', pid: 'p3',
+      version: 'v6', preset: 'Instagram · 1080 × 1350', when: 'Aug 24, 2026 · 20:11',
+      state: 'ready', expires: 'Sep 23, 2026', daysLeft: 21,
+      files: [
+        { fmt: 'png_zip', name: '01.png – 05.png (ZIP, 12.8 MB)', state: 'ready' },
+        { fmt: 'pdf', name: 'calmer-week.pdf (5 pages, 4.1 MB)', state: 'ready' },
+        { fmt: 'caption', name: 'caption.txt (1 KB)', state: 'ready' }
+      ]
+    },
+    {
+      id: 'b2', project: 'Five questions to ask before you write a spec', pid: 'p2',
+      version: 'v2', preset: 'LinkedIn · 1080 × 1350', when: 'Sep 2, 2026 · 09:12',
+      state: 'running',
+      steps: [
+        { label: 'Preflight — 8 slides within capacity', state: 'done' },
+        { label: 'Rendering slides — 5 of 8', state: 'active' },
+        { label: 'Packaging editable PPTX', state: 'todo' }
+      ],
+      files: [{ fmt: 'pptx', name: 'five-questions.pptx', state: 'running' }]
+    },
+    {
+      /* p1's note in projects.html is "1 slide over capacity", so this batch is
+         the one the preflight refuses. reference/README §23.2 removed the PNG
+         bypass: overflow stops all five formats, so this batch has no file rows
+         at all. The snapshot's index.html card still describes the old rule. */
+      id: 'b3', project: 'Status meetings are not progress', pid: 'p1',
+      version: 'v4', preset: 'LinkedIn · 1080 × 1350', when: 'Sep 1, 2026 · 14:26',
+      state: 'refused',
+      refused: {
+        slide: 4,
+        reason: 'Slide 4 runs 3 lines past the frame at this text size. Exporting it would crop the last line out of every format, so the batch stopped before rendering.',
+        formats: ['png_zip', 'jpg_zip', 'pdf', 'pptx', 'mp4'],
+        fix: 'Shorten slide 4, or set its text fit to Tight'
+      },
+      files: []
+    },
+    {
+      /* Preflight passed for p5 ("Preflight passed" in projects.html), so this
+         is a render failure, not a content one — and render failures are
+         per-format, which is why the PNG ZIP beside it is downloadable. */
+      id: 'b4', project: 'Three habits that survived my burnout', pid: 'p5',
+      version: 'v3', preset: 'TikTok · 1080 × 1920', when: 'Aug 16, 2026 · 08:14',
+      state: 'partial', expires: 'Sep 15, 2026', daysLeft: 13,
+      files: [
+        { fmt: 'png_zip', name: '01.png – 07.png (ZIP, 18.4 MB)', state: 'ready' },
+        {
+          fmt: 'mp4', name: 'three-habits.mp4', state: 'failed',
+          why: 'The renderer ran out of memory on slide 6 while encoding 1080 × 1920. Retrying this format alone re-queues it on a larger machine; the PNG ZIP above is unaffected.'
+        }
+      ]
+    },
+    {
+      id: 'b5', project: 'Notes on writing in public', pid: 'p6',
+      version: 'v5', preset: 'LinkedIn · 1080 × 1350', when: 'Jul 30, 2026 · 16:52',
+      state: 'expired', expires: 'Expired Aug 29, 2026',
+      files: [{ fmt: 'png_zip', name: '01.png – 06.png (ZIP, 15.2 MB)', state: 'expired' }]
+    }
+  ];
+
+  var STATE = {
+    ready:   { label: 'Ready',        cls: 'badge-ok' },
+    running: { label: 'Rendering',    cls: 'badge-warn' },
+    refused: { label: 'Refused',      cls: 'badge-danger' },
+    partial: { label: 'Needs a retry', cls: 'badge-danger' },
+    expired: { label: 'Expired',      cls: 'badge-quiet' }
+  };
+
+  /* "Needs action" is the union of everything a creator has to touch: a refused
+     batch, a half-failed one, and an expired one all require a decision. Ready
+     and Rendering do not. */
+  var GROUP = {
+    ready: ['ready', 'running'], action: ['refused', 'partial'], gone: ['expired']
+  };
+
+  var filter = 'all';
+  var host = document.getElementById('batches');
+  var emptyState = document.getElementById('emptyState');
+  var countLine = document.getElementById('countLine');
+  var scrim = document.getElementById('scrim');
+  var dlgBody = document.getElementById('dlgBody');
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function visible() {
+    if (filter === 'all') return batches;
+    return batches.filter(function (b) { return GROUP[filter].indexOf(b.state) >= 0; });
+  }
+
+  function fileRow(b, f) {
+    var act = '';
+    if (f.state === 'ready') {
+      act = '<button class="btn btn-secondary btn-sm" data-dl="' + b.id + '">Download</button>';
+    } else if (f.state === 'failed') {
+      act = '<button class="btn btn-secondary btn-sm" data-retry="' + b.id + ':' + f.fmt + '">Retry ' + FORMATS[f.fmt] + '</button>';
+    } else if (f.state === 'expired') {
+      act = '<button class="btn btn-secondary btn-sm" data-regen="' + b.id + '">Regenerate from ' + esc(b.version) + '</button>';
+    } else if (f.state === 'running') {
+      act = '<span class="counter">in progress</span>';
+    }
+    return '<div class="file">' +
+      '<div class="file-name"><span class="fmt">' + FORMATS[f.fmt] + '</span>' + esc(f.name) +
+      (f.why ? '<p class="file-why">' + esc(f.why) + '</p>' : '') +
+      '</div>' +
+      (f.state === 'failed' ? '<span class="badge badge-danger">Failed</span>' : '') +
+      '<div class="file-act">' + act + '</div>' +
+      '</div>';
+  }
+
+  function body(b) {
+    if (b.state === 'refused') {
+      var r = b.refused;
+      return '<div class="refused">' +
+        '<div class="notice notice-danger">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v5"/><path d="M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>' +
+          '<p><strong>Nothing was produced.</strong> ' + esc(r.reason) + '</p>' +
+        '</div>' +
+        '<div>' +
+          '<p class="label" style="margin-bottom: 7px;">Formats stopped</p>' +
+          '<div class="refused-formats">' + r.formats.map(function (f) {
+            return '<span class="badge badge-quiet">' + FORMATS[f] + '</span>';
+          }).join('') + '</div>' +
+        '</div>' +
+        '<div class="row" style="gap: 10px;">' +
+          '<a class="btn btn-primary btn-sm" href="../reference/editor.html">' + esc(r.fix) + '</a>' +
+          '<button class="btn btn-secondary btn-sm" data-recheck="' + b.id + '">Run preflight again</button>' +
+        '</div>' +
+      '</div>';
+    }
+    if (b.state === 'running') {
+      return '<div class="steps">' + b.steps.map(function (s) {
+        return '<div class="step" data-state="' + s.state + '">' +
+          '<span class="step-mark">' + (s.state === 'done'
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 13 4 4L19 7"/></svg>' : '') +
+          '</span><span>' + esc(s.label) + '</span></div>';
+      }).join('') + '</div>' +
+      '<div class="files" style="margin-top: 10px;">' + b.files.map(function (f) { return fileRow(b, f); }).join('') + '</div>';
+    }
+    return '<div class="files">' + b.files.map(function (f) { return fileRow(b, f); }).join('') + '</div>';
+  }
+
+  function expiryNote(b) {
+    if (b.state === 'expired') {
+      return '<span class="badge badge-quiet expiring">' + esc(b.expires) + '</span>';
+    }
+    if (!b.expires) return '';
+    /* Under a week left is the point where "Sep 23" stops being useful and the
+       remaining count starts being the thing you act on. */
+    var soon = b.daysLeft <= 7;
+    return '<span class="badge ' + (soon ? 'badge-warn' : 'badge-quiet') + ' expiring">' +
+      'Downloads until ' + esc(b.expires) + ' · ' + b.daysLeft + ' days left</span>';
+  }
+
+  function render() {
+    var list = visible();
+    host.innerHTML = list.map(function (b) {
+      var st = STATE[b.state];
+      return '<article class="panel" data-od-id="batch">' +
+        '<div class="panel-head">' +
+          '<div class="batch-head" style="width: 100%;">' +
+            '<div class="batch-title">' +
+              '<h2>' + esc(b.project) + '</h2>' +
+              '<div class="batch-meta">' +
+                '<span>' + esc(b.version) + '</span><span class="sep">·</span>' +
+                '<span>' + esc(b.preset) + '</span><span class="sep">·</span>' +
+                '<span>' + esc(b.when) + '</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="row" style="gap: 8px; align-items: center;">' +
+              '<span class="badge ' + st.cls + '">' + st.label + '</span>' +
+              expiryNote(b) +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="panel-body">' + body(b) + '</div>' +
+      '</article>';
+    }).join('');
+
+    emptyState.hidden = list.length > 0;
+    host.hidden = list.length === 0;
+
+    /* Counted from the files, not the batch state: a batch that is re-rendering
+       one format still has its finished formats sitting there downloadable. */
+    var ready = batches.filter(function (b) {
+      return b.files.some(function (f) { return f.state === 'ready'; });
+    }).length;
+    countLine.textContent = list.length + ' of ' + batches.length + ' batches · ' +
+      ready + ' with files you can still download';
+  }
+
+  document.getElementById('seg').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-f]');
+    if (!btn) return;
+    filter = btn.dataset.f;
+    Array.prototype.forEach.call(this.querySelectorAll('button'), function (b) {
+      b.setAttribute('aria-selected', String(b === btn));
+    });
+    render();
+  });
+
+  document.getElementById('clearFilter').addEventListener('click', function () {
+    filter = 'all';
+    Array.prototype.forEach.call(document.querySelectorAll('#seg button'), function (b) {
+      b.setAttribute('aria-selected', String(b.dataset.f === 'all'));
+    });
+    render();
+  });
+
+  host.addEventListener('click', function (e) {
+    var regen = e.target.closest('[data-regen]');
+    if (regen) return openRegen(regen.dataset.regen);
+
+    var retry = e.target.closest('[data-retry]');
+    if (retry) {
+      var parts = retry.dataset.retry.split(':');
+      var b = batches.filter(function (x) { return x.id === parts[0]; })[0];
+      var f = b.files.filter(function (x) { return x.fmt === parts[1]; })[0];
+      /* Only this format re-queues. The sibling PNG ZIP keeps its own state,
+         which is the whole point of retrying per format. */
+      f.state = 'running';
+      delete f.why;
+      b.state = 'running';
+      b.steps = [
+        { label: 'Preflight — unchanged since ' + b.version, state: 'done' },
+        { label: 'Re-queued ' + FORMATS[f.fmt] + ' on a larger machine', state: 'active' },
+        { label: 'Packaging', state: 'todo' }
+      ];
+      return render();
+    }
+
+    var recheck = e.target.closest('[data-recheck]');
+    if (recheck) {
+      /* Nothing about the draft changed, so an honest re-run reports the same
+         refusal rather than pretending a second attempt clears it. */
+      var btn = recheck;
+      btn.disabled = true;
+      btn.textContent = 'Checking…';
+      window.setTimeout(function () {
+        btn.disabled = false;
+        btn.textContent = 'Run preflight again';
+        var note = btn.closest('.refused').querySelector('.notice p');
+        note.innerHTML = '<strong>Still refused.</strong> Slide 4 has not changed since ' +
+          '14:26. Preflight will keep returning this until the text fits.';
+      }, 900);
+      return;
+    }
+
+    var dl = e.target.closest('[data-dl]');
+    if (dl) {
+      dl.textContent = 'Started';
+      window.setTimeout(function () { dl.textContent = 'Download'; }, 1400);
+    }
+  });
+
+  function openRegen(id) {
+    var b = batches.filter(function (x) { return x.id === id; })[0];
+    dlgBody.innerHTML =
+      '<p style="margin: 0 0 14px; font-size: 14px; line-height: 1.55;">The download window for ' +
+        '<strong>' + esc(b.project) + '</strong> closed on ' + esc(b.expires.replace('Expired ', '')) +
+        '. The files are gone, but ' + esc(b.version) + ' is still saved.</p>' +
+      '<div class="notice">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><path d="M12 8h.01"/></svg>' +
+        '<p>Orincard rebuilds from <strong>' + esc(b.version) + '</strong> — the version this batch used — ' +
+        'not from the project’s current draft. Anything you edited since then will not appear.</p>' +
+      '</div>' +
+      '<table class="ds-table" style="margin-top: 16px;"><tbody>' +
+        '<tr><th>Project</th><td>' + esc(b.project) + '</td></tr>' +
+        '<tr><th>Version</th><td>' + esc(b.version) + '</td></tr>' +
+        '<tr><th>Preset</th><td>' + esc(b.preset) + '</td></tr>' +
+        '<tr><th>Formats</th><td>' + b.files.map(function (f) { return FORMATS[f.fmt]; }).join(', ') + '</td></tr>' +
+        '<tr><th>New window</th><td>' + RETENTION_DAYS + ' days from the moment it finishes</td></tr>' +
+      '</tbody></table>';
+    scrim.hidden = false;
+    scrim.dataset.batch = id;
+  }
+
+  function closeDlg() { scrim.hidden = true; }
+  document.getElementById('dlgX').addEventListener('click', closeDlg);
+  document.getElementById('dlgCancel').addEventListener('click', closeDlg);
+  scrim.addEventListener('click', function (e) { if (e.target === scrim) closeDlg(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !scrim.hidden) closeDlg(); });
+
+  document.getElementById('dlgGo').addEventListener('click', function () {
+    var b = batches.filter(function (x) { return x.id === scrim.dataset.batch; })[0];
+    b.state = 'running';
+    b.expires = null;
+    b.steps = [
+      { label: 'Loaded ' + b.version + ' from version history', state: 'done' },
+      { label: 'Rendering slides', state: 'active' },
+      { label: 'Packaging', state: 'todo' }
+    ];
+    b.files.forEach(function (f) { f.state = 'running'; });
+    closeDlg();
+    render();
+  });
+
+  document.getElementById('voiceOri').innerHTML = Ori.mark(20);
+  document.getElementById('emptyOri').innerHTML = Ori.unfolded(72);
+  render();
+})();
+</script>
+</body>
+</html>

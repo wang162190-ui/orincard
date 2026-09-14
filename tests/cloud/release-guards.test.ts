@@ -267,8 +267,14 @@ describe("T088 guard 3 — payment configuration and policy are complete", () =>
     expect(process.env.STRIPE_LIVE_SECRET_KEY?.trim() ?? "", "A live Stripe key must never be present during acceptance.").toBe("");
   });
 
-  it("ships approved payment policy copy", () => {
-    for (const file of ["content/legal/terms.mdx", "content/legal/privacy.mdx", "content/legal/affiliate.mdx"]) {
+  // S17 起每份法律文本有两个语言版本。只查英文那份，中文站可以挂着未审定条款照常上线。
+  const LEGAL_SLUGS = ["terms", "privacy", "affiliate"] as const;
+  const LEGAL_FILES = ["en", "zh-Hans"].flatMap((locale) =>
+    LEGAL_SLUGS.map((slug) => (locale === "en" ? `content/legal/${slug}.mdx` : `content/${locale}/legal/${slug}.mdx`)),
+  );
+
+  it("ships approved payment policy copy in every locale", () => {
+    for (const file of LEGAL_FILES) {
       const contents = read(file);
       const status = /^publicationStatus:\s*(\S+)/m.exec(contents)?.[1] ?? "";
       expect(status, `${file} is still ${status || "unlabelled"}; approved policy copy is a release precondition.`).toBe("approved");
@@ -279,6 +285,11 @@ describe("T088 guard 3 — payment configuration and policy are complete", () =>
     const terms = read("content/legal/terms.mdx");
     for (const topic of ["subscription", "cancellation", "refund"]) {
       expect(new RegExp(topic, "i").test(terms), `content/legal/terms.mdx does not cover ${topic}.`).toBe(true);
+    }
+    // 中文版按中文关键词查同样三件事——照搬英文正则只会因为一个字都不匹配而误报。
+    const zhTerms = read("content/zh-Hans/legal/terms.mdx");
+    for (const topic of ["订阅|方案与账单", "取消", "退款"]) {
+      expect(new RegExp(topic).test(zhTerms), `content/zh-Hans/legal/terms.mdx does not cover ${topic}.`).toBe(true);
     }
   });
 });

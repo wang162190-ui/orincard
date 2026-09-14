@@ -1,15 +1,17 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { CarouselDocument } from "../../domain/document";
 import { FULL_ASSET_CROP, normalizeAssetCrop } from "./crop";
 
+// label 留作稳定的英文标识（测试与日志按它认人），界面上显示的是 messageKey 翻出来的字。
 export const MEDIA_SOURCES = [
-  { id: "upload", label: "Upload" },
-  { id: "stock", label: "Pexels" },
-  { id: "screenshot", label: "Screenshot" },
-  { id: "generated", label: "AI image" },
-  { id: "portrait", label: "Portrait" },
-  { id: "emoji", label: "Emoji" },
+  { id: "upload", label: "Upload", messageKey: "sourceUpload" },
+  { id: "stock", label: "Pexels", messageKey: "sourceStock" },
+  { id: "screenshot", label: "Screenshot", messageKey: "sourceScreenshot" },
+  { id: "generated", label: "AI image", messageKey: "sourceGenerated" },
+  { id: "portrait", label: "Portrait", messageKey: "sourcePortrait" },
+  { id: "emoji", label: "Emoji", messageKey: "sourceEmoji" },
 ] as const;
 
 export type MediaSource = (typeof MEDIA_SOURCES)[number]["id"];
@@ -79,6 +81,7 @@ export function MediaPanel({
   onDocumentChange,
   onRequestSource,
 }: MediaPanelProps) {
+  const t = useTranslations("Media");
   const selectedSlide = document.slides.find((slide) => slide.id === selectedSlideId);
   const slot = primarySlot(document, selectedSlideId);
   const crop = normalizeAssetCrop(slot?.crop ?? FULL_ASSET_CROP);
@@ -97,19 +100,19 @@ export function MediaPanel({
   }
 
   return (
-    <section aria-label="Media" className="stack" style={{ gap: 12 }}>
+    <section aria-label={t("label")} className="stack" style={{ gap: 12 }}>
       <div>
-        <h2 className="h3">Media</h2>
-        <p className="meta">Choose a source, then reuse any accepted image on another slide.</p>
+        <h2 className="h3">{t("heading")}</h2>
+        <p className="meta">{t("lead")}</p>
       </div>
-      <div aria-label="Media sources" className="row wrap" style={{ gap: 6 }}>
+      <div aria-label={t("sourcesLabel")} className="row wrap" style={{ gap: 6 }}>
         {MEDIA_SOURCES.map((source) => (
           <button key={source.id} onClick={() => onRequestSource?.(source.id)} type="button">
-            {source.label}
+            {t(source.messageKey)}
           </button>
         ))}
       </div>
-      <div aria-label="Available media" className="stack" style={{ gap: 6 }}>
+      <div aria-label={t("availableLabel")} className="stack" style={{ gap: 6 }}>
         {assets.map((asset) => (
           <button
             aria-pressed={slot?.assetId === asset.id}
@@ -117,16 +120,16 @@ export function MediaPanel({
             onClick={() => onDocumentChange(withAsset(document, selectedSlideId, asset))}
             type="button"
           >
-            {asset.label} · {asset.source}
+            {t("assetEntry", { label: asset.label, source: asset.source })}
           </button>
         ))}
-        {assets.length === 0 ? <p className="meta">No media is available yet.</p> : null}
+        {assets.length === 0 ? <p className="meta">{t("empty")}</p> : null}
       </div>
       <fieldset disabled={!slot}>
-        <legend>Crop</legend>
+        <legend>{t("crop")}</legend>
         {(["x", "y", "width", "height"] as const).map((key) => (
           <label className="field" key={key}>
-            <span>{key === "x" ? "Horizontal position" : key === "y" ? "Vertical position" : key === "width" ? "Crop width" : "Crop height"}</span>
+            <span>{key === "x" ? t("cropX") : key === "y" ? t("cropY") : key === "width" ? t("cropWidth") : t("cropHeight")}</span>
             <input
               max="1"
               min={key === "width" || key === "height" ? "0.01" : "0"}
@@ -139,7 +142,7 @@ export function MediaPanel({
         ))}
       </fieldset>
       <label className="field">
-        <span>Opacity</span>
+        <span>{t("opacity")}</span>
         <input
           disabled={!slot}
           max="1"

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { CarouselDocument } from "../../domain/document";
-import type { StructuredAI } from "../ai";
+import type { StructuredAI, StructuredOutputRequest } from "../ai";
 
 export const TEXT_TOOL_NAMES = ["caption", "linkedin-post", "post-ideas"] as const;
 export type TextToolName = (typeof TEXT_TOOL_NAMES)[number];
@@ -85,6 +85,7 @@ export async function generateTextToolCandidate(input: {
   readonly request: TextToolRequest;
   readonly selectedProjectContext?: Readonly<Record<string, unknown>>;
   readonly createId?: () => string;
+  readonly onMeasurement?: StructuredOutputRequest["onMeasurement"];
 }): Promise<TextToolCandidate> {
   const request = parseTextToolRequest(input.request);
   const output = await input.ai.generateStructured({
@@ -92,6 +93,7 @@ export async function generateTextToolCandidate(input: {
     input: JSON.stringify({ tool: request.tool, brief: request.input || "Create a useful general professional content draft.", selectedProjectContext: input.selectedProjectContext ?? {} }),
     schemaName: `orincard_${request.tool}`,
     schema: JSON_SCHEMAS[request.tool],
+    onMeasurement: input.onMeasurement,
   });
   const parsed = OUTPUTS[request.tool].safeParse(output);
   if (!parsed.success) throw new Error("TEXT_TOOL_INVALID_OUTPUT");

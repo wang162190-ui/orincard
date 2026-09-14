@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render as renderBare, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { NextIntlClientProvider } from "next-intl";
+import { createElement, type ReactNode } from "react";
+import messages from "../../messages/en.json";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import fixture from "../fixtures/base-document.json";
 import {
@@ -13,6 +15,14 @@ import {
 } from "../../src/render/templates";
 import { ThemePanel } from "../../src/features/editor/theme-panel";
 import { parseCarouselDocument } from "../../src/domain/document";
+
+// ThemePanel 的文案来自词条文件，脱离 Provider 渲染会直接抛错。
+function render(ui: ReactNode, options?: Parameters<typeof renderBare>[1]) {
+  return renderBare(ui as Parameters<typeof renderBare>[0], {
+    ...options,
+    wrapper: ({ children }) => createElement(NextIntlClientProvider, { children, locale: "en", messages }),
+  });
+}
 
 function documentFixture() {
   return parseCarouselDocument(structuredClone(fixture));

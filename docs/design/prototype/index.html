@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prototype map · Orincard</title>
+<link rel="stylesheet" href="../reference/assets/orincard.css" />
+<style>
+  .page { max-width: 1080px; margin: 0 auto; padding: var(--gap-xl) var(--gap-lg) var(--gap-xl); }
+  @media (max-width: 720px) { .page { padding: var(--gap-lg) var(--gap-md); } }
+
+  .brandline { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: var(--gap-lg); }
+  .brandline svg { width: 24px; height: 24px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--gap-md); }
+
+  .screen { display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: inherit; }
+  .screen:hover { border-color: color-mix(in srgb, var(--fg) 28%, var(--border)); }
+  .screen h3 { font-size: 15px; letter-spacing: -0.01em; }
+  .screen p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.55; }
+  .screen-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .screen ul { margin: 2px 0 0; padding-left: 16px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--gap-md); flex-wrap: wrap; margin: var(--gap-xl) 0 var(--gap-md); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .section-head h2 { font-size: 20px; letter-spacing: -0.015em; }
+  .section-head p { margin: 4px 0 0; font-size: 13px; color: var(--muted); max-width: 62ch; line-height: 1.55; }
+
+  .gone { opacity: 0.62; }
+  .gone .screen { cursor: default; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="brandline">
+    <span aria-hidden="true">
+      <svg class="ori ori-mark" viewBox="0 0 24 24"><polygon points="8.8,13.4 6.4,20.4 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 16.6,12.8 14.6,16.2 8.8,13.4" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="16.6,12.8 22.8,15.6 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 21.2,3 16.6,12.8" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="5.4,4.8 11,11 8.8,13.4 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="1.8,8.6 5.4,4.8 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    </span>
+    <span>Orincard</span>
+    <span class="badge badge-quiet" style="margin-left: 4px;">Design prototype</span>
+  </div>
+
+  <header style="max-width: 62ch;">
+    <h1 style="font-size: 36px;">Ten screens</h1>
+    <p class="lead" style="margin-top: 12px; font-size: 16px;">Four came from the frozen design snapshot captured on Sep 4, 2026. Six were built here to close the loops the snapshot left open — what happens after you export, what happens when money and accounts get involved, and what an assistant is allowed to do to your work.</p>
+    <div class="voice" style="margin-top: var(--gap-md);">
+      <span id="voiceOri" aria-hidden="true"></span>
+      <p>All ten share one illustrative world: today is Sep 2, 2026, and Elena Marsh has six projects.</p>
+    </div>
+  </header>
+
+  <div class="notice" style="margin-top: var(--gap-lg);">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><path d="M12 8h.01"/></svg>
+    <p><strong>Navigation runs one way.</strong> The four snapshot screens are byte-locked by a SHA-256 manifest, so no link back to this directory could be added to them without breaking <code>pnpm test:planning</code>. Use your browser’s back button, or come back here.</p>
+  </div>
+
+  <section>
+    <div class="section-head">
+      <div>
+        <h2>Built here</h2>
+        <p>The workspace loop: what you exported, what it costs, what your defaults are, how an anonymous draft becomes an account’s project, and what the editor assistant may and may not write.</p>
+      </div>
+      <span class="badge badge-ok"><span class="dot"></span>6 screens</span>
+    </div>
+    <div class="grid" id="newScreens"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div>
+        <h2>From the frozen snapshot</h2>
+        <p>Copied unmodified from the Open Design project on Sep 4, 2026. Opening these leaves this directory; they have no link back.</p>
+      </div>
+      <span class="badge badge-quiet">4 screens · locked</span>
+    </div>
+    <div class="grid" id="refScreens"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div>
+        <h2>Still not drawn</h2>
+        <p>The snapshot’s own map listed these as out of scope, and this round did not change that. Thirteen screens, in two clusters.</p>
+      </div>
+      <span class="badge badge-quiet">13 screens</span>
+    </div>
+    <div class="grid gone" id="todoScreens"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div>
+        <h2>What the numbers mean</h2>
+      </div>
+    </div>
+    <div class="card">
+      <table class="ds-table">
+        <tbody>
+          <tr>
+            <th scope="row">Projects, titles, dates</th>
+            <td>Illustrative demo data from the snapshot’s <code>projects.html</code>. Not real business records.</td>
+          </tr>
+          <tr>
+            <th scope="row">Prices, quotas, commission</th>
+            <td>Invented. spec §11 leaves all of them undecided; each figure on the billing screen carries an <span class="badge badge-quiet">ILLUSTRATIVE</span> marker.</td>
+          </tr>
+          <tr>
+            <th scope="row">Everything that “runs”</th>
+            <td>A static script moving a progress bar. No generation, save, charge or download is real, and none of it is evidence the product does these things.</td>
+          </tr>
+          <tr>
+            <th scope="row">Download retention</th>
+            <td>30 days everywhere, derived from the snapshot’s own export record — exported Aug 24, expires Sep 23.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="meta" style="margin-top: var(--gap-xl);">Source of truth for scope: <code>docs/sdd/orincard/spec.md</code>. Why this lives beside the snapshot instead of inside it: <a href="README.md">README.md</a>.</p>
+
+</div>
+
+<script src="../reference/assets/ori.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var built = [
+    {
+      href: 'assistant.html', title: 'Editor assistant', ac: 'AC-012',
+      body: 'A conversational assistant that reads the project and proposes; you are the one who writes.',
+      points: [
+        'Six states, including a turn refused before any model is called',
+        'Per-slide diffs — dismissing leaves the revision untouched',
+        'The layout question: the assistant takes a column from the canvas'
+      ]
+    },
+    {
+      href: 'assistant-conflict.html', title: 'Assistant conflict', ac: 'AC-012',
+      body: 'The assistant proposed against v4 while you hand-edited to v5. The apply is refused whole.',
+      points: [
+        'A timeline of the four minutes that caused it',
+        'The revision row before and after, column by column',
+        'Three ways out, none of which is “apply anyway”'
+      ]
+    },
+    {
+      href: 'exports.html', title: 'Exports', ac: 'AC-006 downstream',
+      body: 'Five export batches covering every state the real pipeline can end in.',
+      points: [
+        'A batch refused at preflight, producing nothing at all',
+        'A per-format retry after the MP4 renderer ran out of memory',
+        'An expired batch offering to rebuild from the saved version'
+      ]
+    },
+    {
+      href: 'billing.html', title: 'Billing', ac: 'AC-009',
+      body: 'Plan, allowances, invoices, and what cancelling actually does to your work.',
+      points: [
+        'One allowance already exceeded, billed rather than blocked',
+        'A plan table where the format columns are the real question',
+        'Cancelling keeps every file through its 30-day window'
+      ]
+    },
+    {
+      href: 'settings.html', title: 'Settings', ac: 'AC-007 tail',
+      body: 'Generator defaults, profile, and the two irreversible actions.',
+      points: [
+        'Slide count 4–12, defaulting to 6',
+        'Full data archive shown as queued → packaging → ready',
+        'Delete account spelled out row by row, with what survives'
+      ]
+    },
+    {
+      href: 'auth.html', title: 'Account', ac: 'AC-001 → AC-007',
+      body: 'Sign in, sign up, reset, and the draft migration that joins them.',
+      points: [
+        'Three local drafts, one colliding with an existing project',
+        'Three ways to resolve it; overwriting is never the default',
+        'Errors inline in the field — no toasts'
+      ]
+    }
+  ];
+
+  var frozen = [
+    {
+      href: '../reference/generator.html', title: 'Generator', ac: 'AC-002 · AC-003',
+      body: 'Six input kinds, platform preset, template pick, outline settings, and the generation job.'
+    },
+    {
+      href: '../reference/editor.html', title: 'Editor', ac: 'AC-004 · AC-005',
+      body: 'Canvas, per-slide controls, filmstrip, AI banner, and the export dialog. The largest screen in the set.'
+    },
+    {
+      href: '../reference/projects.html', title: 'Projects', ac: 'AC-007',
+      body: 'The library of six projects every other screen borrows from. Filters, tally, status badges.'
+    },
+    {
+      href: '../reference/brand-kits.html', title: 'Brand Kits', ac: 'AC-008',
+      body: 'Four kits, colours, fonts, logos, and the isolation rules between them.'
+    }
+  ];
+
+  var todo = [
+    { title: 'Tool matrix', ac: 'AC-010 · AC-011', body: 'Seven standalone tools — caption, quote card, portrait and the rest — plus the index that ties them together and hands work to the generator.' },
+    { title: 'Public site', ac: 'AC-011', body: 'Six screens: marketing home, pricing, templates index and detail, guides, and the affiliate pages.' }
+  ];
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function card(s, opts) {
+    var tag = opts.link ? 'a' : 'div';
+    var href = opts.link ? ' href="' + s.href + '"' : '';
+    return '<' + tag + ' class="card screen"' + href + '>' +
+      '<div class="screen-top">' +
+        '<h3>' + esc(s.title) + '</h3>' +
+        '<span class="badge ' + opts.badge + '">' + esc(s.ac) + '</span>' +
+      '</div>' +
+      '<p>' + esc(s.body) + '</p>' +
+      (s.points ? '<ul>' + s.points.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' : '') +
+    '</' + tag + '>';
+  }
+
+  document.getElementById('newScreens').innerHTML =
+    built.map(function (s) { return card(s, { link: true, badge: 'badge-ok' }); }).join('');
+  document.getElementById('refScreens').innerHTML =
+    frozen.map(function (s) { return card(s, { link: true, badge: 'badge-quiet' }); }).join('');
+  document.getElementById('todoScreens').innerHTML =
+    todo.map(function (s) { return card(s, { link: false, badge: 'badge-quiet' }); }).join('');
+
+  document.getElementById('voiceOri').innerHTML = Ori.crane(28, 'rest');
+})();
+</script>
+</body>
+</html>

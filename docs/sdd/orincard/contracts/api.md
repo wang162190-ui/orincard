@@ -26,11 +26,11 @@
 | POST /projects/:id/restore | expectedRevision、versionId | 新revision | version不属于该项目404；不修改历史 |
 | DELETE /projects/:id | expectedRevision、confirmation=项目标题 | 202 deletionJobId | 立即阻止新授权下载；异步物理清理不假报完成 |
 | GET/POST /brand-kits | GET分页；POST name/settings | 列表或新kit/revision | 跨账号素材422/404 |
-| PUT /brand-kits/:id | expectedRevision、settings | 新kitVersion | 不自动重写应用过的项目 |
+| GET/PUT /brand-kits/:id | GET无；PUT expectedRevision、settings、可选name（省略则保留原名） | GET返回kit与受影响项目清单；PUT返回新kitVersion | 非本人404；PUT并发冲突409，且不自动重写已应用该kit的项目 |
 | POST /brand-kits/:id/apply | projectId、expectedProjectRevision、previewConfirmed | 新project revision/品牌快照 | 模板不适配先preflight，无确认不改变 |
 | POST /brand-kits/:id/duplicate | expectedRevision、name | 新kitId/revision=1 | 只复制同owner可用资源，不继承其他账户权限 |
 | DELETE /brand-kits/:id | expectedRevision、affectedProjects[{id,expectedRevision,action,replaceKitId?}] | 202处理结果 | 项目集合已变409；不允许漏选影响项目 |
-| PATCH /settings | 偏好字段白名单 | 已保存偏好 | 不能写plan、quota或role |
+| GET/PATCH /settings | GET无；PATCH偏好字段白名单 | 当前偏好或已保存偏好 | 仅本人；不能写plan、quota或role |
 | POST /account/export | 用户确认 | 202 jobId | 只导出本人数据，不包含认证密钥、支付凭证 |
 | GET /account/export | jobId | 本人已完成数据包的授权下载信息 | job必须为本人account_export，非本人404、过期410，不读其他job文件 |
 | DELETE /account | 重新认证、明确确认 | 202 deletionJobId | 先停用并撤销会话；失败可恢复清理任务，不恢复使用权 |
@@ -48,7 +48,7 @@
 | GET /jobs/:id | 无 | state/stage/progress/error/resultRef | 仅本人，无内部provider payload |
 | POST /jobs/:id/retry | 原任务ID、同逻辑操作 | 相同业务jobId或受关联attempt | 只重试可重试阶段；不重复结算成功步骤 |
 | POST /jobs/:id/cancel | 无 | cancel_requested或terminal状态 | 已执行外部调用费用仍入成本账；未交付用户结果不扣产品额度 |
-| POST /tools/:tool | typedInput、可选projectId+expectedRevision+selectedContext | 202 jobId/resultType | 仅七个注册工具；失败不修改项目 |
+| GET/POST /tools/:tool | GET jobId；POST typedInput、可选projectId+expectedRevision+selectedContext | GET返回该工具任务的state/progress与候选；POST 202 jobId/resultType | 仅七个注册工具；GET仅本人且候选工具须与路径一致否则404；失败不修改项目 |
 | POST /tools/:tool/apply | resultJobId、projectId、expectedRevision、target | 新revision或新项目 | 必须显式应用；Portrait仍需素材确认 |
 
 guest结果不持久化意味着无法从服务器再次取回。重复已完成匿名请求返回410 RESULT_NOT_RETAINED并提示重试或用本地结果，不偷偷重新收费/调用。匿名无货币扣费，但反滥用限制仍适用。注册长任务结果可按jobId恢复。

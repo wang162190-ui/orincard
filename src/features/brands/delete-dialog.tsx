@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button, Dialog, DialogBody, DialogFooter, DialogHeader } from "@/components/ui";
 import type { BrandKit, BrandProjectImpact } from "@/server/brands";
@@ -13,6 +14,7 @@ export function DeleteBrandDialog({ kit, affectedProjects, onClose, onDeleted, f
   readonly onDeleted: () => void;
   readonly fetcher?: typeof fetch;
 }) {
+  const t = useTranslations("BrandKits");
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -26,19 +28,19 @@ export function DeleteBrandDialog({ kit, affectedProjects, onClose, onDeleted, f
       const body = await response.json() as DeleteResponse;
       if (body.error?.affectedProjects) setCurrentProjects(body.error.affectedProjects);
       setConfirmed(false);
-      setMessage(body.error?.message ?? "Brand Kit could not be deleted.");
-    } catch { setMessage("Brand Kit could not be deleted."); }
+      setMessage(body.error?.message ?? t("deleteFailed"));
+    } catch { setMessage(t("deleteFailed")); }
     finally { setPending(false); }
   }
 
   return <Dialog labelledBy="delete-brand-kit-title">
-    <DialogHeader><h2 id="delete-brand-kit-title">Delete {kit.name}?</h2></DialogHeader>
+    <DialogHeader><h2 id="delete-brand-kit-title">{t("deleteTitle", { name: kit.name })}</h2></DialogHeader>
     <DialogBody>
-      <p>This removes the Brand Kit. Existing project snapshots and shared library assets remain available.</p>
-      {currentProjects.length > 0 ? <><p>{currentProjects.length} project{currentProjects.length === 1 ? "" : "s"} will no longer have this active Brand Kit:</p><ul>{currentProjects.map((project) => <li key={project.id}>{project.title}</li>)}</ul></> : <p>No active projects are linked to this Brand Kit.</p>}
-      <label><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /> I reviewed the affected projects and want to delete this Brand Kit.</label>
+      <p>{t("deleteLead")}</p>
+      {currentProjects.length > 0 ? <><p>{t("deleteAffected", { count: currentProjects.length })}</p><ul>{currentProjects.map((project) => <li key={project.id}>{project.title}</li>)}</ul></> : <p>{t("deleteNoProjects")}</p>}
+      <label><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /> {t("deleteConfirm")}</label>
       {message ? <p role="alert">{message}</p> : null}
     </DialogBody>
-    <DialogFooter><Button variant="secondary" disabled={pending} onClick={onClose}>Cancel</Button><Button variant="danger" disabled={!confirmed || pending} onClick={() => void remove()}>Delete Brand Kit</Button></DialogFooter>
+    <DialogFooter><Button variant="secondary" disabled={pending} onClick={onClose}>{t("deleteCancel")}</Button><Button variant="danger" disabled={!confirmed || pending} onClick={() => void remove()}>{t("deleteSubmit")}</Button></DialogFooter>
   </Dialog>;
 }

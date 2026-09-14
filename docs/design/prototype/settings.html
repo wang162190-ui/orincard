@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Settings · Orincard</title>
+<link rel="stylesheet" href="../reference/assets/orincard.css" />
+<style>
+  .head { margin-bottom: 18px; }
+
+  .sheet { max-width: 780px; }
+
+  .rows { display: flex; flex-direction: column; }
+  /* One setting per row: name and explanation on the left, control on the
+     right. The explanation is the point — a bare label plus a select tells
+     nobody what changes downstream. */
+  .setting { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gap-lg); padding: 16px 0; border-top: 1px solid var(--border); }
+  .setting:first-child { border-top: 0; padding-top: 0; }
+  .setting-copy { min-width: 0; flex: 1 1 auto; }
+  .setting-copy h3 { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+  .setting-copy p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .setting-ctrl { flex: none; width: 240px; }
+  @media (max-width: 720px) {
+    .setting { flex-direction: column; gap: 10px; }
+    .setting-ctrl { width: 100%; }
+  }
+
+  .slides-ctrl { display: flex; align-items: center; gap: 10px; }
+  .slides-ctrl input[type="range"] { flex: 1 1 auto; min-width: 0; accent-color: var(--fg); }
+
+  .avatar-row { display: flex; align-items: center; gap: var(--gap-sm); }
+  .avatar-lg { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; flex: none; }
+
+  .danger { border-color: color-mix(in srgb, var(--sig-pink) 40%, var(--border)); }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  /* .steps sets display:flex, which outranks the UA [hidden] rule — the same trap
+     orincard.css already patches for .scrim, .notice and .btn, but not for .steps. */
+  .steps[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail" data-od-id="rail">
+    <div class="rail-brand">
+      <span class="mark" aria-hidden="true">
+        <svg class="ori ori-mark" viewBox="0 0 24 24"><polygon points="8.8,13.4 6.4,20.4 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 16.6,12.8 14.6,16.2 8.8,13.4" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="16.6,12.8 22.8,15.6 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 21.2,3 16.6,12.8" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="5.4,4.8 11,11 8.8,13.4 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="1.8,8.6 5.4,4.8 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="word">Orincard</span>
+    </div>
+    <nav class="rail-nav" aria-label="Main">
+      <a class="nav-item" href="../reference/projects.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="10" rx="1.5"/></svg><span>Projects</span></a>
+      <a class="nav-item" href="../reference/generator.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg><span>New carousel</span></a>
+      <a class="nav-item" href="../reference/brand-kits.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg><span>Brand Kits</span></a>
+      <a class="nav-item" href="../reference/editor.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h16"/><path d="M14.5 4.5a2.1 2.1 0 0 1 3 3L9 16l-4 1 1-4Z"/></svg><span>Editor</span></a>
+      <a class="nav-item" href="exports.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Exports</span></a>
+      <a class="nav-item" href="billing.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg><span>Billing</span></a>
+      <a class="nav-item" href="settings.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M4.5 12a7.5 7.5 0 0 1 .1-1.2L3 9.6l1.5-2.6 1.8.7a7.5 7.5 0 0 1 2-1.2L8.6 4.6h3l.3 1.9a7.5 7.5 0 0 1 2 1.2l1.8-.7L17.2 9l-1.6 1.2"/></svg><span>Settings</span></a>
+      <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span>Prototype map</span></a>
+    </nav>
+    <div class="rail-foot">
+      <div class="plan-card">
+        <p class="label" style="margin-bottom: 6px;">Defaults, not locks</p>
+        <p style="margin: 0; font-size: 12.5px; line-height: 1.45;">Everything here pre-fills the generator. You can override any of it per carousel.</p>
+      </div>
+      <a class="account" href="settings.html" aria-current="page">
+        <img class="avatar" src="../reference/assets/img/avatar-elena.jpg" alt="" width="28" height="28" />
+        <span class="who" style="min-width: 0;">
+          <span style="display: block; font-size: 13px; font-weight: 550;">Elena Marsh</span>
+          <span class="meta" style="display: block; font-size: 11.5px;">Creator plan</span>
+        </span>
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar" data-od-id="topbar">
+      <div class="crumbs"><strong>Settings</strong></div>
+      <div class="row">
+        <span class="meta" id="saveState">All changes saved</span>
+        <button class="btn btn-primary btn-sm" id="saveBtn">Save</button>
+      </div>
+    </header>
+
+    <div class="work" data-od-id="settings">
+
+      <section class="head" data-od-id="page-head">
+        <h1 style="font-size: 32px;">Settings</h1>
+        <p class="lead" style="margin-top: 8px; font-size: 15.5px;">Your defaults, your profile, and the two irreversible things — exporting everything, and deleting everything.</p>
+      </section>
+
+      <div class="tabs" role="tablist" aria-label="Settings sections" id="tabs">
+        <button class="tab" role="tab" aria-selected="true" data-p="create">Creation defaults</button>
+        <button class="tab" role="tab" aria-selected="false" data-p="profile">Profile</button>
+        <button class="tab" role="tab" aria-selected="false" data-p="data">Data &amp; account</button>
+      </div>
+
+      <div class="sheet">
+
+        <!-- ── Creation defaults ───────────────────────────────────── -->
+        <div data-pane="create">
+          <section class="panel" data-od-id="creation-defaults" style="margin-top: var(--gap-md);">
+            <div class="panel-head">
+              <div>
+                <h2 class="h3">What the generator starts with</h2>
+                <p class="meta" style="margin: 4px 0 0;">Pre-fills every new carousel. Nothing here is locked.</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="rows">
+
+                <div class="setting">
+                  <div class="setting-copy">
+                    <h3>Default slide count</h3>
+                    <p>Carousels run 4 to 12 slides. Six is the default because it is the shortest length that fits a hook, four points and an outro without crowding.</p>
+                  </div>
+                  <div class="setting-ctrl">
+                    <div class="slides-ctrl">
+                      <label class="sr-only" for="slides">Default slide count</label>
+                      <input type="range" id="slides" min="4" max="12" value="6" />
+                      <span class="counter" id="slidesOut">6</span>
+                    </div>
+                    <p class="hint" style="margin-top: 6px;">4 – 12</p>
+                  </div>
+                </div>
+
+                <div class="setting">
+                  <div class="setting-copy">
+                    <h3>Default platform</h3>
+                    <p>Sets the canvas the generator opens with. LinkedIn and Instagram are 1080 × 1350; TikTok is 1080 × 1920. Changing platform later re-flows the layout, it does not re-write the copy.</p>
+                  </div>
+                  <div class="setting-ctrl">
+                    <div class="field">
+                      <select class="select" aria-label="Default platform">
+                        <option selected>LinkedIn · 1080 × 1350</option>
+                        <option>Instagram · 1080 × 1350</option>
+                        <option>TikTok · 1080 × 1920</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="setting">
+                  <div class="setting-copy">
+                    <h3>Default Brand Kit</h3>
+                    <p>Applied to new carousels. Existing projects keep the kit they were made with.</p>
+                  </div>
+                  <div class="setting-ctrl">
+                    <div class="field">
+                      <select class="select" aria-label="Default Brand Kit">
+                        <option selected>Elena Marsh — Personal</option>
+                        <option>Quiet Work — Studio</option>
+                        <option>Conference talks</option>
+                        <option>Untitled Brand Kit</option>
+                        <option>No Brand Kit</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="setting">
+                  <div class="setting-copy">
+                    <h3>Writing language</h3>
+                    <p>The language the outline and slide copy are written in, regardless of what your source material is in.</p>
+                  </div>
+                  <div class="setting-ctrl">
+                    <div class="field">
+                      <select class="select" aria-label="Writing language">
+                        <option selected>English</option>
+                        <option>简体中文</option>
+                        <option>Deutsch</option>
+                        <option>Français</option>
+                        <option>Español</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="setting">
+                  <div class="setting-copy">
+                    <h3>Tone</h3>
+                    <p>A starting point for the writer, not a style guide. The instructions below override it where they conflict.</p>
+                  </div>
+                  <div class="setting-ctrl">
+                    <div class="seg" role="radiogroup" aria-label="Tone" id="tone">
+                      <button role="radio" aria-checked="false">Plain</button>
+                      <button role="radio" aria-checked="true">Direct</button>
+                      <button role="radio" aria-checked="false">Warm</button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <div class="field">
+                <label for="instructions">Standing instructions to the writer</label>
+                <textarea class="textarea" id="instructions" rows="4" style="resize: vertical;">Never open with a rhetorical question. No em dashes. Use "you", not "we". Keep every slide to one idea.</textarea>
+                <p class="hint">Sent with every generation. <span class="counter" id="instrCount">126 / 500</span></p>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <label class="switch">
+                <input type="checkbox" checked />
+                <span class="track"><span class="thumb"></span></span>
+                Warn me before a generation would exceed a monthly allowance
+              </label>
+              <label class="switch" style="margin-top: 12px;">
+                <input type="checkbox" checked />
+                <span class="track"><span class="thumb"></span></span>
+                Run export preflight automatically when I open the export dialog
+              </label>
+              <label class="switch" style="margin-top: 12px;">
+                <input type="checkbox" />
+                <span class="track"><span class="thumb"></span></span>
+                Keep every generation as a new version instead of replacing the current one
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <!-- ── Profile ─────────────────────────────────────────────── -->
+        <div data-pane="profile" hidden>
+          <section class="panel" data-od-id="profile" style="margin-top: var(--gap-md);">
+            <div class="panel-head">
+              <div>
+                <h2 class="h3">Profile</h2>
+                <p class="meta" style="margin: 4px 0 0;">Only you see this. Orincard has no public profile page.</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="avatar-row" style="margin-bottom: var(--gap-md);">
+                <img class="avatar-lg" src="../reference/assets/img/avatar-elena.jpg" alt="Your avatar" width="56" height="56" />
+                <div class="row" style="gap: 8px;">
+                  <button class="btn btn-secondary btn-sm">Replace</button>
+                  <button class="btn btn-ghost btn-sm">Remove</button>
+                </div>
+              </div>
+              <div class="field" style="margin-bottom: var(--gap-sm);">
+                <label for="name">Display name</label>
+                <input class="input" id="name" type="text" value="Elena Marsh" />
+              </div>
+              <div class="field">
+                <label for="email">Email</label>
+                <input class="input" id="email" type="email" value="elena@quietwork.example" />
+                <p class="hint">Changing this sends a confirmation link to the new address. The old one keeps working until you click it.</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <h3 class="h3" style="font-size: 14px; margin-bottom: 12px;">Password</h3>
+              <div class="row" style="gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm">Change password</button>
+                <button class="btn btn-ghost btn-sm">Sign out everywhere else</button>
+              </div>
+              <p class="meta" style="margin: 10px 0 0;">Two sessions are active: this browser, and Safari on iPhone (last seen Aug 31).</p>
+            </div>
+          </section>
+        </div>
+
+        <!-- ── Data & account ──────────────────────────────────────── -->
+        <div data-pane="data" hidden>
+
+          <section class="panel" data-od-id="data-export" style="margin-top: var(--gap-md);">
+            <div class="panel-head">
+              <div>
+                <h2 class="h3">Export everything</h2>
+                <p class="meta" style="margin: 4px 0 0;">One archive with your projects, Brand Kits, uploaded media and export history.</p>
+              </div>
+              <span class="badge badge-quiet" id="dumpBadge">Not started</span>
+            </div>
+            <div class="panel-body">
+              <table class="ds-table">
+                <tbody>
+                  <tr><th scope="row">Projects</th><td class="num-col">6</td><td>Slide content, versions and outlines as JSON</td></tr>
+                  <tr><th scope="row">Brand Kits</th><td class="num-col">4</td><td>Colours, fonts and logo files</td></tr>
+                  <tr><th scope="row">Uploaded media</th><td class="num-col">31</td><td>Original files, not the rendered slides</td></tr>
+                  <tr><th scope="row">Export history</th><td class="num-col">5</td><td>What ran, when, and what it produced — not the files themselves</td></tr>
+                </tbody>
+              </table>
+              <p class="meta" style="margin: 14px 0 0; line-height: 1.55;">Rendered export files are not included; those live in <a href="exports.html">Exports</a> for 30 days and can be regenerated from a saved version after that.</p>
+            </div>
+            <div class="panel-body">
+              <div class="steps" id="dumpSteps" hidden>
+                <div class="step" data-state="active"><span class="step-mark"></span><span>Queued — position 1</span></div>
+                <div class="step"><span class="step-mark"></span><span>Packaging 41 items</span></div>
+                <div class="step"><span class="step-mark"></span><span>Ready to download</span></div>
+              </div>
+              <div class="row" style="gap: 10px; margin-top: 12px;">
+                <button class="btn btn-primary btn-sm" id="dumpBtn">Request archive</button>
+                <button class="btn btn-secondary btn-sm" id="dumpDl" hidden>Download orincard-export.zip</button>
+              </div>
+              <p class="meta" id="dumpNote" style="margin: 10px 0 0;">Takes a few minutes. We email you when it is ready; the link works for 7 days.</p>
+            </div>
+          </section>
+
+          <section class="panel danger" data-od-id="delete-account" style="margin-top: var(--gap-md);">
+            <div class="panel-head">
+              <div>
+                <h2 class="h3">Delete account</h2>
+                <p class="meta" style="margin: 4px 0 0;">Permanent. This is not the same as cancelling your subscription.</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="notice notice-danger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v5"/><path d="M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                <p><strong>Deleting removes work that cannot be rebuilt.</strong> If you only want to stop paying, <a href="billing.html">cancel the subscription</a> instead — that keeps every project and every file.</p>
+              </div>
+              <table class="ds-table" style="margin-top: 16px;">
+                <thead><tr><th scope="col">What</th><th scope="col">When it goes</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row">Projects, versions, outlines</th><td>Immediately</td></tr>
+                  <tr><th scope="row">Brand Kits and uploaded media</th><td>Immediately</td></tr>
+                  <tr><th scope="row">Export download links</th><td>Immediately — including the two batches still inside their 30-day window</td></tr>
+                  <tr><th scope="row">Rendered files in cold storage</th><td>Within 30 days, as backups roll over</td></tr>
+                  <tr><th scope="row">Invoices and payment records</th><td>Kept 7 years — tax law, not our choice</td></tr>
+                </tbody>
+              </table>
+              <button class="btn btn-danger btn-sm" id="openDelete" style="margin-top: 16px;">Delete my account</button>
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="delTitle">
+    <div class="dialog-head">
+      <div>
+        <p class="label" style="margin-bottom: 5px;">Permanent</p>
+        <h2 class="h3" id="delTitle">Delete Elena Marsh’s account</h2>
+      </div>
+      <button class="btn btn-icon btn-ghost" id="dlgX" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <p style="margin: 0 0 14px; font-size: 14px; line-height: 1.55;">This deletes <strong>6 projects</strong>, <strong>4 Brand Kits</strong> and <strong>31 uploaded files</strong> at once. Two export batches are still downloadable until Sep 15 and Sep 23 — those links stop working immediately.</p>
+      <div class="notice notice-warn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+        <p>Download your archive first if you might want any of it back. There is no undo and no grace period.</p>
+      </div>
+      <div class="field" style="margin-top: 16px;">
+        <label for="confirm">Type <strong>delete my account</strong> to confirm</label>
+        <input class="input" id="confirm" type="text" autocomplete="off" placeholder="delete my account" aria-describedby="confirmErr" />
+        <p class="hint" id="confirmErr" hidden style="color: var(--sig-pink);">That does not match. Type it exactly, in lower case.</p>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-ghost btn-sm spread" id="dlgArchive">Request archive first</button>
+      <button class="btn btn-secondary btn-sm" id="dlgCancel">Keep my account</button>
+      <button class="btn btn-danger btn-sm" id="dlgGo" disabled>Delete permanently</button>
+    </div>
+  </div>
+</div>
+
+<script src="../reference/assets/ori.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var PHRASE = 'delete my account';
+
+  /* Tabs swap panes rather than navigating, so an unsaved edit in one section
+     survives a look at another. */
+  var tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-p]');
+    if (!btn) return;
+    Array.prototype.forEach.call(tabs.querySelectorAll('button'), function (b) {
+      b.setAttribute('aria-selected', String(b === btn));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pane]'), function (p) {
+      p.hidden = p.dataset.pane !== btn.dataset.p;
+    });
+  });
+
+  var slides = document.getElementById('slides');
+  var slidesOut = document.getElementById('slidesOut');
+  slides.addEventListener('input', function () { slidesOut.textContent = slides.value; });
+
+  var instr = document.getElementById('instructions');
+  var instrCount = document.getElementById('instrCount');
+  function countInstr() {
+    var n = instr.value.length;
+    instrCount.textContent = n + ' / 500';
+    instrCount.classList.toggle('counter-over', n > 500);
+  }
+  instr.addEventListener('input', function () { countInstr(); dirty(); });
+  countInstr();
+
+  var saveState = document.getElementById('saveState');
+  var saveBtn = document.getElementById('saveBtn');
+  function dirty() { saveState.textContent = 'Unsaved changes'; }
+  document.querySelectorAll('.sheet input, .sheet select, .sheet textarea').forEach(function (el) {
+    el.addEventListener('change', dirty);
+  });
+  saveBtn.addEventListener('click', function () {
+    saveState.textContent = 'Saved just now';
+  });
+
+  document.getElementById('tone').addEventListener('click', function (e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    Array.prototype.forEach.call(this.querySelectorAll('button'), function (b) {
+      b.setAttribute('aria-checked', String(b === btn));
+    });
+    dirty();
+  });
+
+  /* The archive walks its three steps for real rather than jumping straight to
+     a download button, because "queued" is the state a user actually waits in
+     and the screen has to show it. */
+  var dumpSteps = document.getElementById('dumpSteps');
+  var dumpBtn = document.getElementById('dumpBtn');
+  var dumpDl = document.getElementById('dumpDl');
+  var dumpBadge = document.getElementById('dumpBadge');
+  var dumpNote = document.getElementById('dumpNote');
+  var stepEls = dumpSteps.querySelectorAll('.step');
+
+  function advance(i) {
+    if (i > 0) stepEls[i - 1].dataset.state = 'done';
+    if (i < stepEls.length) {
+      stepEls[i].dataset.state = 'active';
+      window.setTimeout(function () { advance(i + 1); }, 1400);
+    } else {
+      dumpBadge.textContent = 'Ready';
+      dumpBadge.className = 'badge badge-ok';
+      dumpDl.hidden = false;
+      dumpNote.textContent = 'Ready — orincard-export.zip, 284 MB. The link expires Sep 9, 2026.';
+    }
+  }
+
+  function startDump() {
+    dumpSteps.hidden = false;
+    dumpBtn.disabled = true;
+    dumpBtn.textContent = 'Requested';
+    dumpBadge.textContent = 'Working';
+    dumpBadge.className = 'badge badge-warn';
+    Array.prototype.forEach.call(stepEls, function (s) { s.removeAttribute('data-state'); });
+    advance(0);
+  }
+  dumpBtn.addEventListener('click', startDump);
+
+  var scrim = document.getElementById('scrim');
+  var confirm = document.getElementById('confirm');
+  var confirmErr = document.getElementById('confirmErr');
+  var dlgGo = document.getElementById('dlgGo');
+
+  function closeDlg() {
+    scrim.hidden = true;
+    confirm.value = '';
+    confirm.classList.remove('input-invalid');
+    confirmErr.hidden = true;
+    dlgGo.disabled = true;
+  }
+
+  document.getElementById('openDelete').addEventListener('click', function () { scrim.hidden = false; confirm.focus(); });
+  document.getElementById('dlgX').addEventListener('click', closeDlg);
+  document.getElementById('dlgCancel').addEventListener('click', closeDlg);
+  scrim.addEventListener('click', function (e) { if (e.target === scrim) closeDlg(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !scrim.hidden) closeDlg(); });
+
+  document.getElementById('dlgArchive').addEventListener('click', function () {
+    closeDlg();
+    startDump();
+  });
+
+  /* Validation is inline on the field, never a toast — reference README §28
+     rules out toasts standing in for real state. */
+  confirm.addEventListener('input', function () {
+    var ok = confirm.value === PHRASE;
+    dlgGo.disabled = !ok;
+    if (ok) { confirm.classList.remove('input-invalid'); confirmErr.hidden = true; }
+  });
+  confirm.addEventListener('blur', function () {
+    var bad = confirm.value.length > 0 && confirm.value !== PHRASE;
+    confirm.classList.toggle('input-invalid', bad);
+    confirmErr.hidden = !bad;
+  });
+
+  dlgGo.addEventListener('click', function () {
+    dlgGo.disabled = true;
+    dlgGo.textContent = 'Deleting…';
+  });
+})();
+</script>
+</body>
+</html>

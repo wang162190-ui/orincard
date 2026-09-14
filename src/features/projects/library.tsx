@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button, Panel, PanelBody } from "@/components/ui";
+import { Link } from "@/i18n/navigation";
 import type { ProjectSummary } from "@/server/projects";
 
 type FilterState = Readonly<{ query: string; platform: string; state: string }>;
@@ -12,6 +13,7 @@ function operationKey(operation: string): string {
 }
 
 export function ProjectLibrary({ initialProjects }: { readonly initialProjects: readonly ProjectSummary[] }) {
+  const t = useTranslations("Projects");
   const [projects, setProjects] = useState(initialProjects);
   const [filters, setFilters] = useState<FilterState>({ query: "", platform: "", state: "" });
   const [loading, setLoading] = useState(false);
@@ -27,10 +29,10 @@ export function ProjectLibrary({ initialProjects }: { readonly initialProjects: 
     try {
       const response = await fetch(`/api/v1/projects?${search}`, { cache: "no-store" });
       const body = await response.json() as { data?: { projects?: ProjectSummary[] }; error?: { message?: string } };
-      if (!response.ok) throw new Error(body.error?.message ?? "Projects could not be loaded.");
+      if (!response.ok) throw new Error(body.error?.message ?? t("loadFailed"));
       setProjects(body.data?.projects ?? []);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Projects could not be loaded.");
+      setMessage(error instanceof Error ? error.message : t("loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -46,11 +48,11 @@ export function ProjectLibrary({ initialProjects }: { readonly initialProjects: 
         body: JSON.stringify({ expectedRevision: project.revision }),
       });
       const body = await response.json() as { error?: { message?: string } };
-      if (!response.ok) throw new Error(body.error?.message ?? `Project could not be ${operation}d.`);
-      setMessage(operation === "duplicate" ? "Project copy created." : "Project archived.");
+      if (!response.ok) throw new Error(body.error?.message ?? t(operation === "duplicate" ? "duplicateFailed" : "archiveFailed"));
+      setMessage(t(operation === "duplicate" ? "duplicated" : "archived"));
       await load();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "The project operation failed.");
+      setMessage(error instanceof Error ? error.message : t("operationFailed"));
       setLoading(false);
     }
   }
@@ -64,39 +66,39 @@ export function ProjectLibrary({ initialProjects }: { readonly initialProjects: 
   return (
     <div className="stack" style={{ maxWidth: 1040 }}>
       <header>
-        <p className="eyebrow">Project library</p>
+        <p className="eyebrow">{t("eyebrow")}</p>
         <div className="row-between wrap">
           <div>
-            <h1 style={{ fontSize: 34 }}>Your projects</h1>
-            <p className="lead" style={{ marginTop: 8, fontSize: 16 }}>Find a recent carousel, make a copy, or continue editing.</p>
+            <h1 style={{ fontSize: 34 }}>{t("heading")}</h1>
+            <p className="lead" style={{ marginTop: 8, fontSize: 16 }}>{t("lead")}</p>
           </div>
-          <Link className="btn btn-primary" href="/create">New carousel</Link>
+          <Link className="btn btn-primary" href="/create">{t("newCarousel")}</Link>
         </div>
       </header>
 
-      <form className="row wrap" aria-label="Project filters" onSubmit={(event) => { event.preventDefault(); void load(); }}>
+      <form className="row wrap" aria-label={t("filters")} onSubmit={(event) => { event.preventDefault(); void load(); }}>
         <label className="stack" style={{ gap: 4 }}>
-          <span className="label">Search</span>
-          <input aria-label="Search projects" value={filters.query} onChange={(event) => setFilters({ ...filters, query: event.target.value })} placeholder="Project title" />
+          <span className="label">{t("search")}</span>
+          <input aria-label={t("searchProjects")} value={filters.query} onChange={(event) => setFilters({ ...filters, query: event.target.value })} placeholder={t("searchPlaceholder")} />
         </label>
         <label className="stack" style={{ gap: 4 }}>
-          <span className="label">Platform</span>
-          <select aria-label="Platform" value={filters.platform} onChange={(event) => updateFilter("platform", event.target.value)}>
-            <option value="">All platforms</option><option value="linkedin">LinkedIn</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option>
+          <span className="label">{t("platform")}</span>
+          <select aria-label={t("platform")} value={filters.platform} onChange={(event) => updateFilter("platform", event.target.value)}>
+            <option value="">{t("allPlatforms")}</option><option value="linkedin">LinkedIn</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option>
           </select>
         </label>
         <label className="stack" style={{ gap: 4 }}>
-          <span className="label">Status</span>
-          <select aria-label="Status" value={filters.state} onChange={(event) => updateFilter("state", event.target.value)}>
-            <option value="">Active and archived</option><option value="draft">Active</option><option value="archived">Archived</option>
+          <span className="label">{t("status")}</span>
+          <select aria-label={t("status")} value={filters.state} onChange={(event) => updateFilter("state", event.target.value)}>
+            <option value="">{t("allStates")}</option><option value="draft">{t("stateDraft")}</option><option value="archived">{t("stateArchived")}</option>
           </select>
         </label>
-        <Button type="submit" variant="secondary" disabled={loading} style={{ alignSelf: "end" }}>Search</Button>
+        <Button type="submit" variant="secondary" disabled={loading} style={{ alignSelf: "end" }}>{t("search")}</Button>
       </form>
 
-      <p className="meta" role="status" style={{ minHeight: 20, margin: 0 }}>{loading ? "Loading projects…" : message}</p>
+      <p className="meta" role="status" style={{ minHeight: 20, margin: 0 }}>{loading ? t("loading") : message}</p>
       {projects.length === 0 ? (
-        <Panel><PanelBody><p style={{ margin: 0 }}>No projects match these filters.</p></PanelBody></Panel>
+        <Panel><PanelBody><p style={{ margin: 0 }}>{t("empty")}</p></PanelBody></Panel>
       ) : (
         <div className="stack" data-testid="project-list">
           {projects.map((project) => (
@@ -106,13 +108,13 @@ export function ProjectLibrary({ initialProjects }: { readonly initialProjects: 
                   <div>
                     <h2 className="h3">{project.title}</h2>
                     <p className="meta" style={{ margin: "6px 0 0" }}>
-                      {project.platform} · {project.state} · Updated <time dateTime={project.updatedAt}>{project.updatedAt.slice(0, 10)}</time>
+                      {project.platform} · {project.state} · {t("updated")} <time dateTime={project.updatedAt}>{project.updatedAt.slice(0, 10)}</time>
                     </p>
                   </div>
                   <div className="row wrap">
-                    <Link className="btn btn-secondary btn-sm" href={`/editor/${project.id}`}>Continue editing</Link>
-                    <Button size="small" variant="ghost" disabled={loading} onClick={() => void mutate(project, "duplicate")}>Duplicate</Button>
-                    {project.state === "draft" ? <Button size="small" variant="ghost" disabled={loading} onClick={() => void mutate(project, "archive")}>Archive</Button> : null}
+                    <Link className="btn btn-secondary btn-sm" href={`/editor/${project.id}`}>{t("continueEditing")}</Link>
+                    <Button size="small" variant="ghost" disabled={loading} onClick={() => void mutate(project, "duplicate")}>{t("duplicate")}</Button>
+                    {project.state === "draft" ? <Button size="small" variant="ghost" disabled={loading} onClick={() => void mutate(project, "archive")}>{t("archive")}</Button> : null}
                   </div>
                 </div>
               </PanelBody>

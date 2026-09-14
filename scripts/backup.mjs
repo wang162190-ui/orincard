@@ -12,9 +12,17 @@ function objectPath(directory, bucket, key) {
   return path;
 }
 
+// 这是唯一的生产闸门：脚本拿到的是外部注入的适配器，看不到 Supabase project ref，
+// 没法像 CI 守卫那样比对 SUPABASE_PROJECT_REF != SUPABASE_PRODUCTION_PROJECT_REF。
+// 因此必须是**白名单**而不是黑名单 —— 原来只精确匹配小写 "production"，
+// 实测 APP_ENV=Production / PRODUCTION / prod 三种写法全部放行、备份照常写出。
+const APPROVED_ENVIRONMENTS = new Set(["development", "preview"]);
+
 export function assertIsolatedTarget({ environment, target, approval }) {
   const resolved = resolve(target);
-  if (!environment || environment === "production") throw new Error("Production backup and restore targets are forbidden.");
+  if (!APPROVED_ENVIRONMENTS.has(environment)) {
+    throw new Error("Production backup and restore targets are forbidden; only development and preview are approved.");
+  }
   if (approval !== `APPROVED_ISOLATED_TARGET:${environment}:${resolved}`) throw new Error("Isolated target approval does not match.");
   return resolved;
 }

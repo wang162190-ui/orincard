@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import type { CarouselDocument } from "../../../../../../domain/document";
 import { createDeepSeekResponsesAdapter, createDeepSeekResponsesClient } from "../../../../../../server/ai";
+import { createMeasurementCollector, settleKeyedJobUsage } from "../../../../../../server/cost-settlement";
 import { readServerEnvironment } from "../../../../../../server/environment";
 import {
   GenerationError,
@@ -119,24 +120,44 @@ export async function POST(
     }
     const options = body.options as unknown as GenerationOptions;
     const ai = createDeepSeekResponsesAdapter(createDeepSeekResponsesClient(apiKey));
-    const candidate = await createRegenerationCandidate({
-      ownerId: user.id,
-      projectId: id,
-      projectRevision: Number(body.expectedRevision),
-      document: project.document,
-      options,
-      confirmed: body.confirmed === true,
-      idempotencyKey,
-      hashSecret: environment.supabaseSecretKey,
-      environment: environment.appEnvironment,
-      store,
-      generate: ({ document, options: generationOptions }) =>
-        generateCarouselDocument({
-          ai,
-          source: sourceFromProject(user.id, id, document),
-          options: generationOptions,
-        }),
-    });
+    // 候选任务的尝试行已由 private.b04_begin_ai_candidate_job 以 `:candidate:1` 登记，
+    // 这里只结算、不重复登记；schema 修复重试的两次调用合并成一笔。
+    const collector = createMeasurementCollector();
+    let candidateJobId = "";
+    let candidate;
+    try {
+      candidate = await createRegenerationCandidate({
+        ownerId: user.id,
+        projectId: id,
+        projectRevision: Number(body.expectedRevision),
+        document: project.document,
+        options,
+        confirmed: body.confirmed === true,
+        idempotencyKey,
+        hashSecret: environment.supabaseSecretKey,
+        environment: environment.appEnvironment,
+        store,
+        onCandidateJob: (jobId) => { candidateJobId = jobId; },
+        generate: ({ document, options: generationOptions }) =>
+          generateCarouselDocument({
+            ai,
+            source: sourceFromProject(user.id, id, document),
+            options: generationOptions,
+            onMeasurement: collector.onMeasurement,
+          }),
+      });
+    } finally {
+      // 失败路径也要结算：token 是照烧的。
+      if (candidateJobId) {
+        await settleKeyedJobUsage({
+          client: admin,
+          jobId: candidateJobId,
+          operation: "candidate",
+          sequence: 1,
+          measurements: collector.collected(),
+        });
+      }
+    }
     return Response.json(
       { data: { jobId: candidate.candidateJobId, candidate }, requestId },
       { status: 202, headers: { "Cache-Control": "private, no-store" } },

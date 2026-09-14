@@ -25,6 +25,24 @@ export async function GET(_request: Request, context: { readonly params: Promise
   } catch (error) { return errorResponse(error, requestId); }
 }
 
+// contracts/api.md 第 29 行声明了 PUT /brand-kits/:id，但这个入口一直不存在：
+// 服务层 brandService.update 早已写好（expectedRevision、409 冲突、素材归属校验齐全），
+// 缺的只是 HTTP 路由，所以 Brand Kit 建好之后**永远改不了**——编辑器里那句
+// "Changes remain in this editor until the revision-aware save route is available." 就是这个洞。
+export async function PUT(request: Request, context: { readonly params: Promise<{ readonly id: string }> }) {
+  const requestId = randomUUID();
+  try {
+    const environment = readServerEnvironment(process.env);
+    if (request.headers.get("origin") !== new URL(environment.appUrl).origin) throw new BrandServiceError("INVALID_REQUEST", "This write request did not come from the configured application origin.", 400);
+    const body: unknown = await request.json();
+    if (typeof body !== "object" || body === null || Array.isArray(body)) throw new BrandServiceError("INVALID_REQUEST", "Request body must be valid JSON.", 400);
+    const { id } = await context.params;
+    const input = body as Record<string, unknown>;
+    const kit = await createBrandService(createSupabaseBrandStore(createAdminSupabaseClient())).update(await ownerId(), id, { expectedRevision: input.expectedRevision, name: input.name, settings: input.settings });
+    return Response.json({ data: { kit, kitVersion: kit.revision }, requestId }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) { return errorResponse(error, requestId); }
+}
+
 export async function DELETE(request: Request, context: { readonly params: Promise<{ readonly id: string }> }) {
   const requestId = randomUUID();
   try {

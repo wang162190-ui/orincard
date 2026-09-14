@@ -25,7 +25,6 @@ const payloadSchema = z.object({ jobId: z.string().uuid(), schemaVersion: z.lite
 // A portrait is the only visual tool that spends provider money, so it reserves image quota and
 // cost before the request and settles the real cost afterwards, exactly like an AI asset candidate.
 const PORTRAIT_RESERVED_MICRO_USD = 25_000;
-const PORTRAIT_FALLBACK_COST_USD = 0.025;
 
 export type VisualToolWork = { readonly jobId: string; readonly ownerId: string; readonly request: VisualWorkerRequest };
 export type VisualVideoRenderer = NonNullable<Parameters<typeof createCarouselVideoCandidate>[0]["render"]>;
@@ -182,7 +181,12 @@ export function createSupabasePortraitBudgetGate(client: SupabaseClient, environ
       const { error } = await client.rpc("server_finalize_ai_asset_candidate", {
         p_asset_id: input.jobId, p_owner_id: input.ownerId, p_succeeded: true,
         p_provider_operation_id: input.providerOperationId ?? null,
-        p_actual_micro_usd: Math.max(0, Math.round((input.providerCostUsd ?? PORTRAIT_FALLBACK_COST_USD) * 1_000_000)),
+        // 供应商没回报成本就传 null，由 SQL 按预留全额入账并记为 unmeasured_reserved。
+        // 旧代码在这里补 $0.025（恰好等于预留额），金额虽然一样，但落库后无从分辨是实测还是补的。
+        p_actual_micro_usd:
+          input.providerCostUsd === null || input.providerCostUsd === undefined
+            ? null
+            : Math.max(0, Math.round(input.providerCostUsd * 1_000_000)),
       });
       if (error) throw new Error("IMAGE_BUDGET_SETTLEMENT_FAILED");
     },

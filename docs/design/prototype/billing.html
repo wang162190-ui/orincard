@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Billing · Orincard</title>
+<link rel="stylesheet" href="../reference/assets/orincard.css" />
+<style>
+  .head { margin-bottom: 20px; }
+
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--gap-md); align-items: start; }
+  @media (max-width: 1100px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+
+  .stack { display: flex; flex-direction: column; gap: var(--gap-md); min-width: 0; }
+
+  /* One quota row = label, the two numbers, then the bar. The bar sits below
+     the numbers rather than beside them so a long label never squeezes it. */
+  .quota { padding: 14px 0; border-top: 1px solid var(--border); }
+  .quota:first-child { border-top: 0; padding-top: 0; }
+  .quota-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--gap-sm); margin-bottom: 8px; }
+  .quota-name { font-size: 13.5px; font-weight: 550; }
+  .quota-why { margin: 7px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+  .plan-line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .price { font-family: var(--font-mono); font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+  .price-per { font-size: 12.5px; color: var(--muted); }
+
+  .pay { display: flex; align-items: center; gap: 10px; padding: 12px 0 0; margin-top: 12px; border-top: 1px solid var(--border); font-size: 13px; }
+  .pay svg { width: 26px; height: 18px; flex: none; color: var(--muted); }
+
+  .compare { overflow-x: auto; }
+  .compare table { min-width: 560px; }
+  .compare th[scope="col"] { text-align: center; }
+  .compare td { text-align: center; }
+  .compare th[scope="row"] { text-align: left; font-weight: 500; white-space: nowrap; }
+  .compare .mine { background: color-mix(in srgb, var(--sig-blue) 8%, transparent); }
+  .yes { color: var(--fg); font-weight: 600; }
+  .no { color: var(--muted); }
+
+  .ill { margin-left: 6px; vertical-align: 1px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail" data-od-id="rail">
+    <div class="rail-brand">
+      <span class="mark" aria-hidden="true">
+        <svg class="ori ori-mark" viewBox="0 0 24 24"><polygon points="8.8,13.4 6.4,20.4 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 16.6,12.8 14.6,16.2 8.8,13.4" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="16.6,12.8 22.8,15.6 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 21.2,3 16.6,12.8" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="5.4,4.8 11,11 8.8,13.4 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="1.8,8.6 5.4,4.8 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="word">Orincard</span>
+    </div>
+    <nav class="rail-nav" aria-label="Main">
+      <a class="nav-item" href="../reference/projects.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="10" rx="1.5"/></svg><span>Projects</span></a>
+      <a class="nav-item" href="../reference/generator.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg><span>New carousel</span></a>
+      <a class="nav-item" href="../reference/brand-kits.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg><span>Brand Kits</span></a>
+      <a class="nav-item" href="../reference/editor.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20h16"/><path d="M14.5 4.5a2.1 2.1 0 0 1 3 3L9 16l-4 1 1-4Z"/></svg><span>Editor</span></a>
+      <a class="nav-item" href="exports.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Exports</span></a>
+      <a class="nav-item" href="billing.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg><span>Billing</span></a>
+      <a class="nav-item" href="settings.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M4.5 12a7.5 7.5 0 0 1 .1-1.2L3 9.6l1.5-2.6 1.8.7a7.5 7.5 0 0 1 2-1.2L8.6 4.6h3l.3 1.9a7.5 7.5 0 0 1 2 1.2l1.8-.7L17.2 9l-1.6 1.2"/></svg><span>Settings</span></a>
+      <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span>Prototype map</span></a>
+    </nav>
+    <div class="rail-foot">
+      <div class="plan-card">
+        <p class="label" style="margin-bottom: 6px;">Current plan</p>
+        <p style="margin: 0 0 10px; font-size: 12.5px; line-height: 1.45;">Creator · renews Sep 24, 2026. Cancelling keeps your files through the 30-day window.</p>
+        <a class="btn btn-secondary btn-sm" href="#plans" style="width: 100%;">Compare plans</a>
+      </div>
+      <a class="account" href="settings.html">
+        <img class="avatar" src="../reference/assets/img/avatar-elena.jpg" alt="" width="28" height="28" />
+        <span class="who" style="min-width: 0;">
+          <span style="display: block; font-size: 13px; font-weight: 550;">Elena Marsh</span>
+          <span class="meta" style="display: block; font-size: 11.5px;">Creator plan</span>
+        </span>
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar" data-od-id="topbar">
+      <div class="crumbs"><strong>Billing</strong></div>
+      <div class="row">
+        <a class="btn btn-secondary btn-sm" href="exports.html">Exports</a>
+        <button class="btn btn-secondary btn-sm" id="openCancel">Cancel subscription</button>
+      </div>
+    </header>
+
+    <div class="work" data-od-id="billing">
+
+      <!-- Every number on this page is invented. spec §11 leaves pricing,
+           quotas, the plan-to-feature mapping and affiliate commission open,
+           so the page shows the *shape* of the screen, not a decision. -->
+      <div class="notice notice-warn" data-od-id="illustrative-banner" style="margin-bottom: 22px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+        <p><strong>Every price, quota and overage rate on this page is illustrative.</strong>
+        spec §11 lists pricing, quotas, page limits, the plan→feature mapping and affiliate commission as undecided. These figures exist so the layout can be reviewed; they are not a pricing decision and must not be read as settled parameters.</p>
+      </div>
+
+      <section class="head" data-od-id="page-head">
+        <h1 style="font-size: 32px;">Billing</h1>
+        <p class="lead" style="margin-top: 8px; font-size: 15.5px;">What you are on, what you have used this cycle, and what happens to your work if you stop paying.</p>
+      </section>
+
+      <div class="cols">
+        <div class="stack">
+
+          <section class="panel" data-od-id="quota">
+            <div class="panel-head">
+              <div>
+                <h2 class="h3">This cycle</h2>
+                <p class="meta" style="margin: 4px 0 0;">Aug 24 – Sep 23, 2026 · 21 days left</p>
+              </div>
+              <span class="badge badge-warn"><span class="dot"></span>1 allowance exceeded</span>
+            </div>
+            <div class="panel-body" id="quotas"></div>
+          </section>
+
+          <section class="panel" id="plans" data-od-id="plan-compare">
+            <div class="panel-head">
+              <div>
+                <h2 class="h3">Plans</h2>
+                <p class="meta" style="margin: 4px 0 0;">Which tier unlocks which export format <span class="badge badge-quiet ill">ILLUSTRATIVE</span></p>
+              </div>
+            </div>
+            <div class="panel-body compare">
+              <table class="ds-table">
+                <thead>
+                  <tr>
+                    <th scope="col" style="text-align: left;">&nbsp;</th>
+                    <th scope="col">Free</th>
+                    <th scope="col" class="mine">Creator</th>
+                    <th scope="col">Studio</th>
+                  </tr>
+                </thead>
+                <tbody id="planRows"></tbody>
+              </table>
+              <p class="meta" style="margin: 14px 0 0;">Download retention is <strong>30 days on every plan</strong>, including Free. Retention is a promise about your files, not a lever to sell an upgrade.</p>
+            </div>
+            <div class="panel-body">
+              <div class="row" style="gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-sm">Upgrade to Studio</button>
+                <button class="btn btn-secondary btn-sm">Switch to yearly · 2 months free <span class="badge badge-quiet ill">ILLUSTRATIVE</span></button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" data-od-id="invoices">
+            <div class="panel-head">
+              <div>
+                <h2 class="h3">Invoices</h2>
+                <p class="meta" style="margin: 4px 0 0;">Receipts stay available after you cancel.</p>
+              </div>
+            </div>
+            <div class="panel-body" style="overflow-x: auto;">
+              <table class="ds-table" style="min-width: 460px;">
+                <thead>
+                  <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Description</th>
+                    <th scope="col" class="num-col">Amount</th>
+                    <th scope="col">Status</th>
+                    <th scope="col"></th>
+                  </tr>
+                </thead>
+                <tbody id="invoiceRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+        </div>
+
+        <div class="stack">
+
+          <section class="card" data-od-id="current-plan">
+            <p class="label" style="margin-bottom: 8px;">Current plan</p>
+            <div class="plan-line">
+              <span class="price">$19</span>
+              <span class="price-per">/ month</span>
+              <span class="badge badge-quiet ill">ILLUSTRATIVE</span>
+            </div>
+            <p style="margin: 10px 0 0; font-size: 13.5px; line-height: 1.5;"><strong>Creator</strong> — renews <span class="num">Sep 24, 2026</span>. Next charge is estimated at <span class="num">$20.68</span> because transcription ran over.</p>
+            <div class="pay">
+              <svg viewBox="0 0 32 20" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="0.7" y="0.7" width="30.6" height="18.6" rx="2.6"/><path d="M0.7 6.5h30.6"/></svg>
+              <span>Visa ending <span class="num">4218</span> · expires <span class="num">04 / 2029</span></span>
+            </div>
+            <div class="row" style="gap: 8px; margin-top: 14px;">
+              <button class="btn btn-secondary btn-sm">Update card</button>
+              <button class="btn btn-ghost btn-sm">Billing email</button>
+            </div>
+          </section>
+
+          <section class="card" data-od-id="overage">
+            <div class="voice" style="margin-bottom: 12px;">
+              <span id="voiceOri" aria-hidden="true"></span>
+              <p>Running over does not stop your work. It bills.</p>
+            </div>
+            <table class="ds-table">
+              <tbody>
+                <tr><th scope="row">Transcription over 60 min</th><td class="num-col">14 min</td></tr>
+                <tr><th scope="row">Rate <span class="badge badge-quiet ill">ILLUSTRATIVE</span></th><td class="num-col">$0.12 / min</td></tr>
+                <tr><th scope="row">Added to Sep 24 invoice</th><td class="num-col">$1.68</td></tr>
+              </tbody>
+            </table>
+            <label class="switch" style="margin-top: 14px;">
+              <input type="checkbox" checked />
+              <span class="track"><span class="thumb"></span></span>
+              Allow overage instead of blocking me mid-project
+            </label>
+            <p class="meta" style="margin: 10px 0 0; line-height: 1.5;">Turn this off and a job that would exceed an allowance is refused before it starts — no partial charge, no half-finished carousel.</p>
+          </section>
+
+          <section class="card" data-od-id="affiliate-teaser">
+            <p class="label" style="margin-bottom: 8px;">Affiliate</p>
+            <p style="margin: 0 0 10px; font-size: 13.5px; line-height: 1.5;">Earn <span class="num">20%</span> <span class="badge badge-quiet ill">ILLUSTRATIVE</span> of the first year from anyone who subscribes through your link.</p>
+            <p class="meta" style="margin: 0 0 12px;">Commission rate and payout terms are undecided in spec §11.</p>
+            <button class="btn btn-secondary btn-sm" style="width: 100%;">See affiliate terms</button>
+          </section>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="cancelTitle">
+    <div class="dialog-head">
+      <div>
+        <p class="label" style="margin-bottom: 5px;">Creator plan</p>
+        <h2 class="h3" id="cancelTitle">Cancel your subscription</h2>
+      </div>
+      <button class="btn btn-icon btn-ghost" id="dlgX" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <p style="margin: 0 0 14px; font-size: 14px; line-height: 1.55;">You keep Creator until <strong class="num">Sep 24, 2026</strong>, the end of the cycle you already paid for. After that:</p>
+      <table class="ds-table">
+        <tbody>
+          <tr><th scope="row">Finished exports</th><td>Stay downloadable for the rest of each file’s 30-day window. The Sep 15 and Sep 23 batches are unaffected.</td></tr>
+          <tr><th scope="row">Projects</th><td>Stay in your library, readable and editable. Nothing is deleted.</td></tr>
+          <tr><th scope="row">Brand Kits</th><td>All four stay. Free allows one active kit, so pick which one stays active.</td></tr>
+          <tr><th scope="row">New exports</th><td>Limited to the Free formats — PNG and JPG at 1×.</td></tr>
+          <tr><th scope="row">Outstanding overage</th><td class="num-col">$1.68 is charged on Sep 24</td></tr>
+        </tbody>
+      </table>
+      <div class="notice" style="margin-top: 16px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><path d="M12 8h.01"/></svg>
+        <p>Cancelling never deletes work. If you want your data removed, that is a separate action in <a href="settings.html">Settings → Delete account</a>.</p>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-ghost btn-sm spread" id="dlgKeep">Keep Creator</button>
+      <button class="btn btn-secondary btn-sm" id="dlgPause">Pause for 2 months</button>
+      <button class="btn btn-danger btn-sm" id="dlgGo">Cancel on Sep 24</button>
+    </div>
+  </div>
+</div>
+
+<script src="../reference/assets/ori.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* Same world as ../reference/projects.html and exports.html: today is
+     Sep 2 2026, Elena Marsh is on Creator, and the cycle boundary (Aug 24 →
+     Sep 23) is the same date p3's export window uses. Every figure below is
+     invented — see the banner at the top of the page. */
+
+  var quotas = [
+    {
+      name: 'Carousel generations', used: 18, cap: 40, unit: '',
+      why: 'One generation is one outline plus its slide copy. Regenerating a single slide in the editor does not count.'
+    },
+    {
+      name: 'AI images', used: 26, cap: 60, unit: '',
+      why: 'Counted per accepted image. Images you generate and discard inside the editor are free.'
+    },
+    {
+      name: 'Transcription', used: 74, cap: 60, unit: ' min',
+      why: 'Two long recordings this cycle. Overage is billed at the rate on the right; nothing was blocked.'
+    },
+    {
+      name: 'Export batches', used: 5, cap: 100, unit: '',
+      why: 'A refused batch does not count. The Sep 1 preflight refusal produced no files, so it did not consume an allowance.'
+    }
+  ];
+
+  /* Cells are three-wide: Free, Creator, Studio. Creator is the column Elena
+     is on, tinted so the comparison reads as "where I am" first. */
+  var planRows = [
+    { label: 'Monthly price', cells: ['$0', '$19', '$49'], num: true, ill: true },
+    { label: 'Carousel generations', cells: ['3 total', '40 / mo', '150 / mo'], num: true, ill: true },
+    { label: 'Slides per carousel', cells: ['4 – 6', '4 – 12', '4 – 12'], num: true, ill: true },
+    { label: 'Export resolution', cells: ['1×', '2×', '2×'], num: true, ill: true },
+    { label: 'PNG ZIP / JPG ZIP', cells: [true, true, true] },
+    { label: 'PDF', cells: [false, true, true], ill: true },
+    { label: 'PPTX', cells: [false, true, true], ill: true },
+    { label: 'MP4', cells: [false, false, true], ill: true },
+    { label: 'Brand Kits', cells: ['1', '5', 'Unlimited'], num: true, ill: true },
+    { label: 'Watermark on exports', cells: ['Yes', 'No', 'No'] },
+    { label: 'Download retention', cells: ['30 days', '30 days', '30 days'], num: true }
+  ];
+
+  var invoices = [
+    { date: 'Sep 24, 2026', desc: 'Creator — upcoming, incl. $1.68 transcription overage', amount: '$20.68', state: 'upcoming' },
+    { date: 'Aug 24, 2026', desc: 'Creator — monthly', amount: '$19.00', state: 'paid' },
+    { date: 'Jul 24, 2026', desc: 'Creator — monthly', amount: '$19.00', state: 'paid' },
+    { date: 'Jun 24, 2026', desc: 'Creator — monthly, card declined then retried Jun 25', amount: '$19.00', state: 'recovered' },
+    { date: 'May 24, 2026', desc: 'Creator — monthly', amount: '$19.00', state: 'paid' }
+  ];
+
+  var INV = {
+    upcoming:  { label: 'Upcoming',  cls: 'badge-quiet' },
+    paid:      { label: 'Paid',      cls: 'badge-ok' },
+    recovered: { label: 'Paid late', cls: 'badge-warn' }
+  };
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  var ILL = '<span class="badge badge-quiet ill">ILLUSTRATIVE</span>';
+
+  document.getElementById('quotas').innerHTML = quotas.map(function (q) {
+    var over = q.used > q.cap;
+    var pct = Math.min(100, Math.round((q.used / q.cap) * 100));
+    /* An exceeded bar is pinned full rather than overflowing its track — the
+       number beside it carries the overage, the bar only carries "done". */
+    return '<div class="quota">' +
+      '<div class="quota-top">' +
+        '<span class="quota-name">' + esc(q.name) + '</span>' +
+        '<span class="counter' + (over ? ' counter-over' : '') + '">' +
+          q.used + esc(q.unit) + ' / ' + q.cap + esc(q.unit) + ILL +
+        '</span>' +
+      '</div>' +
+      '<div class="progress"><span style="width: ' + pct + '%;' +
+        (over ? ' background: var(--sig-pink);' : '') + '"></span></div>' +
+      '<p class="quota-why">' + esc(q.why) + '</p>' +
+    '</div>';
+  }).join('');
+
+  document.getElementById('planRows').innerHTML = planRows.map(function (r) {
+    return '<tr><th scope="row">' + esc(r.label) + (r.ill ? ILL : '') + '</th>' +
+      r.cells.map(function (c, i) {
+        var cls = i === 1 ? ' class="mine' + (r.num ? ' num-col' : '') + '"' : (r.num ? ' class="num-col"' : '');
+        var body = c === true
+          ? '<span class="yes" aria-label="included">✓</span>'
+          : (c === false ? '<span class="no" aria-label="not included">—</span>' : esc(c));
+        return '<td' + cls + '>' + body + '</td>';
+      }).join('') + '</tr>';
+  }).join('');
+
+  document.getElementById('invoiceRows').innerHTML = invoices.map(function (v) {
+    var s = INV[v.state];
+    return '<tr>' +
+      '<td class="num-col" style="text-align: left;">' + esc(v.date) + '</td>' +
+      '<td>' + esc(v.desc) + '</td>' +
+      '<td class="num-col">' + esc(v.amount) + '</td>' +
+      '<td><span class="badge ' + s.cls + '">' + s.label + '</span></td>' +
+      '<td>' + (v.state === 'upcoming'
+        ? '<span class="meta">—</span>'
+        : '<button class="btn btn-ghost btn-sm">Receipt</button>') + '</td>' +
+    '</tr>';
+  }).join('');
+
+  var scrim = document.getElementById('scrim');
+  function close() { scrim.hidden = true; }
+  document.getElementById('openCancel').addEventListener('click', function () { scrim.hidden = false; });
+  document.getElementById('dlgX').addEventListener('click', close);
+  document.getElementById('dlgKeep').addEventListener('click', close);
+  document.getElementById('dlgPause').addEventListener('click', close);
+  document.getElementById('dlgGo').addEventListener('click', close);
+  scrim.addEventListener('click', function (e) { if (e.target === scrim) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !scrim.hidden) close(); });
+
+  document.getElementById('voiceOri').innerHTML = Ori.mark(20);
+})();
+</script>
+</body>
+</html>

@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render as renderBare, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { NextIntlClientProvider } from "next-intl";
+import type { ReactNode } from "react";
+import messages from "../../messages/en.json";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fixture from "../fixtures/base-document.json";
 import type { CarouselDocument } from "../../src/domain/document";
@@ -14,6 +17,15 @@ import {
 // T043. Six inputs, three shapes of work behind them. These tests hold the form to the
 // contract the routes actually publish: a link is parsed inside the request, a file is
 // uploaded and then waited for twice, and a source that fails must name an alternative.
+
+// 组件的文案来自词条文件，脱离 Provider 渲染会直接抛错。
+// 用 RTL 的 wrapper 而不是手动套一层：rerender 会自动沿用 wrapper，手套的那层不会。
+function render(ui: ReactNode, options?: Parameters<typeof renderBare>[1]) {
+  return renderBare(ui as Parameters<typeof renderBare>[0], {
+    ...options,
+    wrapper: ({ children }) => <NextIntlClientProvider locale="en" messages={messages}>{children}</NextIntlClientProvider>,
+  });
+}
 
 interface Recorded {
   readonly url: string;

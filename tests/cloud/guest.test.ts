@@ -10,7 +10,7 @@ import { resolveGuestNetworkSubject } from "../../src/app/api/v1/guest/generate/
 const body = {
   kind: "topic" as const,
   text: "Build a calmer work week",
-  language: "English",
+  language: "en" as const,
   format: "educational",
   pageCount: 4,
   instructions: "Use concise, practical language.",

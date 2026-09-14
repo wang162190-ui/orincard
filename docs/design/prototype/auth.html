@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Account · Orincard</title>
+<link rel="stylesheet" href="../reference/assets/orincard.css" />
+<style>
+  /* No rail here: this page exists on both sides of the sign-in line, and a
+     workspace chrome you cannot use yet is a lie about where you are. */
+  .auth { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 520px); }
+  @media (max-width: 900px) { .auth { grid-template-columns: minmax(0, 1fr); } }
+
+  .aside-pane { background: var(--fg); color: var(--on-ink); padding: var(--gap-xl) var(--gap-lg); display: flex; flex-direction: column; justify-content: space-between; gap: var(--gap-lg); }
+  @media (max-width: 900px) { .aside-pane { padding: var(--gap-lg); } }
+  .aside-pane .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: -0.01em; }
+  .aside-pane .brand svg { width: 24px; height: 24px; }
+  .aside-pane h2 { font-size: 27px; line-height: 1.25; letter-spacing: -0.02em; max-width: 15em; }
+  .aside-pane p { color: color-mix(in srgb, var(--on-ink) 66%, transparent); font-size: 14px; line-height: 1.6; max-width: 34em; }
+  .aside-pane .facts { display: flex; flex-direction: column; gap: 12px; }
+  .fact { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: color-mix(in srgb, var(--on-ink) 80%, transparent); }
+  .fact svg { width: 15px; height: 15px; flex: none; margin-top: 2px; }
+
+  .form-pane { padding: var(--gap-xl) var(--gap-lg); display: flex; align-items: center; justify-content: center; }
+  @media (max-width: 900px) { .form-pane { padding: var(--gap-lg); } }
+  .form-inner { width: 100%; max-width: 400px; }
+
+  .fields { display: flex; flex-direction: column; gap: var(--gap-sm); margin-top: var(--gap-md); }
+  .foot-line { margin-top: 16px; font-size: 13px; color: var(--muted); text-align: center; }
+
+  .oauth { display: flex; flex-direction: column; gap: 8px; margin-top: var(--gap-md); }
+  .rule { display: flex; align-items: center; gap: 12px; margin: var(--gap-md) 0; color: var(--muted); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .rule::before, .rule::after { content: ''; flex: 1 1 auto; height: 1px; background: var(--border); }
+
+  /* Migration needs the full column: it is a list of things about to move, and
+     a truncated list is exactly the thing that makes people distrust it. */
+  .wide .form-inner { max-width: 520px; }
+  .draft { display: flex; align-items: flex-start; gap: var(--gap-sm); padding: 13px 0; border-top: 1px solid var(--border); }
+  .draft:first-child { border-top: 0; padding-top: 0; }
+  .draft-body { flex: 1 1 auto; min-width: 0; }
+  .draft-body h3 { font-size: 13.5px; font-weight: 600; margin-bottom: 3px; }
+  .draft-meta { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .draft-conflict { margin-top: 10px; padding: 11px 12px; border-radius: var(--radius); background: color-mix(in srgb, var(--sig-yellow) 16%, var(--surface)); border: 1px solid color-mix(in srgb, var(--sig-yellow) 45%, var(--border)); }
+  .draft-conflict p { margin: 0 0 9px; font-size: 12.5px; line-height: 1.5; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  /* .steps sets display:flex, which outranks the UA [hidden] rule — the same trap
+     orincard.css already patches for .scrim, .notice and .btn, but not for .steps. */
+  .steps[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div class="auth" id="shell">
+
+  <section class="aside-pane" data-od-id="auth-pitch">
+    <div class="brand">
+      <span aria-hidden="true">
+        <svg class="ori ori-mark" viewBox="0 0 24 24"><polygon points="8.8,13.4 6.4,20.4 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 16.6,12.8 14.6,16.2 8.8,13.4" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="16.6,12.8 22.8,15.6 14.6,16.2" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="11,11 21.2,3 16.6,12.8" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="5.4,4.8 11,11 8.8,13.4 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><polygon points="1.8,8.6 5.4,4.8 3.7,7.3" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </span>
+      <span>Orincard</span>
+    </div>
+
+    <div>
+      <h2 id="pitchTitle">Your drafts are in this browser. An account moves them somewhere safer.</h2>
+      <p id="pitchBody" style="margin-top: 14px;">You can build a whole carousel without signing up. Nothing you made is held hostage — signing in just gives it a home that survives a cleared cache.</p>
+      <div class="facts" style="margin-top: var(--gap-lg);">
+        <div class="fact">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m5 13 4 4L19 7"/></svg>
+          <span>Anonymous drafts live only in this browser. Clearing site data deletes them.</span>
+        </div>
+        <div class="fact">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m5 13 4 4L19 7"/></svg>
+          <span>Projects are private to your account. Nobody else can open or export them.</span>
+        </div>
+        <div class="fact">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m5 13 4 4L19 7"/></svg>
+          <span>Finished exports stay downloadable for 30 days, on every plan.</span>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size: 12.5px;"><a href="index.html" style="color: inherit;">← Back to the prototype map</a></p>
+  </section>
+
+  <section class="form-pane" data-od-id="auth-form">
+    <div class="form-inner">
+
+      <div class="seg" role="tablist" aria-label="Account action" id="seg" style="width: 100%;">
+        <button role="tab" aria-selected="true" data-s="in">Sign in</button>
+        <button role="tab" aria-selected="false" data-s="up">Sign up</button>
+        <button role="tab" aria-selected="false" data-s="reset">Reset</button>
+        <button role="tab" aria-selected="false" data-s="migrate">Move 3 drafts</button>
+      </div>
+
+      <!-- ── Sign in ───────────────────────────────────────────────── -->
+      <div data-state="in">
+        <h1 class="h2" style="font-size: 24px; margin-top: var(--gap-md);">Sign in</h1>
+        <p class="meta" style="margin-top: 6px;">Three drafts are waiting in this browser. They move across after you sign in.</p>
+        <form class="fields" novalidate data-form="in">
+          <div class="field">
+            <label for="inEmail">Email</label>
+            <input class="input" id="inEmail" type="email" autocomplete="email" data-check="email" />
+            <p class="hint" data-err hidden></p>
+          </div>
+          <div class="field">
+            <label for="inPass">Password</label>
+            <input class="input" id="inPass" type="password" autocomplete="current-password" data-check="required" />
+            <p class="hint" data-err hidden></p>
+          </div>
+          <div class="notice notice-danger" data-form-error hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v5"/><path d="M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
+            <p></p>
+          </div>
+          <button class="btn btn-primary" type="submit" style="width: 100%; margin-top: 4px;">Sign in</button>
+        </form>
+        <p class="foot-line"><a href="#" data-go="reset">Forgot your password?</a></p>
+        <div class="rule">or</div>
+        <div class="oauth">
+          <button class="btn btn-secondary" style="width: 100%;">Continue with Google</button>
+          <button class="btn btn-secondary" style="width: 100%;">Continue with Apple</button>
+        </div>
+        <p class="foot-line">No account? <a href="#" data-go="up">Create one</a></p>
+      </div>
+
+      <!-- ── Sign up ───────────────────────────────────────────────── -->
+      <div data-state="up" hidden>
+        <h1 class="h2" style="font-size: 24px; margin-top: var(--gap-md);">Create your account</h1>
+        <p class="meta" style="margin-top: 6px;">Free plan, no card. Your three local drafts move across in the next step.</p>
+        <form class="fields" novalidate data-form="up">
+          <div class="field">
+            <label for="upName">Display name</label>
+            <input class="input" id="upName" type="text" autocomplete="name" data-check="required" />
+            <p class="hint" data-err hidden></p>
+          </div>
+          <div class="field">
+            <label for="upEmail">Email</label>
+            <input class="input" id="upEmail" type="email" autocomplete="email" data-check="email" />
+            <p class="hint" data-err hidden></p>
+          </div>
+          <div class="field">
+            <label for="upPass">Password</label>
+            <input class="input" id="upPass" type="password" autocomplete="new-password" data-check="password" />
+            <p class="hint" data-err hidden>At least 10 characters.</p>
+            <div class="progress" style="margin-top: 8px;"><span id="strength" style="width: 0;"></span></div>
+            <p class="hint" id="strengthText">At least 10 characters. Length beats punctuation.</p>
+          </div>
+          <div class="notice notice-danger" data-form-error hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v5"/><path d="M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
+            <p></p>
+          </div>
+          <button class="btn btn-primary" type="submit" style="width: 100%; margin-top: 4px;">Create account</button>
+        </form>
+        <p class="foot-line">By creating an account you accept the terms and the privacy notice.</p>
+        <p class="foot-line">Already have one? <a href="#" data-go="in">Sign in</a></p>
+      </div>
+
+      <!-- ── Reset ─────────────────────────────────────────────────── -->
+      <div data-state="reset" hidden>
+        <h1 class="h2" style="font-size: 24px; margin-top: var(--gap-md);">Reset your password</h1>
+        <p class="meta" style="margin-top: 6px;">We send a one-time link. It expires in 30 minutes and can be used once.</p>
+        <form class="fields" novalidate data-form="reset">
+          <div class="field">
+            <label for="rsEmail">Email</label>
+            <input class="input" id="rsEmail" type="email" autocomplete="email" data-check="email" />
+            <p class="hint" data-err hidden></p>
+          </div>
+          <button class="btn btn-primary" type="submit" style="width: 100%; margin-top: 4px;">Send the link</button>
+        </form>
+        <div class="notice notice-ok" id="resetSent" hidden style="margin-top: var(--gap-md);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 13 4 4L19 7"/></svg>
+          <p>If that address has an account, the link is on its way. We do not say whether it does — that would let anyone test which emails are registered.</p>
+        </div>
+        <p class="foot-line" style="margin-top: var(--gap-md);"><a href="#" data-go="in">Back to sign in</a></p>
+      </div>
+
+      <!-- ── Migration ─────────────────────────────────────────────── -->
+      <div data-state="migrate" hidden>
+        <h1 class="h2" style="font-size: 24px; margin-top: var(--gap-md);">Move your drafts to the account</h1>
+        <p class="meta" style="margin-top: 6px;">Signed in as <strong>Elena Marsh</strong>. Three drafts were found in this browser.</p>
+
+        <div class="notice" style="margin-top: var(--gap-md);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><path d="M12 8h.01"/></svg>
+          <p>Moving copies each draft to the cloud and then clears it from this browser. Anything you leave behind stays local and disappears when this browser’s data is cleared.</p>
+        </div>
+
+        <div class="panel" style="margin-top: var(--gap-md);">
+          <div class="panel-head">
+            <div>
+              <h2 class="h3">Found in this browser</h2>
+              <p class="meta" style="margin: 4px 0 0;" id="pickCount"></p>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="toggleAll">Deselect all</button>
+          </div>
+          <div class="panel-body" id="drafts"></div>
+          <div class="panel-body">
+            <h3 class="h3" style="font-size: 13px; margin-bottom: 10px;">What does not move</h3>
+            <table class="ds-table">
+              <tbody>
+                <tr><th scope="row">Editor undo history</th><td>Stays local. The draft arrives at its current state with no history behind it.</td></tr>
+                <tr><th scope="row">Anonymous generation count</th><td>Not carried over. Your account allowance starts fresh.</td></tr>
+                <tr><th scope="row">Files you uploaded anonymously</th><td>Move with their draft, and count against your account storage.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="row" style="gap: 10px; margin-top: var(--gap-md); flex-wrap: wrap;">
+          <button class="btn btn-primary" id="migrateGo">Move 3 drafts</button>
+          <button class="btn btn-ghost" id="migrateSkip">Skip for now</button>
+        </div>
+
+        <div class="steps" id="migSteps" hidden style="margin-top: var(--gap-md);">
+          <div class="step"><span class="step-mark"></span><span>Uploading drafts</span></div>
+          <div class="step"><span class="step-mark"></span><span>Resolving 1 title conflict</span></div>
+          <div class="step"><span class="step-mark"></span><span>Clearing local copies</span></div>
+        </div>
+
+        <div class="notice notice-warn" id="skipWarn" hidden style="margin-top: var(--gap-md);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+          <p>Skipped. The three drafts stay in this browser only. You can move them later from the editor, but not from another device — and not after this browser’s data is cleared.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<script src="../reference/assets/ori.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* Same world as ../reference/projects.html: today is Sep 2 2026 and the
+     account already holds p1–p6. Draft 3 below deliberately collides with p1
+     ("Status meetings are not progress", cloud v4, updated Sep 1 · 14:20),
+     because a migration screen that never shows a conflict is not a design —
+     it is a happy path. */
+  var drafts = [
+    {
+      id: 'd1', title: 'Why your first draft should be ugly',
+      meta: '6 slides · LinkedIn · edited Sep 2, 2026 · 11:04', pick: true, conflict: null
+    },
+    {
+      id: 'd2', title: 'Untitled carousel',
+      meta: '4 slides · Instagram · edited Aug 31, 2026 · 22:17', pick: true, conflict: null,
+      note: 'Outline only — no slide copy written yet.'
+    },
+    {
+      id: 'd3', title: 'Status meetings are not progress',
+      meta: '6 slides · LinkedIn · edited Sep 1, 2026 · 09:30', pick: true,
+      conflict: {
+        cloud: 'v4, updated Sep 1, 2026 · 14:20',
+        /* Default is "keep both". Overwriting cloud work with a local copy the
+           user may have forgotten about is the one outcome that destroys
+           something, so it can never be the default. */
+        choice: 'both'
+      }
+    }
+  ];
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  var host = document.getElementById('drafts');
+  var pickCount = document.getElementById('pickCount');
+  var migrateGo = document.getElementById('migrateGo');
+  var toggleAll = document.getElementById('toggleAll');
+
+  function renderDrafts() {
+    host.innerHTML = drafts.map(function (d) {
+      var conflict = '';
+      if (d.conflict) {
+        conflict = '<div class="draft-conflict">' +
+          '<p><strong>You already have a project with this title.</strong> ' +
+          'The cloud copy is ' + esc(d.conflict.cloud) + '; this local draft was last touched Sep 1 · 09:30, five hours earlier.</p>' +
+          '<div class="seg" data-conflict="' + d.id + '" role="radiogroup" aria-label="Conflict resolution">' +
+            '<button role="radio" aria-checked="' + (d.conflict.choice === 'both') + '" data-c="both">Keep both</button>' +
+            '<button role="radio" aria-checked="' + (d.conflict.choice === 'version') + '" data-c="version">Add as v5</button>' +
+            '<button role="radio" aria-checked="' + (d.conflict.choice === 'drop') + '" data-c="drop">Discard local</button>' +
+          '</div>' +
+          '<p style="margin: 9px 0 0;" class="meta">' + esc({
+            both: 'Arrives as a separate project named “Status meetings are not progress (local copy)”. Nothing is overwritten.',
+            version: 'Appended to the existing project as v5. v4 stays in version history and stays restorable.',
+            drop: 'The local draft is deleted and not uploaded. The cloud project is untouched.'
+          }[d.conflict.choice]) + '</p>' +
+        '</div>';
+      }
+      return '<div class="draft">' +
+        '<label class="switch" style="margin-top: 1px;">' +
+          '<input type="checkbox" data-pick="' + d.id + '"' + (d.pick ? ' checked' : '') + ' />' +
+          '<span class="track"><span class="thumb"></span></span>' +
+          '<span class="sr-only">Move ' + esc(d.title) + '</span>' +
+        '</label>' +
+        '<div class="draft-body">' +
+          '<h3>' + esc(d.title) + '</h3>' +
+          '<span class="draft-meta">' + esc(d.meta) + '</span>' +
+          (d.note ? '<p class="meta" style="margin: 5px 0 0;">' + esc(d.note) + '</p>' : '') +
+          conflict +
+        '</div>' +
+        (d.conflict ? '<span class="badge badge-warn" style="flex: none;">Conflict</span>' : '') +
+      '</div>';
+    }).join('');
+    sync();
+  }
+
+  function sync() {
+    var n = drafts.filter(function (d) { return d.pick; }).length;
+    pickCount.textContent = n + ' of ' + drafts.length + ' selected';
+    migrateGo.textContent = n === 0 ? 'Move nothing' : 'Move ' + n + ' draft' + (n === 1 ? '' : 's');
+    migrateGo.disabled = n === 0;
+    toggleAll.textContent = n === drafts.length ? 'Deselect all' : 'Select all';
+  }
+
+  host.addEventListener('change', function (e) {
+    var box = e.target.closest('[data-pick]');
+    if (!box) return;
+    drafts.filter(function (d) { return d.id === box.dataset.pick; })[0].pick = box.checked;
+    sync();
+  });
+
+  host.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-conflict] button');
+    if (!btn) return;
+    var id = btn.closest('[data-conflict]').dataset.conflict;
+    drafts.filter(function (d) { return d.id === id; })[0].conflict.choice = btn.dataset.c;
+    renderDrafts();
+  });
+
+  toggleAll.addEventListener('click', function () {
+    var all = drafts.every(function (d) { return d.pick; });
+    drafts.forEach(function (d) { d.pick = !all; });
+    renderDrafts();
+  });
+
+  var migSteps = document.getElementById('migSteps');
+  migrateGo.addEventListener('click', function () {
+    migSteps.hidden = false;
+    document.getElementById('skipWarn').hidden = true;
+    var els = migSteps.querySelectorAll('.step');
+    (function advance(i) {
+      if (i > 0) els[i - 1].dataset.state = 'done';
+      if (i < els.length) {
+        els[i].dataset.state = 'active';
+        window.setTimeout(function () { advance(i + 1); }, 1100);
+      } else {
+        migrateGo.disabled = true;
+        migrateGo.textContent = 'Moved';
+      }
+    })(0);
+  });
+
+  document.getElementById('migrateSkip').addEventListener('click', function () {
+    document.getElementById('skipWarn').hidden = false;
+    migSteps.hidden = true;
+  });
+
+  /* ---- state switching ---- */
+  var PITCH = {
+    in: ['Your drafts are in this browser. An account moves them somewhere safer.',
+         'You can build a whole carousel without signing up. Nothing you made is held hostage — signing in just gives it a home that survives a cleared cache.'],
+    up: ['Start free. The card question comes later, or never.',
+         'The Free plan exports PNG and JPG with a watermark. You will know exactly which formats need a paid plan before you try one, not after.'],
+    reset: ['Password resets never touch your work.',
+            'Your projects, Brand Kits and export history are keyed to the account, not the password. Changing it signs out other devices; it deletes nothing.'],
+    migrate: ['One draft collides with a project you already have.',
+              'Orincard will not silently overwrite cloud work with a local copy. Pick what happens to the collision before anything moves.']
+  };
+
+  var shell = document.getElementById('shell');
+  var seg = document.getElementById('seg');
+
+  function go(state) {
+    Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
+      b.setAttribute('aria-selected', String(b.dataset.s === state));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-state]'), function (p) {
+      p.hidden = p.dataset.state !== state;
+    });
+    /* The migration list needs a wider column than a two-field form does. */
+    document.querySelector('.form-pane').classList.toggle('wide', state === 'migrate');
+    document.getElementById('pitchTitle').textContent = PITCH[state][0];
+    document.getElementById('pitchBody').textContent = PITCH[state][1];
+    shell.dataset.auth = state;
+  }
+
+  seg.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-s]');
+    if (btn) go(btn.dataset.s);
+  });
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('[data-go]');
+    if (!link) return;
+    e.preventDefault();
+    go(link.dataset.go);
+  });
+
+  /* ---- inline validation: errors live in the field, never in a toast ---- */
+  var CHECKS = {
+    email: function (v) {
+      if (!v) return 'Enter your email address.';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'That is not a complete email address.';
+      return null;
+    },
+    password: function (v) {
+      if (!v) return 'Choose a password.';
+      if (v.length < 10) return 'Too short — ' + v.length + ' of 10 characters.';
+      return null;
+    },
+    required: function (v) { return v ? null : 'This field is required.'; }
+  };
+
+  function validate(input) {
+    var err = CHECKS[input.dataset.check](input.value.trim());
+    var hint = input.parentElement.querySelector('[data-err]');
+    input.classList.toggle('input-invalid', Boolean(err));
+    if (hint) {
+      hint.hidden = !err;
+      if (err) { hint.textContent = err; hint.style.color = 'var(--sig-pink)'; }
+    }
+    return !err;
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-check]'), function (input) {
+    input.addEventListener('blur', function () { validate(input); });
+    input.addEventListener('input', function () {
+      if (input.classList.contains('input-invalid')) validate(input);
+    });
+  });
+
+  var strength = document.getElementById('strength');
+  var strengthText = document.getElementById('strengthText');
+  document.getElementById('upPass').addEventListener('input', function () {
+    var v = this.value;
+    var pct = Math.min(100, Math.round((v.length / 16) * 100));
+    strength.style.width = pct + '%';
+    strength.style.background = v.length < 10 ? 'var(--sig-pink)' : (v.length < 14 ? 'var(--sig-yellow)' : 'var(--sig-blue)');
+    strengthText.textContent = v.length < 10
+      ? 'At least 10 characters. Length beats punctuation.'
+      : (v.length < 14 ? 'Long enough. A few more words would be better.' : 'Good length.');
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('form[data-form]'), function (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var ok = true;
+      Array.prototype.forEach.call(form.querySelectorAll('[data-check]'), function (input) {
+        if (!validate(input)) ok = false;
+      });
+      var box = form.querySelector('[data-form-error]');
+      if (!ok) {
+        if (box) box.hidden = true;
+        form.querySelector('.input-invalid').focus();
+        return;
+      }
+      if (form.dataset.form === 'reset') {
+        document.getElementById('resetSent').hidden = false;
+        return;
+      }
+      /* A form that always succeeds teaches nobody what failure looks like, so
+         the wrong-credentials path is shown as a field-level state — never a
+         toast that disappears before it is read. */
+      if (form.dataset.form === 'in') {
+        box.hidden = false;
+        box.querySelector('p').innerHTML = 'Email or password is wrong. We do not say which — that would let someone check whether an address is registered. <a href="#" data-go="reset">Reset your password</a> if you are stuck.';
+        return;
+      }
+      go('migrate');
+    });
+  });
+
+  renderDrafts();
+  go('in');
+})();
+</script>
+</body>
+</html>

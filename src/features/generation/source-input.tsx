@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Button } from "../../components/ui";
 import { carouselDocumentSchema, type CarouselDocument } from "../../domain/document";
@@ -19,13 +20,13 @@ const GUEST_NONCE_KEY = "orincard-guest-generation-nonce";
 const FILE_KINDS = ["pdf", "slides", "video"] as const;
 type FileSourceKind = (typeof FILE_KINDS)[number];
 
-const TABS: readonly { readonly kind: SourceKind; readonly label: string }[] = [
-  { kind: "topic", label: "Topic" },
-  { kind: "text", label: "Text" },
-  { kind: "url", label: "URL" },
-  { kind: "pdf", label: "PDF" },
-  { kind: "slides", label: "Slides" },
-  { kind: "video", label: "Video" },
+const TABS: readonly { readonly kind: SourceKind; readonly messageKey: string }[] = [
+  { kind: "topic", messageKey: "tabTopic" },
+  { kind: "text", messageKey: "tabText" },
+  { kind: "url", messageKey: "tabUrl" },
+  { kind: "pdf", messageKey: "tabPdf" },
+  { kind: "slides", messageKey: "tabSlides" },
+  { kind: "video", messageKey: "tabVideo" },
 ];
 
 const FILE_ACCEPT: Readonly<Record<FileSourceKind, string>> = {
@@ -41,22 +42,22 @@ const FILE_MIME: Readonly<Record<FileSourceKind, readonly string[]>> = {
 };
 
 const FILE_HINT: Readonly<Record<FileSourceKind, string>> = {
-  pdf: "A PDF you have the rights to use. Scanned pages are read with OCR.",
-  slides: "A .pptx deck. Speaker notes and slide text are both read.",
-  video: "An .mp4 or .webm file, up to 30 minutes. Subtitles are used when the file has them.",
+  pdf: "hintPdf",
+  slides: "hintSlides",
+  video: "hintVideo",
 };
 
 // The wording a failed source comes back with is written by the parser; this only turns
 // the action into the sentence that tells the reader where to go next.
 const ACTION_HINT: Readonly<Record<SourceAlternativeAction, string>> = {
-  "paste-text": "Switch to the Text tab and paste it instead.",
-  "upload-file": "Switch to a file tab and upload the file itself.",
-  "use-public-url": "Use a link that is reachable without signing in.",
-  "remove-pdf-protection": "Remove the password from the PDF and upload it again.",
-  "convert-to-pptx": "Save the deck as .pptx and upload it again.",
-  "use-smaller-file": "Upload a smaller file.",
-  "split-input": "Split it into parts and import them one at a time.",
-  "retry-later": "Try again in a moment.",
+  "paste-text": "actionPasteText",
+  "upload-file": "actionUploadFile",
+  "use-public-url": "actionUsePublicUrl",
+  "remove-pdf-protection": "actionRemovePdfProtection",
+  "convert-to-pptx": "actionConvertToPptx",
+  "use-smaller-file": "actionUseSmallerFile",
+  "split-input": "actionSplitInput",
+  "retry-later": "actionRetryLater",
 };
 
 function browserValue(key: string, prefix: string): string {
@@ -70,8 +71,10 @@ function browserValue(key: string, prefix: string): string {
 
 // Carries the alternative action alongside the message so the form can show both without
 // the caller having to re-read the response.
+// 模块级的几个函数（轮询、上传）不在组件里，拿不到 useTranslations。
+// 它们抛 messageKey，由表单的 catch 处统一翻成当前语言；来自服务端的 message 原样透传。
 class SourceFailure extends Error {
-  constructor(message: string, readonly action?: SourceAlternativeAction) {
+  constructor(message: string, readonly action?: SourceAlternativeAction, readonly messageKey?: string) {
     super(message);
     this.name = "SourceFailure";
   }
@@ -84,9 +87,11 @@ async function responseError(response: Response): Promise<Error> {
       readonly action?: SourceAlternativeAction;
     };
   } | null;
+  const serverMessage = body?.error?.message;
   return new SourceFailure(
-    body?.error?.message ?? "This source is temporarily unavailable.",
+    serverMessage ?? "",
     body?.error?.action,
+    serverMessage ? undefined : "sourceUnavailable",
   );
 }
 
@@ -120,11 +125,12 @@ async function waitForJob(jobId: string, onStage: (stage: string) => void) {
     onStage(body.data.stage);
     if (body.data.state === "succeeded") return jobDocument(body.data.resultRef);
     if (["failed", "partial", "canceled"].includes(body.data.state)) {
-      throw new Error(body.data.errorCode ?? "Generation did not complete.");
+      // errorCode 是机器码不是给人读的句子，没有它才落到可翻译的兜底文案。
+      throw new SourceFailure(body.data.errorCode ?? "", undefined, body.data.errorCode ? undefined : "jobFailed");
     }
     await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
-  throw new Error("Generation is taking longer than expected. Return later to check its job.");
+  throw new SourceFailure("", undefined, "jobTimeout");
 }
 
 export interface UploadTarget {
@@ -170,7 +176,7 @@ export const defaultSourceTransport: SourceTransport = {
       .uploadToSignedUrl(target.objectKey, target.token, file, {
         contentType: file.type,
       });
-    if (error) throw new SourceFailure("The file could not be uploaded. Try again.");
+    if (error) throw new SourceFailure("", undefined, "uploadFailed");
   },
   async readAsset(assetId) {
     const client = await browserClient();
@@ -225,6 +231,7 @@ export function SourceInput(props: {
   readonly optionsFields: ReactNode;
   readonly transport?: SourceTransport;
 }) {
+  const t = useTranslations("SourceInput");
   const transport = props.transport ?? defaultSourceTransport;
   const [kind, setKind] = useState<SourceKind>("topic");
   const [text, setText] = useState("");
@@ -258,7 +265,7 @@ export function SourceInput(props: {
     const payload = await response.text();
     if (!response.ok) {
       const body = JSON.parse(payload) as { readonly error?: { readonly message?: string } };
-      throw new Error(body.error?.message ?? "Guest generation failed.");
+      throw new Error(body.error?.message ?? t("guestFailed"));
     }
     await transport.openDraft(guestDocument(payload));
   }
@@ -295,12 +302,9 @@ export function SourceInput(props: {
   async function uploadAndParse(selected: File): Promise<string> {
     const fileKind = kind as FileSourceKind;
     if (!FILE_MIME[fileKind].includes(selected.type)) {
-      throw new SourceFailure(
-        "This file type can't be read here. Choose a supported file.",
-        "upload-file",
-      );
+      throw new SourceFailure(t("unsupportedType"), "upload-file");
     }
-    setStatus("Checking the file…");
+    setStatus(t("statusCheckingFile"));
     const intent = await fetch("/api/v1/assets/upload-intent", {
       method: "POST",
       headers: {
@@ -326,7 +330,7 @@ export function SourceInput(props: {
       };
     };
 
-    setStatus("Uploading…");
+    setStatus(t("statusUploading"));
     await transport.upload(
       {
         bucket: registered.data.bucket,
@@ -343,18 +347,15 @@ export function SourceInput(props: {
     );
     if (!completed.ok) throw await responseError(completed);
 
-    setStatus("Checking the upload…");
+    setStatus(t("statusCheckingUpload"));
     for (let attempt = 0; ; attempt += 1) {
       const asset = await transport.readAsset(registered.data.assetId);
       if (asset.state === "ready") break;
       if (asset.state === "failed") {
-        throw new SourceFailure(
-          "This file did not pass its checks. Upload the original file again.",
-          "upload-file",
-        );
+        throw new SourceFailure(t("checksFailed"), "upload-file");
       }
       if (attempt >= 120) {
-        throw new SourceFailure("Checking this file is taking too long.", "retry-later");
+        throw new SourceFailure(t("checkTimeout"), "retry-later");
       }
       await transport.wait(1_000);
     }
@@ -370,7 +371,7 @@ export function SourceInput(props: {
       readonly data: { readonly sourceId: string; readonly state: string };
     };
 
-    setStatus("Reading the file…");
+    setStatus(t("statusReadingFile"));
     for (let attempt = 0; ; attempt += 1) {
       const snapshot = await transport.readSource(body.data.sourceId);
       if (snapshot.state === "ready") return body.data.sourceId;
@@ -379,14 +380,14 @@ export function SourceInput(props: {
         throw new SourceFailure(
           typeof metadata.message === "string"
             ? metadata.message
-            : "This file could not be read.",
+            : t("readFailed"),
           typeof metadata.action === "string"
             ? (metadata.action as SourceAlternativeAction)
             : "paste-text",
         );
       }
       if (attempt >= 300) {
-        throw new SourceFailure("Reading this file is taking too long.", "retry-later");
+        throw new SourceFailure(t("readTimeout"), "retry-later");
       }
       await transport.wait(1_000);
     }
@@ -402,11 +403,11 @@ export function SourceInput(props: {
     setStatus("");
     try {
       if (isFileKind) {
-        if (!file) throw new SourceFailure("Choose a file first.");
+        if (!file) throw new SourceFailure(t("chooseFile"));
         await generateRegistered(await uploadAndParse(file));
         return;
       }
-      setStatus(kind === "url" ? "Reading the page…" : "");
+      setStatus(kind === "url" ? t("statusReadingPage") : "");
       const source = await createSource(
         kind === "url" ? { kind, url: text } : { kind, text },
       );
@@ -414,7 +415,7 @@ export function SourceInput(props: {
         // A guest can generate from a topic or pasted text, which never leaves the
         // request. Links and files need an account, so say so instead of failing quietly.
         if (!isTextKind) {
-          throw new SourceFailure("Sign in to import a link or a file.", "paste-text");
+          throw new SourceFailure(t("signInRequired"), "paste-text");
         }
         await generateGuest();
         return;
@@ -423,7 +424,13 @@ export function SourceInput(props: {
       const body = await source.json() as { readonly data: { readonly sourceId: string } };
       await generateRegistered(body.data.sourceId);
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Generation failed.");
+      setError(
+        failure instanceof SourceFailure && failure.messageKey
+          ? t(failure.messageKey)
+          : failure instanceof Error && failure.message
+            ? failure.message
+            : t("generationFailed"),
+      );
       setAction(failure instanceof SourceFailure ? failure.action ?? null : null);
       setStatus("");
     } finally {
@@ -437,7 +444,7 @@ export function SourceInput(props: {
   return (
     <form className="stack generation-form" onSubmit={(event) => void submit(event)}>
       <fieldset disabled={pending} className="stack generation-form__fields">
-        <div role="tablist" aria-label="Source type" className="row generation-form__tabs">
+        <div role="tablist" aria-label={t("sourceType")} className="row generation-form__tabs">
           {TABS.map((tab) => (
             <button
               key={tab.kind}
@@ -451,7 +458,7 @@ export function SourceInput(props: {
                 setStatus("");
               }}
             >
-              {tab.label}
+              {t(tab.messageKey)}
             </button>
           ))}
         </div>
@@ -459,7 +466,7 @@ export function SourceInput(props: {
         {isFileKind ? (
           <>
             <label className="field">
-              {kind === "pdf" ? "PDF file" : kind === "slides" ? "Slide deck" : "Video file"}
+              {kind === "pdf" ? t("filePdf") : kind === "slides" ? t("fileSlides") : t("fileVideo")}
               <input
                 className="input"
                 type="file"
@@ -470,10 +477,10 @@ export function SourceInput(props: {
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
               />
             </label>
-            <p className="meta">{FILE_HINT[kind as FileSourceKind]}</p>
+            <p className="meta">{t(FILE_HINT[kind as FileSourceKind])}</p>
             {kind === "video" ? (
               <label className="field">
-                Spoken language (optional)
+                {t("spokenLanguage")}
                 <input
                   className="input"
                   value={language}
@@ -489,13 +496,13 @@ export function SourceInput(props: {
                 checked={rightsConfirmed}
                 onChange={(event) => setRightsConfirmed(event.target.checked)}
               />
-              I have the rights to use this file.
+              {t("rights")}
             </label>
           </>
         ) : (
           <>
             <label className="field">
-              {kind === "topic" ? "Topic" : kind === "url" ? "Public link" : "Source text"}
+              {kind === "topic" ? t("fieldTopic") : kind === "url" ? t("fieldUrl") : t("fieldText")}
               {kind === "text" ? (
                 <textarea
                   className="textarea"
@@ -518,10 +525,7 @@ export function SourceInput(props: {
               )}
             </label>
             {kind === "url" ? (
-              <p className="meta">
-                A public page we can read without signing in. Paywalled and private pages
-                can&apos;t be imported.
-              </p>
+              <p className="meta">{t("urlHint")}</p>
             ) : (
               <p className="meta">
                 {Array.from(text).length.toLocaleString()} / {limit.toLocaleString()}
@@ -533,15 +537,15 @@ export function SourceInput(props: {
         {props.optionsFields}
       </fieldset>
       <Button type="submit" disabled={pending || !ready}>
-        {pending ? "Generating…" : "Generate carousel"}
+        {pending ? t("generating") : t("generate")}
       </Button>
       {status ? <p className="meta" role="status">{status}</p> : null}
       {jobId ? <GenerationProgress jobId={jobId} /> : null}
-      {stage ? <p className="meta">Current stage: {stage}</p> : null}
+      {stage ? <p className="meta">{t("currentStage", { stage })}</p> : null}
       {error ? (
         <p role="alert">
           {error}
-          {action ? ` ${ACTION_HINT[action]}` : ""}
+          {action ? ` ${t(ACTION_HINT[action])}` : ""}
         </p>
       ) : null}
       <style>{`

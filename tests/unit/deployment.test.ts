@@ -27,6 +27,17 @@ describe("T085 controlled deployment", () => {
     expect(release).not.toMatch(/migration new|db diff|db pull/);
   });
 
+  // package.json 的 test 脚本是 `vitest run --exclude 'tests/cloud/**'`，发布阻断器却住在
+  // tests/cloud 里。少了这一步，受控发布就跑不到自己的发布守卫，「失败不晋升」只剩字面意思。
+  it("runs the release blockers the plain test script excludes", async () => {
+    const release = await workflow("release.yml");
+    expect(release).toContain("pnpm exec vitest run tests/cloud/release-guards.test.ts");
+    // 必须在 test 作业里，也就是在任何 environment: production 作业之前。
+    expect(release.indexOf("tests/cloud/release-guards.test.ts")).toBeLessThan(
+      release.indexOf("environment: production"),
+    );
+  });
+
   it("requires the protected production environment before mutation", async () => {
     const release = await workflow("release.yml");
     expect(release.match(/environment: production/g)).toHaveLength(3);

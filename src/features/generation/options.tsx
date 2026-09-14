@@ -1,9 +1,10 @@
 "use client";
 
-import type { GenerationOptions } from "../../server/generation";
+import { useTranslations } from "next-intl";
+import { GENERATION_LANGUAGES, type GenerationOptions } from "../../server/generation";
 
 export const DEFAULT_GENERATION_OPTIONS: GenerationOptions = {
-  language: "English",
+  language: "en",
   format: "educational",
   pageCount: 6,
   instructions: "",
@@ -16,6 +17,7 @@ export function GenerationOptionsFields(props: {
   readonly disabled?: boolean;
   readonly onChange: (value: GenerationOptions) => void;
 }) {
+  const t = useTranslations("Options");
   function update<Key extends keyof GenerationOptions>(
     key: Key,
     value: GenerationOptions[Key],
@@ -25,10 +27,10 @@ export function GenerationOptionsFields(props: {
 
   return (
     <fieldset disabled={props.disabled} className="stack" style={{ border: 0, padding: 0 }}>
-      <legend className="h3">Generation options</legend>
+      <legend className="h3">{t("legend")}</legend>
       <div className="grid-2">
         <label className="field">
-          Platform
+          {t("platform")}
           <select
             className="select"
             value={props.value.platform}
@@ -40,7 +42,7 @@ export function GenerationOptionsFields(props: {
           </select>
         </label>
         <label className="field">
-          Template
+          {t("template")}
           <select
             className="select"
             value={props.value.templateId}
@@ -55,28 +57,31 @@ export function GenerationOptionsFields(props: {
           </select>
         </label>
         <label className="field">
-          Language
-          <input
-            className="input"
+          {t("language")}
+          <select
+            className="select"
             value={props.value.language}
-            maxLength={80}
-            onChange={(event) => update("language", event.target.value)}
-          />
+            onChange={(event) => update("language", event.target.value as GenerationOptions["language"])}
+          >
+            {GENERATION_LANGUAGES.map((language) => (
+              <option key={language} value={language}>{t(`language_${language}`)}</option>
+            ))}
+          </select>
         </label>
         <label className="field">
-          Content format
+          {t("format")}
           <select
             className="select"
             value={props.value.format}
             onChange={(event) => update("format", event.target.value)}
           >
-            <option value="educational">Educational</option>
-            <option value="story">Story</option>
-            <option value="list">List</option>
+            <option value="educational">{t("formatEducational")}</option>
+            <option value="story">{t("formatStory")}</option>
+            <option value="list">{t("formatList")}</option>
           </select>
         </label>
         <label className="field">
-          Number of slides
+          {t("pageCount")}
           <input
             className="input"
             type="number"
@@ -89,7 +94,7 @@ export function GenerationOptionsFields(props: {
         </label>
       </div>
       <label className="field">
-        Instructions
+        {t("instructions")}
         <textarea
           className="textarea"
           maxLength={2_000}

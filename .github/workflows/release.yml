@@ -43,6 +43,14 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm test:planning
+      # pnpm test 是 `vitest run --exclude 'tests/cloud/**'`，而发布阻断器恰好住在 tests/cloud 里。
+      # 不显式跑这一条，受控发布就会绕过自己的发布守卫直奔生产——「失败不晋升」形同虚设。
+      # 这些守卫现在是红的（法律文本未审定等，见 docs/roadmap.md 的阻断清单），红就该拦住发布。
+      - run: pnpm exec vitest run tests/cloud/release-guards.test.ts
+      # 同理：回滚演练里「迁移只加不减」和「website 最后部署」两条是发布闸门，不是事后报告。
+      # 网站回滚的安全性完全靠这两条支撑（worker 载荷校验器没有任何版本容忍度，见
+      # docs/acceptance/release-drill.md），所以它们必须在迁移执行之前拦住发布。
+      - run: pnpm exec vitest run tests/cloud/release-drill.test.ts
       - run: git diff --check
 
   migrate:

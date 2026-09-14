@@ -202,13 +202,16 @@ export function createBrandService(store: BrandStore, projectService?: Pick<Proj
       try { return brandFromRow(await store.create({ ownerId, name: name(input.name), settings })); }
       catch (error) { if (error instanceof BrandServiceError) throw error; throw new BrandServiceError("SERVICE_UNAVAILABLE", "Brand Kit could not be created.", 503, true); }
     },
-    async update(ownerId: string, brandKitId: string, input: Readonly<{ expectedRevision: unknown; name: unknown; settings: unknown }>): Promise<BrandKit> {
+    async update(ownerId: string, brandKitId: string, input: Readonly<{ expectedRevision: unknown; name?: unknown; settings: unknown }>): Promise<BrandKit> {
       if (!UUID_PATTERN.test(brandKitId)) throw new BrandServiceError("NOT_FOUND", "Brand Kit not found.", 404);
       if (!Number.isSafeInteger(input.expectedRevision) || Number(input.expectedRevision) < 1) throw new BrandServiceError("INVALID_REQUEST", "expectedRevision must be a positive integer.", 422);
       const settings = parseBrandSettings(input.settings);
       await assertOwnedAssets(store, ownerId, settings);
+      // contracts/api.md 的 PUT /brand-kits/:id 输入只有 expectedRevision 和 settings，改名不是必填项。
+      // 省略 name 时保留库里现有的名字，而不是逼调用方回传一个它并不打算改的字段。
+      const nextName = input.name === undefined ? (await ownedKit(ownerId, brandKitId)).name : name(input.name);
       try {
-        const result = await store.update({ ownerId, brandKitId, expectedRevision: Number(input.expectedRevision), name: name(input.name), settings });
+        const result = await store.update({ ownerId, brandKitId, expectedRevision: Number(input.expectedRevision), name: nextName, settings });
         if (!result) throw new BrandServiceError("VERSION_CONFLICT", "This Brand Kit changed in another tab. Reload it before saving.", 409);
         return brandFromRow(result);
       } catch (error) { if (error instanceof BrandServiceError) throw error; throw new BrandServiceError("SERVICE_UNAVAILABLE", "Brand Kit could not be saved.", 503, true); }

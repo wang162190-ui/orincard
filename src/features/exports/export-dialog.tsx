@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Button, Dialog, DialogBody, DialogFooter, DialogHeader } from "@/components/ui";
 import type { ExportFormat } from "@/render/render-deck";
@@ -16,6 +17,7 @@ export function ExportDialog({
   readonly revision: number;
   readonly fetcher?: Fetcher;
 }) {
+  const t = useTranslations("Exports");
   const [format, setFormat] = useState<ExportFormat>("pdf");
   const [issues, setIssues] = useState<readonly { repairAction: string }[]>([]);
   const [status, setStatus] = useState<"idle" | "checking" | "started" | "failed">("idle");
@@ -53,30 +55,31 @@ export function ExportDialog({
   return (
     <Dialog labelledBy="export-dialog-title">
       <DialogHeader>
-        <h2 id="export-dialog-title">Export revision {revision}</h2>
+        <h2 id="export-dialog-title">{t("dialogHeading", { revision })}</h2>
       </DialogHeader>
       <DialogBody>
         <label>
-          Format
+          {t("format")}
           <select value={format} onChange={(event) => setFormat(event.target.value as ExportFormat)}>
-            <option value="png_zip">PNG ZIP</option>
-            <option value="jpg_zip">JPG ZIP</option>
-            <option value="pdf">PDF</option>
-            <option value="pptx">Editable PPTX</option>
+            <option value="png_zip">{t("formatPngZip")}</option>
+            <option value="jpg_zip">{t("formatJpgZip")}</option>
+            <option value="pdf">{t("formatPdf")}</option>
+            <option value="pptx">{t("formatPptx")}</option>
           </select>
         </label>
         {issues.map((issue, index) => <p role="alert" key={index}>{issue.repairAction}</p>)}
-        {status === "started" ? <p role="status">Export started</p> : null}
-        {status === "failed" && issues.length === 0 ? <p role="alert">Export could not be started.</p> : null}
+        {status === "started" ? <p role="status">{t("started")}</p> : null}
+        {status === "failed" && issues.length === 0 ? <p role="alert">{t("startFailed")}</p> : null}
       </DialogBody>
       <DialogFooter>
-        <Button disabled={status === "checking"} onClick={startExport}>Export</Button>
+        <Button disabled={status === "checking"} onClick={startExport}>{t("submit")}</Button>
       </DialogFooter>
     </Dialog>
   );
 }
 
 export function ExportCenter({ fetcher = fetch }: { readonly fetcher?: Fetcher }) {
+  const t = useTranslations("Exports");
   const [items, setItems] = useState<readonly {
     id: string;
     format: string;
@@ -103,7 +106,7 @@ export function ExportCenter({ fetcher = fetch }: { readonly fetcher?: Fetcher }
     const authorization = await fetcher(`/api/v1/exports/${exportId}/download`, { method: "POST" });
     const body = await authorization.json();
     if (!authorization.ok) {
-      setDownloadError(body.error?.message ?? "Download is unavailable.");
+      setDownloadError(body.error?.message ?? t("downloadUnavailable"));
       return;
     }
     const info = body.data as {
@@ -114,14 +117,14 @@ export function ExportCenter({ fetcher = fetch }: { readonly fetcher?: Fetcher }
       filename: string;
     };
     if (info.bytes > info.maxClientBytes) {
-      setDownloadError("This file is too large for the browser fallback. Use a supported streaming download.");
+      setDownloadError(t("downloadTooLarge"));
       return;
     }
     const { data, error } = await createBrowserSupabaseClient().storage
       .from(info.bucket)
       .download(info.objectPath);
     if (error || !data) {
-      setDownloadError("Download is temporarily unavailable.");
+      setDownloadError(t("downloadTemporarilyUnavailable"));
       return;
     }
     const url = URL.createObjectURL(data);
@@ -132,17 +135,17 @@ export function ExportCenter({ fetcher = fetch }: { readonly fetcher?: Fetcher }
     URL.revokeObjectURL(url);
   }
 
-  if (failed) return <p role="alert">Exports are temporarily unavailable.</p>;
-  if (items.length === 0) return <p>No exports yet. Start one from a saved project.</p>;
+  if (failed) return <p role="alert">{t("unavailable")}</p>;
+  if (items.length === 0) return <p>{t("empty")}</p>;
   return (
     <>
       {downloadError ? <p role="alert">{downloadError}</p> : null}
       <ul>
         {items.map((item) => (
           <li key={item.id}>
-            Revision {item.revision} · {item.format} · {item.state}
+            {t("entry", { revision: item.revision, format: item.format, state: item.state })}
             {item.state === "ready" ? (
-              <Button onClick={() => download(item.id)}>Download</Button>
+              <Button onClick={() => download(item.id)}>{t("download")}</Button>
             ) : null}
           </li>
         ))}

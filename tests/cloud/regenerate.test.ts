@@ -17,7 +17,7 @@ async function fixture(): Promise<CarouselDocument> {
 }
 
 const options: GenerationOptions = {
-  language: "English",
+  language: "en",
   format: "educational",
   pageCount: 4,
   instructions: "Use a clearer narrative.",

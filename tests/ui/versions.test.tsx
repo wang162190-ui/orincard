@@ -1,8 +1,20 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render as renderBare, screen } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
+import type { ReactNode } from "react";
+import messages from "../../messages/en.json";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { VersionHistory } from "../../src/features/editor/versions";
+
+// 组件的文案来自词条文件，脱离 Provider 渲染会直接抛错。
+// 用 RTL 的 wrapper 而不是手动套一层：rerender 会自动沿用 wrapper，手套的那层不会。
+function render(ui: ReactNode, options?: Parameters<typeof renderBare>[1]) {
+  return renderBare(ui as Parameters<typeof renderBare>[0], {
+    ...options,
+    wrapper: ({ children }) => <NextIntlClientProvider locale="en" messages={messages}>{children}</NextIntlClientProvider>,
+  });
+}
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 

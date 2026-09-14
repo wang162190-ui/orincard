@@ -39,6 +39,19 @@
       "license": "OFL-1.1",
       "licenseFile": "LICENSE",
       "source": "https://fontsource.org/fonts/noto-sans-sc"
+    },
+    {
+      "id": "noto-sans-sc-simplified-700",
+      "family": "Noto Sans SC",
+      "style": "normal",
+      "weight": "700",
+      "package": "@fontsource/noto-sans-sc",
+      "packageVersion": "5.3.0",
+      "file": "files/noto-sans-sc-chinese-simplified-700-normal.woff2",
+      "sha256": "e1df51edc00bce27b58044e829fb8ec6accc8a5daece475413de90d52818845c",
+      "license": "OFL-1.1",
+      "licenseFile": "LICENSE",
+      "source": "https://fontsource.org/fonts/noto-sans-sc"
     }
   ]
 }

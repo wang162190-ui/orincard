@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
 import templates from "../../content/templates.json";
 import { listContent } from "@/server/content";
-import { siteOrigin } from "@/server/metadata";
+import { localizedPath, routing } from "@/i18n/routing";
+import { localeAlternates, siteOrigin } from "@/server/metadata";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const origin = siteOrigin();
@@ -11,5 +12,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...listContent("help").map((slug) => `/help/${slug}`),
     ...listContent("guide").map((slug) => `/guides/${slug}`),
   ];
-  return paths.map((path) => ({ url: new URL(path, origin).toString(), changeFrequency: path === "/" ? "weekly" : "monthly" }));
+  // 每条路径按语言各出一行，并互相声明 hreflang。只列英文版会让中文页永远进不了索引。
+  return routing.locales.flatMap((locale) =>
+    paths.map((path) => ({
+      url: new URL(localizedPath(path, locale), origin).toString(),
+      changeFrequency: path === "/" ? ("weekly" as const) : ("monthly" as const),
+      alternates: { languages: localeAlternates(path) },
+    })),
+  );
 }

@@ -2,6 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useTranslations } from "next-intl";
 import type { CSSProperties } from "react";
 import type { CarouselDocument } from "../../domain/document";
 import { Button } from "../../components/ui";
@@ -41,8 +42,9 @@ export function SlidePanel({
     id: slide.id,
     disabled: slide.role !== "content",
   });
+  const t = useTranslations("Slides");
   const slideNumber = index + 1;
-  const title = slide.title?.trim() || "Untitled slide";
+  const title = slide.title?.trim() || t("untitled");
   const style: CSSProperties = {
     alignItems: "center",
     background: selected ? "var(--sig-yellow)" : "var(--surface)",
@@ -67,7 +69,7 @@ export function SlidePanel({
       <Button
         {...sortable.attributes}
         {...sortable.listeners}
-        aria-label={`Drag slide ${slideNumber}`}
+        aria-label={t("drag", { number: slideNumber })}
         disabled={slide.role !== "content"}
         iconOnly
         size="small"
@@ -77,7 +79,7 @@ export function SlidePanel({
       </Button>
 
       <button
-        aria-label={`Slide ${slideNumber}: ${title}`}
+        aria-label={t("select", { number: slideNumber, title })}
         aria-pressed={selected}
         onClick={onSelect}
         style={{
@@ -90,7 +92,7 @@ export function SlidePanel({
         }}
         type="button"
       >
-        <span className="label">Slide {slideNumber} · {slide.role}</span>
+        <span className="label">{t("caption", { number: slideNumber, role: slide.role })}</span>
         <span
           style={{
             display: "block",
@@ -105,7 +107,7 @@ export function SlidePanel({
 
       <div className="row" style={{ gap: 2 }}>
         <Button
-          aria-label={`Move slide ${slideNumber} up`}
+          aria-label={t("moveUp", { number: slideNumber })}
           disabled={!canMoveUp}
           iconOnly
           onClick={onMoveUp}
@@ -115,7 +117,7 @@ export function SlidePanel({
           ↑
         </Button>
         <Button
-          aria-label={`Move slide ${slideNumber} down`}
+          aria-label={t("moveDown", { number: slideNumber })}
           disabled={!canMoveDown}
           iconOnly
           onClick={onMoveDown}
@@ -125,7 +127,7 @@ export function SlidePanel({
           ↓
         </Button>
         <Button
-          aria-label={`Duplicate slide ${slideNumber}`}
+          aria-label={t("duplicate", { number: slideNumber })}
           disabled={!canDuplicate}
           iconOnly
           onClick={onDuplicate}
@@ -135,7 +137,7 @@ export function SlidePanel({
           ⧉
         </Button>
         <Button
-          aria-label={`Delete slide ${slideNumber}`}
+          aria-label={t("delete", { number: slideNumber })}
           disabled={!canDelete}
           iconOnly
           onClick={onDelete}
