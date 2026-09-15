@@ -4,6 +4,32 @@ import { defineConfig } from "@trigger.dev/sdk";
 
 export const TRIGGER_PROJECT_ID = "proj_bhwgeecxnhxxjrkmdqvh";
 
+// 本地开发和公开站是两个 Trigger 项目（`--project-ref` 选目标），但共用这一份配置。
+// 只有这四个变量对两边都一样，无条件同步。
+const SHARED_VARS = ["VOLCENGINE_SPEECH_API_KEY", "AI_TRANSCRIBE_MODEL", "APIMART_API_KEY", "STRIPE_SECRET_KEY"];
+
+// 其余变量只在 APP_ENV=production 时同步，也就是只在带 `--env-file` 指向生产值的那次
+// deploy 里。没有这道闸，任何一次本地 deploy 都会把开发库的 ref 和密钥覆盖到公开站的
+// worker 上——那正是 src/server/environment.ts 的两条断言想挡住的事。
+const PUBLIC_ONLY_VARS = [
+  "APP_ENV",
+  "NEXT_PUBLIC_APP_URL",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SECRET_KEY",
+  "SUPABASE_PROJECT_REF",
+  "SUPABASE_PRODUCTION_PROJECT_REF",
+  "DEEPSEEK_API_KEY",
+  "AI_TEXT_MODEL",
+  "AI_IMAGE_MODEL",
+  "PEXELS_API_KEY",
+  "AI_MONTHLY_BUDGET_USD",
+  "USER_JOB_CONCURRENCY",
+  "EXPORT_CONCURRENCY",
+  "BILLING_LIVE_ENABLED",
+  "AFFILIATE_PAYOUTS_ENABLED",
+];
+
 export default defineConfig({
   project: TRIGGER_PROJECT_ID,
   runtime: "node-22",
@@ -22,7 +48,7 @@ export default defineConfig({
   build: {
     extensions: [
       syncEnvVars(() =>
-        ["VOLCENGINE_SPEECH_API_KEY", "AI_TRANSCRIBE_MODEL", "APIMART_API_KEY", "STRIPE_SECRET_KEY"].flatMap((name) =>
+        [...SHARED_VARS, ...(process.env.APP_ENV === "production" ? PUBLIC_ONLY_VARS : [])].flatMap((name) =>
           process.env[name] ? [{ name, value: process.env[name], isSecret: true }] : [],
         ),
       ),

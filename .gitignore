@@ -32,3 +32,4 @@ supabase/.temp/
 supabase/.branches/
 *.dump
 *.sql.gz
+.vercel
