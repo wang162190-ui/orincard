@@ -13,6 +13,7 @@ export type WorkspaceSection =
   | "brand-kits"
   | "templates"
   | "tools"
+  | "agent"
   | "billing"
   | "settings"
   | "affiliate"
@@ -104,6 +105,7 @@ const PATHS = {
   brandKits: "M4 6h16M4 12h10M4 18h7m6-3 4 4-4 4",
   templates: "M4 5h7v6H4zm9 0h7v3h-7zM4 14h7v5H4zm9-3h7v8h-7z",
   tools: "M14.7 6.3a4 4 0 0 1 5.3 5.3l-8.4 8.4-5.3-5.3zM6 3l1.5 3L11 7.5 7.5 9 6 12l-1.5-3L1 7.5 4.5 6z",
+  agent: "M12 3v3m-4.5 0h9A2.5 2.5 0 0 1 19 8.5v6A2.5 2.5 0 0 1 16.5 17h-9A2.5 2.5 0 0 1 5 14.5v-6A2.5 2.5 0 0 1 7.5 6zM9.5 10.5h.01m4.99 0h.01M9 13.5h6M8 21l1.5-4m6.5 4-1.5-4",
   billing: "M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 10h18",
   settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.3a2 2 0 1 1-4 0V21a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 15H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9 5.6V5a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7h.3a2 2 0 1 1 0 4H21a1.6 1.6 0 0 0-1.6 1.3z",
 } as const;
@@ -133,6 +135,8 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "templates", href: "/templates", labelKey: "templates", icon: <Icon d={PATHS.templates} /> },
       { id: "tools", href: "/tools", labelKey: "tools", icon: <Icon d={PATHS.tools} /> },
+      // 编排器和工具列表并排：它做的事就是「替你挑工具、排顺序」，放在工具旁边才说得通。
+      { id: "agent", href: "/agent", labelKey: "agent", icon: <Icon d={PATHS.agent} /> },
       { id: "brand-kits", href: "/brand-kits", labelKey: "brandKits", icon: <Icon d={PATHS.brandKits} /> },
     ],
   },

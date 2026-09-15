@@ -50,6 +50,8 @@
 | POST /jobs/:id/cancel | 无 | cancel_requested或terminal状态 | 已执行外部调用费用仍入成本账；未交付用户结果不扣产品额度 |
 | GET/POST /tools/:tool | GET jobId；POST typedInput、可选projectId+expectedRevision+selectedContext | GET返回该工具任务的state/progress与候选；POST 202 jobId/resultType | 仅七个注册工具；GET仅本人且候选工具须与路径一致否则404；失败不修改项目 |
 | POST /tools/:tool/apply | resultJobId、projectId、expectedRevision、target | 新revision或新项目 | 必须显式应用；Portrait仍需素材确认 |
+| GET/POST /agent | GET jobId；POST request（1–2000字）、可选projectId | GET返回该编排任务的state/progress与计划；POST 202 jobId | 一次请求恰好一次模型调用，只产出计划不自动执行；计划最多6步且每步须为已注册工具并通过该工具入参schema；规划消耗一个generation额度单位；GET仅本人 |
+| POST /agent/execute | jobId（规划任务） | 202 runId/state/steps（每步的子任务 jobId）/blocked | 仅用户确认后执行；每步提交为该规划任务的子任务并各自过数据库额度与成本预算闸；某步被闸住时保留已提交步骤并在blocked如实回报，不整体回滚；重复调用按步幂等续跑；零步计划（模型要澄清）拒绝执行 |
 
 guest结果不持久化意味着无法从服务器再次取回。重复已完成匿名请求返回410 RESULT_NOT_RETAINED并提示重试或用本地结果，不偷偷重新收费/调用。匿名无货币扣费，但反滥用限制仍适用。注册长任务结果可按jobId恢复。
 

@@ -33,7 +33,8 @@
     "settings": "设置",
     "help": "帮助",
     "support": "支持",
-    "affiliate": "推广"
+    "affiliate": "推广",
+    "agent": "AI 编排器"
   },
   "Marketing": {
     "previewNoticeLabel": "早期预览",
@@ -660,5 +661,28 @@
     "affiliate": "推广计划政策",
     "metaTitle": "{name}草稿 — Orincard",
     "draftNotice": "草稿——尚未经过法律审阅，也未获准发布。"
+  },
+  "AgentPanel": {
+    "shellTitle": "AI 编排器",
+    "heading": "说清你想要什么",
+    "lead": "编排器把一句需求翻成一份工具调用计划。计划由你确认后才会执行。",
+    "requestLabel": "你的需求",
+    "requestPlaceholder": "例如：把这段话写成一条 Instagram 文案，再给三个后续选题。",
+    "plan": "生成计划",
+    "idle": "先写一句需求。",
+    "planning": "正在提交需求…",
+    "planReady": "计划已生成，等你过目。",
+    "planFailed": "规划没能完成（{code}）。",
+    "planStartFailed": "需求提交失败。",
+    "readFailed": "暂时读不到这次编排的状态。",
+    "planHeading": "计划草案",
+    "clarification": "编排器还需要更多信息：{text}",
+    "confirmAndRun": "确认并执行 {count} 步",
+    "executing": "正在提交各步骤…",
+    "executeFailed": "步骤提交失败。",
+    "executionHeading": "执行",
+    "executionStarted": "已提交 {count} 个步骤。",
+    "stepHeading": "第 {index} 步：{tool}",
+    "blocked": "停在第 {step} 步（{code}）。此前已提交的步骤仍在执行。"
   }
 }

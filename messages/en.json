@@ -33,7 +33,8 @@
     "settings": "Settings",
     "help": "Help",
     "support": "Support",
-    "affiliate": "Affiliate"
+    "affiliate": "Affiliate",
+    "agent": "AI agent"
   },
   "Marketing": {
     "previewNoticeLabel": "Early preview",
@@ -660,5 +661,28 @@
     "affiliate": "Affiliate policy",
     "metaTitle": "{name} draft — Orincard",
     "draftNotice": "Draft — not legally reviewed or approved for publication."
+  },
+  "AgentPanel": {
+    "shellTitle": "AI agent",
+    "heading": "Describe what you want",
+    "lead": "The agent turns one request into a plan of tool calls. Nothing runs until you confirm the plan.",
+    "requestLabel": "Your request",
+    "requestPlaceholder": "e.g. Turn this paragraph into an Instagram caption, then give me three follow-up topics.",
+    "plan": "Plan it",
+    "idle": "Describe a request to get started.",
+    "planning": "Submitting your request…",
+    "planReady": "The plan is ready for your review.",
+    "planFailed": "Planning did not finish ({code}).",
+    "planStartFailed": "The request could not be submitted.",
+    "readFailed": "The agent run is temporarily unavailable.",
+    "planHeading": "Proposed plan",
+    "clarification": "The agent needs more detail: {text}",
+    "confirmAndRun": "Confirm and run {count} steps",
+    "executing": "Submitting the steps…",
+    "executeFailed": "The steps could not be submitted.",
+    "executionHeading": "Execution",
+    "executionStarted": "{count} steps submitted.",
+    "stepHeading": "Step {index}: {tool}",
+    "blocked": "Stopped at step {step} ({code}). Earlier steps are still running."
   }
 }

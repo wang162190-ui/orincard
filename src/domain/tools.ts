@@ -35,7 +35,11 @@ export const toolContextSelectionSchema = z.object({
 export type ToolContextSelection = z.infer<typeof toolContextSelectionSchema>;
 
 const instructions = z.string().trim().max(1_000).optional();
-const inputSchemas = {
+/**
+ * 导出是为了让编排器从**这一份**定义生成喂给模型的工具目录（src/server/agent/prompts.ts），
+ * 而不是另写一份说明。另写的那份一定会和这里漂移，且漂移无人察觉。
+ */
+export const inputSchemas = {
   caption: z.object({ text: longText.optional(), instructions }).strict(),
   "linkedin-post": z.object({ text: longText.optional(), instructions }).strict(),
   "post-ideas": z.object({ topic: shortText.optional(), count: z.number().int().min(1).max(10).default(5), instructions }).strict(),

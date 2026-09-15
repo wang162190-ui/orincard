@@ -1,4 +1,5 @@
 import { additionalFiles, additionalPackages, aptGet, syncEnvVars } from "@trigger.dev/build/extensions/core";
+import type { BuildExtension } from "@trigger.dev/build";
 import { playwright } from "@trigger.dev/build/extensions/playwright";
 import { defineConfig } from "@trigger.dev/sdk";
 
@@ -30,6 +31,42 @@ const PUBLIC_ONLY_VARS = [
   "AFFILIATE_PAYOUTS_ENABLED",
 ];
 
+/**
+ * 把 `chromium-bidi` 的两处 import 换成空模块。
+ *
+ * `playwright-core@1.57` 的 `server/bidi/bidiOverCdp.js` 在模块顶层 `require("chromium-bidi/...")`，
+ * 而 `chromium-bidi` 根本不在依赖树里——它只服务 BiDi（Firefox）通道，我们只用 chromium
+ * （见下方 playwright 扩展的 `browsers`）。esbuild 是静态解析的，于是整个 worker 连带所有任务
+ * 都构建不出来：`Could not resolve "chromium-bidi/lib/cjs/bidiMapper/BidiMapper"`。
+ *
+ * 为什么不用 `build.external`：那条路只对**已安装**的包有效——CLI 要读到该包的 package.json
+ * 才会把它标成 external 并随 worker 一起 ship（`trigger.dev/dist/esm/build/externals.js`），
+ * 包不存在时这条配置被静默忽略，错误照旧。为什么不直接装 `chromium-bidi`：为一条永不执行的
+ * 代码路径往依赖树里加一个包，还要动 lockfile 和 node_modules。
+ *
+ * 换成空模块而不是标 external，是因为那两行是**顶层** require：留着未解析的 require，
+ * 一旦这个文件被加载就会当场抛 MODULE_NOT_FOUND。空模块则安静通过；真要走 BiDi 才会暴露，
+ * 而那条通道我们不用。
+ */
+const stubChromiumBidi: BuildExtension = {
+  name: "stub-chromium-bidi",
+  onBuildStart(context) {
+    context.registerPlugin({
+      name: "stub-chromium-bidi",
+      setup(build) {
+        build.onResolve({ filter: /^chromium-bidi(\/|$)/ }, (args) => ({
+          path: args.path,
+          namespace: "chromium-bidi-stub",
+        }));
+        build.onLoad({ filter: /.*/, namespace: "chromium-bidi-stub" }, () => ({
+          contents: "export default {};",
+          loader: "js",
+        }));
+      },
+    });
+  },
+};
+
 export default defineConfig({
   project: TRIGGER_PROJECT_ID,
   runtime: "node-22",
@@ -47,6 +84,7 @@ export default defineConfig({
   },
   build: {
     extensions: [
+      stubChromiumBidi,
       syncEnvVars(() =>
         [...SHARED_VARS, ...(process.env.APP_ENV === "production" ? PUBLIC_ONLY_VARS : [])].flatMap((name) =>
           process.env[name] ? [{ name, value: process.env[name], isSecret: true }] : [],

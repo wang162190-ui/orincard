@@ -8,6 +8,7 @@ import {
   type JobRecord,
 } from "../../../../server/jobs";
 import { readServerEnvironment } from "../../../../server/environment";
+import { createEntitlementProvisioner } from "../../../../server/billing/entitlement-grant";
 import {
   createAdminSupabaseClient,
   createServerSupabaseClient,
@@ -249,6 +250,11 @@ export function createGenerationJobService(input: {
   readonly requestHashSecret: string;
   readonly environment?: string;
   readonly now?: () => Date;
+  /**
+   * 提交前确保当期额度桶存在。可选：未配置权益策略的环境（BILLING_POLICY_JSON 缺失）
+   * 不传，行为与接线前逐字一致——照旧走到 QUOTA_EXCEEDED，而不是把配置缺失伪装成别的错误。
+   */
+  readonly ensureEntitlements?: (ownerId: string, at: Date) => Promise<void>;
 }) {
   const now = input.now ?? (() => new Date());
   return {
@@ -285,6 +291,9 @@ export function createGenerationJobService(input: {
       const requestHash = createHmac("sha256", input.requestHashSecret)
         .update(JSON.stringify(inputRef))
         .digest("hex");
+      // 发放放在提交之前：submit_job 是按 (owner, period_start, resource) 精确相等去找桶的，
+      // 桶不存在就是 22003。发放幂等且额度只升不降，重复提交不会多给。
+      await input.ensureEntitlements?.(ownerId, currentTime);
       let submitted: JobRecord;
       try {
         submitted = await input.store.submit({
@@ -375,6 +384,11 @@ export async function POST(request: Request): Promise<Response> {
     store: createSupabaseGenerationSubmissionStore(admin),
     requestHashSecret: environment.supabaseSecretKey,
     environment: environment.appEnvironment,
+    ensureEntitlements: createEntitlementProvisioner({
+      client: admin,
+      appEnvironment: environment.appEnvironment,
+      rawPolicy: process.env.BILLING_POLICY_JSON,
+    }),
     dispatch: async (jobId, requestId) => {
       await dispatchPendingJob(jobStore, generationTriggerDispatcher, jobId, requestId);
     },

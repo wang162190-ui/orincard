@@ -29,12 +29,18 @@ async function fetchJob(jobId: string): Promise<{ readonly data: JobStatus }> {
   return { data: body.data };
 }
 
+/**
+ * `kind` 是**断言**，不是过滤器：调用方说自己在看哪一类任务，拿回别的类就报错。
+ * 编排器复用这个组件时传 `agent`（规划任务）或 `tool`（子任务），默认仍是 `generation`，
+ * 所以既有调用点一个字都不用改。放宽成「不检查 kind」会让串了 id 的 bug 悄悄渲染成正常进度。
+ */
 export async function loadGenerationProgress(
   jobId: string,
   loader: FetchJob = fetchJob,
+  kind = "generation",
 ): Promise<GenerationProgressSnapshot> {
   const response = await loader(jobId);
-  if (response.data.id !== jobId || response.data.kind !== "generation") {
+  if (response.data.id !== jobId || response.data.kind !== kind) {
     throw new Error("Generation job not found.");
   }
   return {
@@ -54,7 +60,13 @@ const terminalStates = new Set<JobState>([
   "canceled",
 ]);
 
-export function GenerationProgress({ jobId }: { readonly jobId: string }) {
+export function GenerationProgress({
+  jobId,
+  kind = "generation",
+}: {
+  readonly jobId: string;
+  readonly kind?: string;
+}) {
   const t = useTranslations("Progress");
   const [snapshot, setSnapshot] = useState<GenerationProgressSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +76,7 @@ export function GenerationProgress({ jobId }: { readonly jobId: string }) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = async () => {
       try {
-        const next = await loadGenerationProgress(jobId);
+        const next = await loadGenerationProgress(jobId, fetchJob, kind);
         if (!active) return;
         setSnapshot(next);
         setError(null);
@@ -80,7 +92,7 @@ export function GenerationProgress({ jobId }: { readonly jobId: string }) {
       active = false;
       if (timer) clearTimeout(timer);
     };
-  }, [jobId, t]);
+  }, [jobId, kind, t]);
 
   if (error) return <p role="alert">{error}</p>;
   if (!snapshot) return <p aria-live="polite">{t("starting")}</p>;

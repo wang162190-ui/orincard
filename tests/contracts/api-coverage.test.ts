@@ -47,10 +47,13 @@ function flatten(routes: Map<string, ReadonlySet<string>>): readonly string[] {
 }
 
 describe("T095 API contract coverage", () => {
-  it("declares and implements the same 48 paths", () => {
+  it("declares and implements the same 50 paths", () => {
     const code = implemented();
     const contract = declared();
-    expect(code.size).toBe(48);
+    // 50 而非 48：2026-09-15 新增 GET/POST /agent 与 POST /agent/execute（B14 / T100）。
+    // 执行单开一个入口是因为它是**用户确认后**的显式动作，不是规划成功的自动续跑。
+    // 这个数字是精确断言，改它必须连带在 contracts/api.md 里声明路径、在 tasks.md 里认领 route.ts。
+    expect(code.size).toBe(50);
     expect([...contract.keys()].sort()).toEqual([...code.keys()].sort());
   });
 

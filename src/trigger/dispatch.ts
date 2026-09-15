@@ -20,6 +20,9 @@ export const VISUAL_TOOL_TASK_ID = "orincard-visual-tool";
 // T042. The source parsers pull poppler, tesseract and ffmpeg wrappers behind them, so the
 // id lives here and the API route that dispatches a parse never imports the task module.
 export const PARSE_SOURCE_TASK_ID = "orincard-parse-source";
+// The orchestrator only plans; it never renders or calls an image provider, so it stays out of
+// the tool workers and keeps its own task.
+export const AGENT_TASK_ID = "orincard-agent-plan";
 export const SCREENSHOT_TASK_ID = "orincard-screenshot";
 export const CLEANUP_TASK_ID = "orincard-deletion-cleanup";
 
@@ -50,12 +53,14 @@ const toolDispatcher: TriggerDispatcher = {
 
 export const triggerDispatcher: TriggerDispatcher = dispatcherFor(JOB_DISPATCH_TASK_ID);
 export const deletionCleanupDispatcher: TriggerDispatcher = dispatcherFor(CLEANUP_TASK_ID);
+export const agentTriggerDispatcher: TriggerDispatcher = dispatcherFor(AGENT_TASK_ID);
 
 const BY_JOB_KIND: Record<string, TriggerDispatcher> = {
   generation: dispatcherFor(GENERATION_TASK_ID),
   export: dispatcherFor(BASIC_EXPORT_TASK_ID),
   account_export: dispatcherFor(ACCOUNT_EXPORT_TASK_ID),
   tool: toolDispatcher,
+  agent: agentTriggerDispatcher,
 };
 
 // orincard-job-dispatch only validates the payload and acknowledges it, so routing a

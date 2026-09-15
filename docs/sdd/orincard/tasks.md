@@ -2,7 +2,7 @@
 
 > source: docs/sdd/orincard/spec.md
 
-2026-09-04，HARD-GATE 2 已批准（95 项 / 12 批）。**2026-09-14 追加 B13 共 4 项，对应 spec 新增的 AC-012。**现共 99 项任务，13 批；按依赖执行，标记 `[P]` 的任务按 `Parallel` 组在最多三条隔离工作线中并行，未标记者串行收口。
+2026-09-04，HARD-GATE 2 已批准（95 项 / 12 批）。**2026-09-14 追加 B13 共 4 项，对应 spec 新增的 AC-012；2026-09-15 追加 B14 共 2 项，为 AI 编排器。**现共 101 项任务，14 批；按依赖执行，标记 `[P]` 的任务按 `Parallel` 组在最多三条隔离工作线中并行，未标记者串行收口。
 
 ## 执行约定
 
@@ -668,6 +668,27 @@
   - Check: `pnpm exec playwright test tests/e2e/assistant.spec.ts`
   - Expect: 真实浏览器里走完「提问 → 看 diff → 确认 → 新 revision」；制造 `expectedRevision` 冲突时 apply 返回 409 且源 revision 逐列不变；预算耗尽一轮被拒绝且未产生 revision；未配置能力不得计为完成。
 
+## B14
+
+- [x] T100 `src/server/agent/planner.ts`, `src/app/api/v1/agent/route.ts`, `src/trigger/agent.ts`, `src/features/agent/agent-panel.tsx`, `src/app/[locale]/agent/page.tsx` — AI 编排器：把一句需求翻成一份可审的工具调用计划 → AC-005, AC-010
+  - Batch: B14
+  - Depends: T067, T099
+  - Check: `pnpm vitest run tests/unit/agent-planner.test.ts tests/unit/agent-route.test.ts`
+  - Expect: 一次 run 恰好一次模型调用且成本尝试序号恒为 1；计划超过 6 步、含未注册工具或入参过不了该工具 schema 时整份判废而非修补；计划只展示不自动执行，执行阶段每步独立提交并各自过数据库预算闸。
+
+- [x] T102 `src/server/agent/executor.ts`, `src/app/api/v1/agent/execute/route.ts` — 用户确认后按步执行计划：每步提交为规划任务的子任务 → AC-005, AC-010
+  - Batch: B14
+  - Depends: T100
+  - Check: `pnpm vitest run tests/unit/agent-executor.test.ts`
+  - Expect: 执行是用户确认后的显式入口，规划成功不自动续跑；每步独立提交并各自过额度与环境成本预算闸；某步被闸住时保留已提交步骤、在 blocked 如实回报且不整体回滚；按步幂等，重复调用从第一个未提交的步骤续跑；零步（模型要澄清）的计划拒绝执行。
+
+- [x] T101 `tests/e2e/agent.spec.ts`, `docs/acceptance/agent.md` — 编排器端到端集成冒烟与成本对账验收 → AC-005, AC-010
+  - Batch: B14
+  - Depends: T100
+  - Check: `pnpm exec playwright test tests/e2e/agent.spec.ts`
+  - Status: ✅ 2026-09-15 全自动通过（`1 passed, 52.7s`）。前提：app 的 `TRIGGER_SECRET_KEY` 必须与 `trigger dev` 同在 dev 环境；详见 `docs/acceptance/agent.md` §3.1。
+  - Expect: 真实供应商调用走完「描述需求 → 看计划 → 确认 → 执行至少一步」；`private.cost_attempts` 出现 `job:<id>:agent:1` 且状态为 settled，实测 µUSD 与 7,000 的估算逐项对照写入验收文档；跑不通的链路标 ❌ 并写明原因，不得用 mock 凑绿。
+
 ## AC覆盖索引
 
 | AC | 任务 |
@@ -676,11 +697,11 @@
 | AC-002 | T018, T019, T024, T025, T027, T028, T029, T030, T031, T037, T039, T040, T041, T042, T043, T044, T086, T090, T092, T094, T095 |
 | AC-003 | T003, T009, T012, T014, T017, T023, T028, T029, T032, T033, T037, T095 |
 | AC-004 | T003, T005, T007, T011, T013, T014, T034, T051, T075, T091, T093, T095 |
-| AC-005 | T009, T012, T014, T018, T038, T045, T046, T047, T048, T049, T053, T064, T088, T090, T091, T095, T098, T099 |
+| AC-005 | T009, T012, T014, T018, T038, T045, T046, T047, T048, T049, T053, T064, T088, T090, T091, T095, T098, T099, T100, T101 |
 | AC-006 | T002, T003, T004, T005, T006, T011, T019, T024, T025, T034, T035, T036, T037, T054, T055, T056, T061, T064, T065, T090, T091, T093, T094, T095 |
 | AC-007 | T004, T006, T010, T015, T016, T017, T020, T021, T022, T023, T026, T035, T036, T037, T049, T056, T057, T058, T059, T060, T061, T082, T083, T085, T086, T087, T088, T089, T092, T095 |
 | AC-008 | T013, T015, T018, T020, T026, T038, T050, T051, T052, T053, T059, T088, T092, T095 |
 | AC-009 | T019, T020, T024, T025, T044, T068, T069, T070, T071, T072, T073, T083, T085, T086, T088, T089, T092, T094, T095, T097, T099 |
-| AC-010 | T062, T063, T064, T065, T066, T067, T095 |
+| AC-010 | T062, T063, T064, T065, T066, T067, T095, T100, T101 |
 | AC-011 | T001, T008, T066, T074, T075, T076, T077, T078, T079, T080, T081, T082, T083, T084, T085, T089, T095 |
 | AC-012 | T096, T097, T098, T099 |
