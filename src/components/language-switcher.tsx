@@ -17,6 +17,7 @@ export function LanguageSwitcher() {
     <label className="stack" style={{ gap: 4 }}>
       <span className="label">{t("label")}</span>
       <select
+        className="select"
         aria-label={t("label")}
         value={locale}
         onChange={(event) => router.replace(pathname, { locale: event.target.value as Locale })}

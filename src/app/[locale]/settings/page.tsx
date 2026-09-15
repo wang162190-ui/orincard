@@ -5,7 +5,7 @@ import { AccountSettings } from "@/features/settings/account-settings";
 export default function SettingsPage() {
   const t = useTranslations("Settings");
   return (
-    <WorkspaceShell current="workspace" title={t("shellTitle")}>
+    <WorkspaceShell current="settings" title={t("shellTitle")}>
       <section>
         <h1>{t("heading")}</h1>
         <p>{t("lead")}</p>

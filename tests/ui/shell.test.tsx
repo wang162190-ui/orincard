@@ -81,7 +81,11 @@ describe("workspace shell", () => {
     expect(createLink).toContain('aria-current="page"');
   });
 
-  it("does not link primary navigation to unimplemented or prototype routes", () => {
+  // The rail used to link only "/" and "/create", which left a dozen built routes with
+  // no entry point anywhere in the product. The guard is still the same one — the rail
+  // must not link anywhere unimplemented — but the allowed set is now explicit, so
+  // adding a link to a route that does not exist still fails here.
+  it("links only to routes that are actually implemented", () => {
     const markup = render(
       <WorkspaceShell current="workspace" title="Workspace">
         <p>Content</p>
@@ -89,10 +93,25 @@ describe("workspace shell", () => {
     );
     const hrefs = [...markup.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
 
-    expect(new Set(hrefs)).toEqual(new Set(["/", "/create"]));
+    expect(new Set(hrefs)).toEqual(
+      new Set([
+        "/",
+        "/create",
+        "/projects",
+        "/exports",
+        "/templates",
+        "/tools",
+        "/brand-kits",
+        "/billing",
+        "/settings",
+        "/help/getting-started",
+        "/support",
+        "/affiliate",
+        "/pricing",
+      ]),
+    );
     expect(markup).not.toContain("Prototype");
-    expect(markup).not.toContain("Projects");
-    expect(markup).not.toContain("Brand Kits");
-    expect(markup).not.toContain("Editor");
+    // The editor is only reachable from a project; it has no standalone rail entry.
+    expect(markup).not.toContain('href="/editor');
   });
 });

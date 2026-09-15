@@ -3,9 +3,24 @@ import type { ReactNode } from "react";
 import { Link } from "@/i18n/navigation";
 import { LanguageSwitcher } from "./language-switcher";
 
+// Every route that renders inside the rail names the section it belongs to, so a
+// detail page (editor, templates/[slug], tools/[tool]) still lights up its parent.
+export type WorkspaceSection =
+  | "workspace"
+  | "create"
+  | "projects"
+  | "exports"
+  | "brand-kits"
+  | "templates"
+  | "tools"
+  | "billing"
+  | "settings"
+  | "affiliate"
+  | "help";
+
 type WorkspaceShellProps = {
   children: ReactNode;
-  current: "workspace" | "create";
+  current: WorkspaceSection;
   title: string;
 };
 
@@ -75,6 +90,62 @@ function CreateIcon() {
   );
 }
 
+function Icon({ d }: { d: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={d} />
+    </svg>
+  );
+}
+
+const PATHS = {
+  projects: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
+  exports: "M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2",
+  brandKits: "M4 6h16M4 12h10M4 18h7m6-3 4 4-4 4",
+  templates: "M4 5h7v6H4zm9 0h7v3h-7zM4 14h7v5H4zm9-3h7v8h-7z",
+  tools: "M14.7 6.3a4 4 0 0 1 5.3 5.3l-8.4 8.4-5.3-5.3zM6 3l1.5 3L11 7.5 7.5 9 6 12l-1.5-3L1 7.5 4.5 6z",
+  billing: "M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 10h18",
+  settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.3a2 2 0 1 1-4 0V21a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 15H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9 5.6V5a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7h.3a2 2 0 1 1 0 4H21a1.6 1.6 0 0 0-1.6 1.3z",
+} as const;
+
+// `ariaKey` names the <nav> for screen readers; `headingKey` is the visible divider.
+// The first group has no visible heading — its aria name stays "Main navigation",
+// which tests/e2e/accessibility.spec.ts:75 and browsers.spec.ts:90 both locate by.
+type NavGroup = {
+  ariaKey: string;
+  headingKey?: string;
+  items: { id: WorkspaceSection; href: string; labelKey: string; icon: ReactNode }[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    ariaKey: "main",
+    items: [
+      { id: "workspace", href: "/", labelKey: "workspace", icon: <WorkspaceIcon /> },
+      { id: "create", href: "/create", labelKey: "newCarousel", icon: <CreateIcon /> },
+      { id: "projects", href: "/projects", labelKey: "projects", icon: <Icon d={PATHS.projects} /> },
+      { id: "exports", href: "/exports", labelKey: "exports", icon: <Icon d={PATHS.exports} /> },
+    ],
+  },
+  {
+    ariaKey: "library",
+    headingKey: "library",
+    items: [
+      { id: "templates", href: "/templates", labelKey: "templates", icon: <Icon d={PATHS.templates} /> },
+      { id: "tools", href: "/tools", labelKey: "tools", icon: <Icon d={PATHS.tools} /> },
+      { id: "brand-kits", href: "/brand-kits", labelKey: "brandKits", icon: <Icon d={PATHS.brandKits} /> },
+    ],
+  },
+  {
+    ariaKey: "account",
+    headingKey: "account",
+    items: [
+      { id: "billing", href: "/billing", labelKey: "billing", icon: <Icon d={PATHS.billing} /> },
+      { id: "settings", href: "/settings", labelKey: "settings", icon: <Icon d={PATHS.settings} /> },
+    ],
+  },
+];
+
 export function WorkspaceShell({ children, current, title }: WorkspaceShellProps) {
   const t = useTranslations("Nav");
   return (
@@ -87,28 +158,33 @@ export function WorkspaceShell({ children, current, title }: WorkspaceShellProps
           <span className="word">Orincard</span>
         </Link>
 
-        <nav className="rail-nav" aria-label={t("main")}>
-          <Link
-            className="nav-item"
-            href="/"
-            aria-label={t("workspace")}
-            aria-current={current === "workspace" ? "page" : undefined}
-          >
-            <WorkspaceIcon />
-            <span>{t("workspace")}</span>
-          </Link>
-          <Link
-            className="nav-item"
-            href="/create"
-            aria-label={t("newCarousel")}
-            aria-current={current === "create" ? "page" : undefined}
-          >
-            <CreateIcon />
-            <span>{t("newCarousel")}</span>
-          </Link>
-        </nav>
+        <div className="rail-groups">
+          {NAV_GROUPS.map((group) => (
+            <nav className="rail-nav" aria-label={t(group.ariaKey)} key={group.ariaKey}>
+              {group.headingKey ? <p className="rail-group-label">{t(group.headingKey)}</p> : null}
+              {group.items.map((item) => (
+                <Link
+                  className="nav-item"
+                  href={item.href}
+                  key={item.id}
+                  aria-label={t(item.labelKey)}
+                  aria-current={current === item.id ? "page" : undefined}
+                >
+                  {item.icon}
+                  <span>{t(item.labelKey)}</span>
+                </Link>
+              ))}
+            </nav>
+          ))}
+        </div>
 
         <div className="rail-foot">
+          <nav className="rail-links" aria-label={t("support")}>
+            <Link href="/help/getting-started" aria-current={current === "help" ? "page" : undefined}>{t("help")}</Link>
+            <Link href="/support">{t("support")}</Link>
+            <Link href="/affiliate" aria-current={current === "affiliate" ? "page" : undefined}>{t("affiliate")}</Link>
+            <Link href="/pricing">{t("plans")}</Link>
+          </nav>
           <div className="plan-card">
             <p className="label">{t("planLabel")}</p>
             <p className="meta">{t("planMeta")}</p>

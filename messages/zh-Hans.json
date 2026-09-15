@@ -22,9 +22,22 @@
     "planLabel": "匿名预览",
     "planMeta": "无需注册即可打开创作页。",
     "copyright": "© Orincard",
-    "editor": "编辑器"
+    "editor": "编辑器",
+    "library": "素材库",
+    "account": "账户",
+    "projects": "项目",
+    "exports": "导出",
+    "brandKits": "品牌套件",
+    "templates": "模板",
+    "billing": "账单",
+    "settings": "设置",
+    "help": "帮助",
+    "support": "支持",
+    "affiliate": "推广"
   },
   "Marketing": {
+    "previewNoticeLabel": "早期预览",
+    "previewNoticeBody": "这是一个未完成的版本：法律条款尚未审定，付费功能已关闭，数据库可能在不通知的情况下被清空。请不要在这里放任何丢不起的东西。",
     "eyebrow": "从素材到社交故事",
     "headline": "把你懂的东西，做成值得收藏的轮播图。",
     "lead": "Orincard 帮你把调研、录音和粗糙的想法，整理成可编辑的视觉故事，用于 LinkedIn、Instagram 和 TikTok。",

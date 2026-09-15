@@ -22,9 +22,22 @@
     "planLabel": "Anonymous preview",
     "planMeta": "No account is required to open the creator.",
     "copyright": "© Orincard",
-    "editor": "Editor"
+    "editor": "Editor",
+    "library": "Library",
+    "account": "Account",
+    "projects": "Projects",
+    "exports": "Exports",
+    "brandKits": "Brand kits",
+    "templates": "Templates",
+    "billing": "Billing",
+    "settings": "Settings",
+    "help": "Help",
+    "support": "Support",
+    "affiliate": "Affiliate"
   },
   "Marketing": {
+    "previewNoticeLabel": "Early preview",
+    "previewNoticeBody": "This is an unfinished build. The legal terms have not been approved, payments are switched off, and the database may be wiped without notice. Please don't put anything here you can't afford to lose.",
     "eyebrow": "From source to social story",
     "headline": "Turn what you know into a carousel worth saving.",
     "lead": "Orincard helps you shape research, recordings, and rough ideas into editable visual stories for LinkedIn, Instagram, and TikTok.",

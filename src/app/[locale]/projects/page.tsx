@@ -16,5 +16,5 @@ export default async function ProjectsPage() {
   } catch {
     projects = [];
   }
-  return <WorkspaceShell current="workspace" title={t("shellTitle")}><ProjectLibrary initialProjects={projects} /></WorkspaceShell>;
+  return <WorkspaceShell current="projects" title={t("shellTitle")}><ProjectLibrary initialProjects={projects} /></WorkspaceShell>;
 }

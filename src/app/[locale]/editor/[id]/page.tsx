@@ -40,7 +40,7 @@ export default async function EditorPage({ params }: EditorPageProps) {
   }
 
   return (
-    <WorkspaceShell current="workspace" title={t("editor")}>
+    <WorkspaceShell current="projects" title={t("editor")}>
       <Editor
         draftId={id}
         initialDocument={cloudProject?.document}

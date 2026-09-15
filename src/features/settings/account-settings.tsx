@@ -85,10 +85,10 @@ export function AccountSettings() {
     <div className="stack-lg">
       <section className="card stack">
         <h2>{t("defaultsHeading")}</h2>
-        <label>{t("language")}<input value={preferences.language} onChange={(event) => setPreferences({ ...preferences, language: event.target.value })} /></label>
-        <label>{t("tone")}<select value={preferences.tone} onChange={(event) => setPreferences({ ...preferences, tone: event.target.value })}><option value="professional">{t("toneProfessional")}</option><option value="friendly">{t("toneFriendly")}</option><option value="bold">{t("toneBold")}</option><option value="educational">{t("toneEducational")}</option></select></label>
-        <label>{t("slideCount")}<input type="number" min={2} max={20} value={preferences.slideCount} onChange={(event) => setPreferences({ ...preferences, slideCount: Number(event.target.value) })} /></label>
-        <label>{t("instructions")}<textarea value={preferences.generationInstructions} maxLength={2000} onChange={(event) => setPreferences({ ...preferences, generationInstructions: event.target.value })} /></label>
+        <label className="field">{t("language")}<input className="input" value={preferences.language} onChange={(event) => setPreferences({ ...preferences, language: event.target.value })} /></label>
+        <label className="field">{t("tone")}<select className="select" value={preferences.tone} onChange={(event) => setPreferences({ ...preferences, tone: event.target.value })}><option value="professional">{t("toneProfessional")}</option><option value="friendly">{t("toneFriendly")}</option><option value="bold">{t("toneBold")}</option><option value="educational">{t("toneEducational")}</option></select></label>
+        <label className="field">{t("slideCount")}<input className="input" type="number" min={2} max={20} value={preferences.slideCount} onChange={(event) => setPreferences({ ...preferences, slideCount: Number(event.target.value) })} /></label>
+        <label className="field">{t("instructions")}<textarea className="textarea" value={preferences.generationInstructions} maxLength={2000} onChange={(event) => setPreferences({ ...preferences, generationInstructions: event.target.value })} /></label>
         <div><Button onClick={() => void save()}>{t("save")}</Button></div>
       </section>
       <section className="card stack">
@@ -96,7 +96,7 @@ export function AccountSettings() {
         <p>{t("dataLead")}</p>
         <div className="row">
           <Button onClick={() => void requestExport()} disabled={Boolean(exportJobId && !downloadUrl)}>{t("prepare")}</Button>
-          {downloadUrl ? <a className="button" href={downloadUrl} download="orincard-account-data.zip">{t("download")}</a> : null}
+          {downloadUrl ? <a className="btn btn-secondary" href={downloadUrl} download="orincard-account-data.zip">{t("download")}</a> : null}
         </div>
       </section>
       <p role="status" className="meta">{notice}</p>

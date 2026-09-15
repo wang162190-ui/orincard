@@ -8,5 +8,5 @@ export default async function ToolPage({ params }: { readonly params: Promise<{ 
   const { tool } = await params;
   const t = await getTranslations("Tools");
   if (!TOOL_IDS.includes(tool as ToolId)) notFound();
-  return <WorkspaceShell current="workspace" title={t("shellTitle")}><ToolWorkspace tool={tool as ToolId} /></WorkspaceShell>;
+  return <WorkspaceShell current="tools" title={t("shellTitle")}><ToolWorkspace tool={tool as ToolId} /></WorkspaceShell>;
 }

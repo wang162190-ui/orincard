@@ -27,7 +27,7 @@ export default function BillingPage() {
   }
 
   const paymentFailed = data && ["incomplete", "past_due", "unpaid"].includes(data.status);
-  return <WorkspaceShell current="workspace" title={t("shellTitle")}><div className="stack-lg"><section className="card stack"><h1>{t("heading")}</h1>{notice ? <p role="status">{notice}</p> : null}
+  return <WorkspaceShell current="billing" title={t("shellTitle")}><div className="stack-lg"><section className="card stack"><h1>{t("heading")}</h1>{notice ? <p role="status">{notice}</p> : null}
     {data ? <><p><strong>{data.planKey.toUpperCase()}</strong> · {data.status.replaceAll("_", " ")}</p>{paymentFailed ? <p role="alert">{t("paymentFailed")}</p> : null}{data.cancelAtPeriodEnd ? <p role="status">{t("cancelScheduled")}</p> : null}
       <p>{data.currentPeriod ? t("currentPeriod", { start: new Date(data.currentPeriod.start).toLocaleDateString(), end: new Date(data.currentPeriod.end).toLocaleDateString() }) : t("noPaidPeriod")}</p>
       <p className="meta">{t("policy", { version: data.policyVersion })}</p><div className="row"><Button onClick={() => setUpgrade(true)}>{t("joinWaitlist")}</Button>{data.planKey !== "free" ? <><Button variant="secondary" onClick={() => void portal("downgrade")}>{t("downgrade")}</Button><Button variant="secondary" onClick={() => void portal("cancel")}>{t("cancelAtPeriodEnd")}</Button></> : null}{paymentFailed ? <Button variant="secondary" onClick={() => void portal("manage")}>{t("fixPayment")}</Button> : null}</div></> : null}</section>

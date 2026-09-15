@@ -29,5 +29,5 @@ export default async function HelpArticle({ params }: { readonly params: Promise
   const { slug, locale } = await params;
   const content = await document(slug, locale);
   const t = await getTranslations("Help");
-  return <WorkspaceShell current="workspace" title={t("shellTitle")}><article className="card stack-lg"><header><p className="eyebrow">{t("eyebrow")}</p><h1>{content.title}</h1><p>{content.description}</p></header>{content.blocks.map((block, index) => <Block block={block} key={`${block.kind}-${index}`} />)}</article></WorkspaceShell>;
+  return <WorkspaceShell current="help" title={t("shellTitle")}><article className="card stack-lg"><header><p className="eyebrow">{t("eyebrow")}</p><h1>{content.title}</h1><p>{content.description}</p></header>{content.blocks.map((block, index) => <Block block={block} key={`${block.kind}-${index}`} />)}</article></WorkspaceShell>;
 }

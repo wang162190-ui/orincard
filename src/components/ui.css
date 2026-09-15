@@ -156,6 +156,173 @@ h3 {
   gap: var(--gap-md);
 }
 
+/* .stack-lg is always used on its own, never as `stack stack-lg`, so it has to
+   declare the flex column itself rather than only override the gap. */
+.stack-lg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+}
+
+/* Matches docs/design/reference/assets/orincard.css:247 byte for byte in effect;
+   the reference is SHA-locked so the app carries its own copy. */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--gap-md);
+}
+
+a.card {
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+a.card:hover {
+  border-color: var(--fg);
+  transform: translateY(-2px);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--gap-sm);
+}
+
+/* Base form controls. The same rules were duplicated inside two component <style>
+   blocks, each scoped to an ancestor (.generation-form / .editor-workbench), so any
+   control outside those two trees — the language switcher, the media panel — rendered
+   unstyled. Those blocks stay put and still win on specificity; this is the fallback. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 10px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+}
+
+.textarea {
+  min-height: 110px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+/* Most forms in the product never got the .field/.input classes at all — brand editor,
+   tool workspace, support, project filters, export and upgrade dialogs all shipped bare
+   <label><input>, which renders as label text welded to a native control on one line.
+   Tagging every one by hand would leave the next form to regress again, so the base
+   styling keys off the element inside the app content area instead.
+
+   Both halves are wrapped in :where(), so these rules carry specificity (0,0,0) — they
+   still beat the browser defaults, but *any* author rule overrides them. That is the
+   point: .generation-form .input, .editor-workbench fieldset, and a plain .input class
+   on the element all keep winning, so nothing already styled changes. Checkboxes and
+   radios are excluded — a full-width checkbox is not a checkbox. */
+:where(.work, .dialog) :where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea
+) {
+  width: 100%;
+  padding: 10px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+}
+
+:where(.work, .dialog) :where(textarea) {
+  min-height: 110px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+/* A label that wraps its own control becomes the field: caption above, control below. */
+:where(.work, .dialog) :where(
+  label:has(> input:not([type="checkbox"]):not([type="radio"])),
+  label:has(> select),
+  label:has(> textarea)
+) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* A checkbox or radio label stays on one line, control first. */
+:where(.work, .dialog) :where(label:has(> input[type="checkbox"]), label:has(> input[type="radio"])) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* The browser default fieldset border is a 2px inset groove that matches nothing. */
+:where(.work, .dialog) :where(fieldset) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  min-width: 0;
+  margin: 0;
+  padding: var(--gap-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+:where(.work, .dialog) :where(legend) {
+  padding-inline: 6px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+:where(.work, .dialog) :where(input[type="checkbox"], input[type="radio"]) {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--fg);
+}
+
+/* On the dark rail the same control has to invert, or it reads as a native browser
+   widget dropped onto the sidebar. */
+.rail .select {
+  border-color: var(--on-ink-soft);
+  background: transparent;
+  color: var(--on-ink);
+  padding: 7px 10px;
+}
+
+.rail .select option {
+  color: var(--fg);
+}
+
+/* Standalone pages that are not inside the workspace rail (legal, help, guides)
+   need their own centred column; inside the rail that job belongs to .work. */
+.marketing {
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+  padding-block: var(--gap-lg);
+}
+
 .app {
   display: grid;
   grid-template-columns: var(--rail-w) 1fr;
@@ -203,10 +370,43 @@ h3 {
   letter-spacing: -0.015em;
 }
 
+.rail-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+}
+
 .rail-nav {
   display: flex;
   flex-direction: column;
   gap: 3px;
+}
+
+.rail-group-label {
+  margin: 0 0 4px;
+  padding-inline: 12px;
+  color: var(--on-ink-dim);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rail-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding-inline: 12px;
+  font-size: 12.5px;
+}
+
+.rail-links a {
+  color: var(--on-ink-dim);
+}
+
+.rail-links a:hover,
+.rail-links a[aria-current="page"] {
+  color: var(--on-ink);
 }
 
 .nav-item {

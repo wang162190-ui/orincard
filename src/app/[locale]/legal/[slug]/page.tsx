@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { PublicFooter, PublicHeader } from "@/components/public-header";
 import { ContentNotFoundError, readContent, type ContentBlock, type ContentLocale } from "@/server/content";
 
 // 标题来自词条文件，正文来自 content/<locale>/legal/*（S17 起两种语言各一份）。
@@ -26,5 +27,6 @@ export default async function LegalPage({ params }: { readonly params: Promise<{
   if (!(slug in TITLE_KEYS)) notFound();
   const t = await getTranslations("Legal");
   const content = await legal(slug, locale);
-  return <main className="marketing"><article className="card stack-lg"><header><p className="eyebrow">{t("eyebrow")}</p><h1>{t(TITLE_KEYS[slug as keyof typeof TITLE_KEYS])}</h1><p role="status"><strong>{t("draftNotice")}</strong></p></header>{content.blocks.map((block, index) => <Block block={block} key={`${block.kind}-${index}`} />)}</article></main>;
+  // 法务页原来是光秃秃一个 main，落到这个 URL 的人没有任何返回入口。
+  return <><PublicHeader /><main className="marketing"><article className="card stack-lg"><header><p className="eyebrow">{t("eyebrow")}</p><h1>{t(TITLE_KEYS[slug as keyof typeof TITLE_KEYS])}</h1><p role="status"><strong>{t("draftNotice")}</strong></p></header>{content.blocks.map((block, index) => <Block block={block} key={`${block.kind}-${index}`} />)}</article></main><PublicFooter /></>;
 }
