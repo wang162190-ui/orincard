@@ -46,15 +46,24 @@ export interface UsageGrant {
 /**
  * 某方案在一个周期内应得的额度桶。
  *
- * 只有 `generation` 一项，因为 `Entitlements`（`src/domain/entitlements.ts`）只有
- * `monthlyGenerations` 这一个可数字段。`private.begin_ai_candidate`
- * （`supabase/definitions/ai-asset-budget.sql:45`）还会读 `resource = 'image'` 的桶，
- * 但策略里**没有**对应的数字——「免费用户送多少张图」是 B-1 未定的商业决策。
- * 在这里编一个数字出来会让那个决策以代码的形式被悄悄做掉，所以不发放。
- * 后果是明确的：portrait / ai_image 两类任务仍会 quota_exceeded，直到策略补上该字段。
+ * 规则很简单：**策略里配了就发，没配就不发**，这里不含任何写死的数字。
+ *
+ * `generation` 始终发放（`monthlyGenerations` 是必填字段）。`image` 桶供
+ * `private.begin_ai_candidate`（`supabase/definitions/ai-asset-budget.sql:45`）读取，
+ * 只在策略配了 `monthlyImages` 时发放——该字段在 `Entitlements` 里是可选的，
+ * 因为线上策略可能还没补。没配时 portrait / ai_image 仍会 quota_exceeded，
+ * 这是「没配」的诚实结果，不是 bug；配成 0 则发一个 granted=0 的桶，
+ * 与「没配」是两回事（见 `src/domain/entitlements.ts` 的字段注释）。
  */
 export function grantsForPlan(policy: EntitlementPolicy, planKey: PlanKey): readonly UsageGrant[] {
-  return [{ resource: "generation", granted: entitlementsForPlan(policy, planKey).monthlyGenerations }];
+  const entitlements = entitlementsForPlan(policy, planKey);
+  const grants: UsageGrant[] = [
+    { resource: "generation", granted: entitlements.monthlyGenerations },
+  ];
+  if (entitlements.monthlyImages !== undefined) {
+    grants.push({ resource: "image", granted: entitlements.monthlyImages });
+  }
+  return grants;
 }
 
 export interface EntitlementGrantStore {

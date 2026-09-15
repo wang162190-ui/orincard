@@ -190,6 +190,31 @@ a.card:hover {
   gap: var(--gap-sm);
 }
 
+/* 模板选择器的卡片是 <button>，不是链接：点它不导航，只把配色与画幅灌进生成选项。
+   所以要把浏览器给按钮的默认样式（居中、系统字体、自带背景）洗掉，再套回 .card 的外观。 */
+button.card.template-option {
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+button.card.template-option:hover:not([disabled]) {
+  border-color: var(--fg);
+  transform: translateY(-2px);
+}
+
+button.card.template-option[aria-pressed="true"] {
+  border-color: var(--fg);
+  box-shadow: inset 0 0 0 1px var(--fg);
+}
+
+button.card.template-option[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Base form controls. The same rules were duplicated inside two component <style>
    blocks, each scoped to an ancestor (.generation-form / .editor-workbench), so any
    control outside those two trees — the language switcher, the media panel — rendered

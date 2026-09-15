@@ -1,11 +1,28 @@
 import { z } from "zod";
 import { DomainError } from "./errors";
 
+/**
+ * 发货画幅。**这是唯一真相**——校验、UI 选项、视觉矩阵都从这里派生，
+ * 不要在别处再手写一份平台清单（以前有五处手写的，漂移过）。
+ *
+ * 加画幅要连带改 `public.platform_preset` 枚举（见
+ * `supabase/migrations/20260915010000_platform_presets_square_presentation.sql`），
+ * 否则 UI 能选、写库被拒。
+ */
 export const platformPresets = {
   linkedin: { width: 1080, height: 1350 },
   instagram: { width: 1080, height: 1350 },
   tiktok: { width: 1080, height: 1920 },
+  square: { width: 1080, height: 1080 },
+  presentation: { width: 1920, height: 1080 },
 } as const;
+
+/** 发货画幅的键。UI 选项、校验、视觉矩阵都遍历它，不要另抄一份。 */
+export const platformKeys = Object.keys(platformPresets) as readonly Platform[];
+
+export function isPlatformKey(value: unknown): value is Platform {
+  return typeof value === "string" && value in platformPresets;
+}
 
 export const DEFAULT_SLIDE_COUNT = 6;
 export const MIN_SLIDE_COUNT = 4;
@@ -220,7 +237,8 @@ export const carouselDocumentSchema = z
   .object({
     schemaVersion: z.literal(1),
     title: z.string().min(1),
-    platform: z.enum(["linkedin", "instagram", "tiktok"]),
+    // 从 platformPresets 派生，加画幅时这里不需要再改一遍。
+    platform: z.enum(platformKeys as [Platform, ...Platform[]]),
     templateId: z.string().min(1),
     templateVersion: z.number().int().positive(),
     theme: themeSettingsSchema,

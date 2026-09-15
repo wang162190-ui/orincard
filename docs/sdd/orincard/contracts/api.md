@@ -52,6 +52,7 @@
 | POST /tools/:tool/apply | resultJobId、projectId、expectedRevision、target | 新revision或新项目 | 必须显式应用；Portrait仍需素材确认 |
 | GET/POST /agent | GET jobId；POST request（1–2000字）、可选projectId | GET返回该编排任务的state/progress与计划；POST 202 jobId | 一次请求恰好一次模型调用，只产出计划不自动执行；计划最多6步且每步须为已注册工具并通过该工具入参schema；规划消耗一个generation额度单位；GET仅本人 |
 | POST /agent/execute | jobId（规划任务） | 202 runId/state/steps（每步的子任务 jobId）/blocked | 仅用户确认后执行；每步提交为该规划任务的子任务并各自过数据库额度与成本预算闸；某步被闸住时保留已提交步骤并在blocked如实回报，不整体回滚；重复调用按步幂等续跑；零步计划（模型要澄清）拒绝执行 |
+| GET/POST /copilot | GET projectId；POST projectId、message（1–4000字）、可选slideId | GET返回该项目的对话轮（含每轮附带的提议任务）；POST 200 reply与可选proposal | 编辑器助手只答与提；写项目仍走POST /projects/:id/apply-proposal，这里不开第二条写路径。每轮恰好一次模型调用，额度与保守成本在调模型之前预留，额度/预算不足直接429且不发生模型调用；带改动的一轮落一条rewrite候选，因此扣2个generation单位（1对话+1候选），明码标价。对话正文只存copilot_turns，不进任务表与Trigger载荷；GET仅本人且先校验项目归属，不泄露对话是否存在 |
 
 guest结果不持久化意味着无法从服务器再次取回。重复已完成匿名请求返回410 RESULT_NOT_RETAINED并提示重试或用本地结果，不偷偷重新收费/调用。匿名无货币扣费，但反滥用限制仍适用。注册长任务结果可按jobId恢复。
 

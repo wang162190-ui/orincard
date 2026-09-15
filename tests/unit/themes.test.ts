@@ -107,6 +107,8 @@ describe("appearance previews", () => {
     ["linkedin", 1080, 1350],
     ["instagram", 1080, 1350],
     ["tiktok", 1080, 1920],
+    ["square", 1080, 1080],
+    ["presentation", 1920, 1080],
   ] as const)(
     "switches to the fixed %s canvas without changing project content",
     (platform, width, height) => {
@@ -172,6 +174,44 @@ describe("appearance previews", () => {
     );
     expect(result.conflicts.every((conflict) => conflict.repairAction.length > 0)).toBe(
       true,
+    );
+  });
+
+  const bodyOf = (length: number) => [
+    { kind: "paragraph" as const, text: "x".repeat(length), emphasisRanges: [] },
+  ];
+
+  // 实测（paper 主题）16:9 到 443 字都不裁切，所以 146 字触发告警属于误报。
+  // 这条守的是那次返工不要回来：一旦有人又给 presentation 加容量折扣，这里立刻红。
+  it("does not over-warn on 16:9 for copy that renders fine", () => {
+    const document = documentFixture();
+    document.slides[1].title = "Give every page one job";
+    document.slides[1].mode = "text";
+    document.slides[1].bodyBlocks = bodyOf(123);
+
+    for (const platform of ["presentation", "linkedin"] as const) {
+      expect(
+        previewAppearance(document, { platform, themeId: "paper" }).conflicts,
+        platform,
+      ).toEqual([]);
+    }
+  });
+
+  // 反向：容量检查本身在 16:9 上仍然有效，不是被调成了永不报警。
+  it("still flags genuinely oversized copy on 16:9", () => {
+    const document = documentFixture();
+    document.slides[1].mode = "text";
+    document.slides[1].bodyBlocks = bodyOf(900);
+
+    expect(
+      previewAppearance(document, { platform: "presentation", themeId: "paper" }).conflicts,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          slideId: document.slides[1].id,
+          code: "TEXT_CAPACITY_REVIEW",
+        }),
+      ]),
     );
   });
 });

@@ -102,13 +102,12 @@ test("every create control is reachable by its own label and submission stays ga
   // 三个下拉用 getByRole 按可访问名断言。它们的 <label> 包住了 <select>，label 的纯文本因此
   // 连着选项文字（"Platform" + "LinkedIn…"），getByLabel 的精确匹配对不上；而读屏软件读的是
   // 可访问名，实测就是 "Platform"。这里断言可访问名，才是这条用例要证的东西。
-  for (const name of ["Platform", "Template", "Content format"]) {
+  // Language 也是包住 <select> 的 label，和上面三个是同一种，得按可访问名断言。
+  for (const name of ["Platform", "Template", "Language", "Content format"]) {
     await expect(page.getByRole("combobox", { name, exact: true })).toBeVisible();
   }
   await expect(page.getByRole("textbox", { name: "Instructions", exact: true })).toBeVisible();
-  for (const label of ["Language", "Number of slides"]) {
-    await expect(page.getByLabel(label, { exact: true })).toBeVisible();
-  }
+  await expect(page.getByLabel("Number of slides", { exact: true })).toBeVisible();
 
   const generate = page.getByRole("button", { name: "Generate carousel" });
   await expect(page.getByLabel("Topic", { exact: true })).toBeVisible();
@@ -161,7 +160,10 @@ test("Tab walks the create form in reading order and every stop shows a visible 
       locator: page.getByRole("combobox", { name: "Template", exact: true }),
       description: "the template select",
     },
-    { locator: page.getByLabel("Language", { exact: true }), description: "the language field" },
+    {
+      locator: page.getByRole("combobox", { name: "Language", exact: true }),
+      description: "the language select",
+    },
     {
       locator: page.getByRole("combobox", { name: "Content format", exact: true }),
       description: "the content format select",

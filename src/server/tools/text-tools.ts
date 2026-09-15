@@ -11,6 +11,10 @@ export type TextContextField = (typeof TEXT_CONTEXT_FIELDS)[number];
 export type TextToolRequest = {
   readonly tool: TextToolName;
   readonly input: string;
+  /** post-ideas 要几条。缺省表示调用方没指定，沿用 3–10 的老区间。 */
+  readonly count?: number;
+  /** 用户对这次加工的额外要求。是**数据**不是指令，见 `generateTextToolCandidate`。 */
+  readonly instructions?: string;
   readonly contextProjectId?: string;
   readonly contextRevision?: number;
   readonly selectedContext: readonly TextContextField[];
@@ -31,6 +35,10 @@ export type TextToolCandidate = {
 const requestSchema = z.object({
   tool: z.enum(TEXT_TOOL_NAMES),
   input: z.string().max(5_000).default(""),
+  // 上界与 `src/domain/tools.ts` 的 `inputSchemas` 对齐。两者都 optional 而非 default：
+  // 这次扩展之前入库的 input_ref 不带这两个键，不能因为加字段就变得不可解析。
+  count: z.number().int().min(1).max(10).optional(),
+  instructions: z.string().trim().max(1_000).optional(),
   contextProjectId: z.string().uuid().optional(),
   contextRevision: z.number().int().positive().optional(),
   selectedContext: z.array(z.enum(TEXT_CONTEXT_FIELDS)).max(TEXT_CONTEXT_FIELDS.length).default([]),
@@ -46,19 +54,42 @@ const requestSchema = z.object({
 
 const captionSchema = z.object({ text: z.string().min(1).max(3_000), hashtags: z.array(z.string().regex(/^#[^\s#]+$/)).max(10) }).strict();
 const linkedInPostSchema = z.object({ hook: z.string().min(1).max(500), body: z.string().min(1).max(5_000), cta: z.string().max(500), hashtags: z.array(z.string().regex(/^#[^\s#]+$/)).max(10) }).strict();
-const postIdeasSchema = z.object({ ideas: z.array(z.object({ title: z.string().min(1).max(200), angle: z.string().min(1).max(500) }).strict()).min(3).max(10) }).strict();
+const ideaSchema = z.object({ title: z.string().min(1).max(200), angle: z.string().min(1).max(500) }).strict();
+const ideaJsonSchema = { type: "object", additionalProperties: false, required: ["title", "angle"], properties: { title: { type: "string" }, angle: { type: "string" } } } as const;
+
+/**
+ * `count` 是**确数**，不是上界：计划写 `count: 3` 就必须回 3 条。
+ *
+ * 从前这两处都写死 3–10，于是调用方要 3 条、模型回 5 条，没人报错——目录里明明把
+ * `count` 广告给了模型（`src/server/agent/prompts.ts` 的 `buildToolCatalog`），载荷却
+ * 把它丢了。约束同时进 JSON Schema（让模型照着出）和 Zod（出格就判错），缺一不可：
+ * 只约束前者等于信供应商守约。
+ */
+function postIdeasBounds(count?: number) {
+  return { min: count ?? 3, max: count ?? 10 };
+}
 
 const OUTPUTS = {
   caption: captionSchema,
   "linkedin-post": linkedInPostSchema,
-  "post-ideas": postIdeasSchema,
 } as const;
 
-const JSON_SCHEMAS: Record<TextToolName, Record<string, unknown>> = {
+const JSON_SCHEMAS: Record<Exclude<TextToolName, "post-ideas">, Record<string, unknown>> = {
   caption: { type: "object", additionalProperties: false, required: ["text", "hashtags"], properties: { text: { type: "string" }, hashtags: { type: "array", maxItems: 10, items: { type: "string", pattern: "^#[^\\s#]+$" } } } },
   "linkedin-post": { type: "object", additionalProperties: false, required: ["hook", "body", "cta", "hashtags"], properties: { hook: { type: "string" }, body: { type: "string" }, cta: { type: "string" }, hashtags: { type: "array", maxItems: 10, items: { type: "string", pattern: "^#[^\\s#]+$" } } } },
-  "post-ideas": { type: "object", additionalProperties: false, required: ["ideas"], properties: { ideas: { type: "array", minItems: 3, maxItems: 10, items: { type: "object", additionalProperties: false, required: ["title", "angle"], properties: { title: { type: "string" }, angle: { type: "string" } } } } } },
 };
+
+export function textToolOutputSchema(tool: TextToolName, count?: number): z.ZodType<Readonly<Record<string, unknown>>> {
+  if (tool !== "post-ideas") return OUTPUTS[tool];
+  const { min, max } = postIdeasBounds(count);
+  return z.object({ ideas: z.array(ideaSchema).min(min).max(max) }).strict();
+}
+
+export function textToolJsonSchema(tool: TextToolName, count?: number): Record<string, unknown> {
+  if (tool !== "post-ideas") return JSON_SCHEMAS[tool];
+  const { min, max } = postIdeasBounds(count);
+  return { type: "object", additionalProperties: false, required: ["ideas"], properties: { ideas: { type: "array", minItems: min, maxItems: max, items: ideaJsonSchema } } };
+}
 
 export function parseTextToolRequest(value: unknown): TextToolRequest {
   const parsed = requestSchema.parse(value);
@@ -90,12 +121,20 @@ export async function generateTextToolCandidate(input: {
   const request = parseTextToolRequest(input.request);
   const output = await input.ai.generateStructured({
     instructions: "Create the requested social content. Do not claim it was published, invent account mentions, or present unsupported claims as facts. Return only the requested JSON shape.",
-    input: JSON.stringify({ tool: request.tool, brief: request.input || "Create a useful general professional content draft.", selectedProjectContext: input.selectedProjectContext ?? {} }),
+    // `userInstructions` 和 `brief` 一样是不可信数据键，绝不能并进上面的 `instructions`
+    // 系统字段——用户写的加工要求是素材，不是能改写角色设定的指令。
+    input: JSON.stringify({
+      tool: request.tool,
+      brief: request.input || "Create a useful general professional content draft.",
+      userInstructions: request.instructions,
+      requestedCount: request.count,
+      selectedProjectContext: input.selectedProjectContext ?? {},
+    }),
     schemaName: `orincard_${request.tool}`,
-    schema: JSON_SCHEMAS[request.tool],
+    schema: textToolJsonSchema(request.tool, request.count),
     onMeasurement: input.onMeasurement,
   });
-  const parsed = OUTPUTS[request.tool].safeParse(output);
+  const parsed = textToolOutputSchema(request.tool, request.count).safeParse(output);
   if (!parsed.success) throw new Error("TEXT_TOOL_INVALID_OUTPUT");
   return {
     schemaVersion: 1,

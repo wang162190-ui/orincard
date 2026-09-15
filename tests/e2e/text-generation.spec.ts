@@ -19,8 +19,12 @@ test("offers Topic/Text generation with the approved defaults and limits", async
   await expect(page.getByLabel("Number of slides")).toHaveValue("6");
   await expect(page.getByLabel("Number of slides")).toHaveAttribute("min", "4");
   await expect(page.getByLabel("Number of slides")).toHaveAttribute("max", "12");
-  await expect(page.getByLabel("Language")).toHaveValue("English");
-  await expect(page.getByLabel("Platform")).toHaveValue("linkedin");
+  // "Language" 按 label 找会同时命中外壳里的「Interface language」，而且包住 <select> 的
+  // label 其文本是拼上全部 option 的；两处都得按可访问名断言，值也是 option 的 value。
+  await expect(page.getByRole("combobox", { name: "Language", exact: true })).toHaveValue("en");
+  await expect(page.getByRole("combobox", { name: "Platform", exact: true })).toHaveValue(
+    "linkedin",
+  );
 });
 
 test.describe("T031 real Topic/Text generation", () => {

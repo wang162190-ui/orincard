@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseToolRequest, type ToolId } from "../../domain/tools";
-import { toTextWorkerRequest, toVisualWorkerRequest, VISUAL_TOOL_IDS } from "../tools/application";
+import { toolReservedMicroUsd, toTextWorkerRequest, toVisualWorkerRequest, VISUAL_TOOL_IDS } from "../tools/application";
 import { currentUsagePeriod } from "../billing/entitlement-grant";
 import { parseAgentPlan, type AgentPlan, type PlanStep } from "./planner";
 
@@ -15,21 +15,14 @@ import { parseAgentPlan, type AgentPlan, type PlanStep } from "./planner";
 const STEP_USAGE_UNITS = 1;
 
 /**
- * 每一步的成本预留上界。
+ * 每一步的成本预留上界，与 `/api/v1/tools/[tool]` 走同一个口径（见
+ * `toolReservedMicroUsd`）——同一个工具不论从哪个入口进来都预留同一笔钱。
  *
- * 视觉工具那档取 25_000，与 `src/trigger/visual-tool.ts` 的 `PORTRAIT_RESERVED_MICRO_USD`
- * 同值——`MAX_PLAN_STEPS` 的注释算的就是「最贵的一步 25_000 × 6 步 = 150_000 µUSD」这笔账，
- * 这里必须和那笔账对得上。文本工具只出一次短文本，给 10_000（与规划同档）已经宽裕。
- *
- * 预留是**上界**不是预算目标：多退少补由结算走（`private.settle_cost_attempt`）。
+ * `MAX_PLAN_STEPS` 的注释算的就是「最贵的一步 25_000 × 6 步 = 150_000 µUSD」这笔账，
+ * 改那边的数值前先看这笔账还对不对得上。
  */
-const TEXT_STEP_RESERVED_MICRO_USD = 10_000;
-const VISUAL_STEP_RESERVED_MICRO_USD = 25_000;
-
 export function stepReservedMicroUsd(tool: ToolId): number {
-  return VISUAL_TOOL_IDS.includes(tool as (typeof VISUAL_TOOL_IDS)[number])
-    ? VISUAL_STEP_RESERVED_MICRO_USD
-    : TEXT_STEP_RESERVED_MICRO_USD;
+  return toolReservedMicroUsd(tool);
 }
 
 export class AgentExecutionError extends Error {

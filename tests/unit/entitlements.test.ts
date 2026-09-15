@@ -70,6 +70,34 @@ describe("versioned entitlement policy", () => {
     expect(priceIdForCheckout(loaded, "pro", "month")).toBe("price_test_pro_month");
   });
 
+  // monthlyImages 是后加的可选字段。这三条钉住它的解析口径：缺省不出现在结果里
+  // （否则线上现存的策略会被悄悄改成「配了 0 张」），0 合法，负数与小数拒绝。
+  it("omits monthlyImages entirely when the policy does not define it", () => {
+    const loaded = loadEntitlementPolicy({ appEnvironment: "test", policy: policy() });
+    expect("monthlyImages" in entitlementsForPlan(loaded, "free")).toBe(false);
+  });
+
+  it("accepts a zero image quota as a deliberate configuration", () => {
+    const raw = policy();
+    const loaded = loadEntitlementPolicy({
+      appEnvironment: "test",
+      policy: { ...raw, plans: { ...raw.plans, free: { ...raw.plans.free, entitlements: { ...raw.plans.free.entitlements, monthlyImages: 0 } } } },
+    });
+    expect(entitlementsForPlan(loaded, "free").monthlyImages).toBe(0);
+  });
+
+  it("rejects an image quota that is not a non-negative integer", () => {
+    const raw = policy();
+    for (const bad of [-1, 1.5, "10"]) {
+      expect(() =>
+        loadEntitlementPolicy({
+          appEnvironment: "test",
+          policy: { ...raw, plans: { ...raw.plans, pro: { ...raw.plans.pro, entitlements: { ...raw.plans.pro.entitlements, monthlyImages: bad } } } },
+        }),
+      ).toThrow("must be a non-negative integer");
+    }
+  });
+
   it("resolves checkout prices from the server policy instead of client input", () => {
     const loaded = loadEntitlementPolicy({ appEnvironment: "test", policy: policy() });
     expect(priceIdForCheckout(loaded, "creator", "year")).toBe(

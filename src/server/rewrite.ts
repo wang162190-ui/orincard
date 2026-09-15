@@ -277,6 +277,14 @@ export async function createRewriteProposal(input: {
    * 调用方需要这个 ID 才能在 catch 里结算。
    */
   readonly onProposalJob?: (proposalJobId: string) => void;
+  /**
+   * 已经有改写结果时直接用它，跳过模型调用。
+   *
+   * 给编辑器助手用：助手那一轮已经把新文本写出来了，再调一次模型只会产生第二份互不相同的
+   * 结果，还要多烧一次 token。校验、幂等、begin/complete 的形状全部与普通改写共用，
+   * 唯一的区别就是不再问模型一遍。**额度仍然照扣**——候选任务本身就是一个单位。
+   */
+  readonly precomputedAfter?: string;
 }): Promise<RewriteProposal> {
   requireWriteIdentifiers(input.projectId, input.idempotencyKey);
   if (
@@ -338,13 +346,15 @@ export async function createRewriteProposal(input: {
     baseSlideRevision: input.baseSlideRevision,
     field: input.field,
     before: selected.text,
-    after: await rewrittenText({
-      ai: input.ai,
-      onMeasurement: input.onMeasurement,
-      before: selected.text,
-      action: input.action,
-      instruction: input.instruction,
-    }),
+    after:
+      input.precomputedAfter?.trim() ||
+      (await rewrittenText({
+        ai: input.ai,
+        onMeasurement: input.onMeasurement,
+        before: selected.text,
+        action: input.action,
+        instruction: input.instruction,
+      })),
   };
   await input.store.complete({ proposal });
   return proposal;

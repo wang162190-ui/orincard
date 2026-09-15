@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { CarouselDocument, Platform } from "../../domain/document";
+import { platformKeys, type CarouselDocument, type Platform } from "../../domain/document";
 import {
   THEME_IDS,
   getThemeId,
@@ -17,18 +17,14 @@ export interface ThemePanelProps {
   readonly disabled?: boolean;
 }
 
-const platforms: ReadonlyArray<{ id: Platform; name: string }> = [
-  { id: "linkedin", name: "LinkedIn" },
-  { id: "instagram", name: "Instagram" },
-  { id: "tiktok", name: "TikTok" },
-];
-
 export function ThemePanel({
   document,
   onChange,
   disabled = false,
 }: ThemePanelProps) {
   const t = useTranslations("Theme");
+  // 画幅清单从 platformPresets 派生，标签走 Platform 词条：加一种画幅只改这两处。
+  const platformLabel = useTranslations("Platform");
   const selectedTheme = getThemeId(document);
   const currentPreview = previewAppearance(document, {});
 
@@ -64,16 +60,16 @@ export function ThemePanel({
       <fieldset disabled={disabled}>
         <legend>{t("platform")}</legend>
         <div className="theme-panel__platforms">
-          {platforms.map((platform) => (
-            <label key={platform.id}>
+          {platformKeys.map((platform) => (
+            <label key={platform}>
               <input
                 type="radio"
                 name="carousel-platform"
-                value={platform.id}
-                checked={document.platform === platform.id}
-                onChange={() => selectPlatform(platform.id)}
+                value={platform}
+                checked={document.platform === platform}
+                onChange={() => selectPlatform(platform)}
               />
-              <span>{platform.name}</span>
+              <span>{platformLabel(platform)}</span>
             </label>
           ))}
         </div>

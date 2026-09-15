@@ -34,7 +34,8 @@
     "help": "帮助",
     "support": "支持",
     "affiliate": "推广",
-    "agent": "AI 编排器"
+    "agent": "AI 编排器",
+    "blog": "博客"
   },
   "Marketing": {
     "previewNoticeLabel": "早期预览",
@@ -137,7 +138,11 @@
     "eyebrow": "新建轮播图",
     "heading": "创建一份轮播图",
     "lead": "选好平台，给 Orincard 一份素材，然后进入可编辑的草稿。",
-    "chooseSource": "选择素材来源"
+    "chooseSource": "选择素材来源",
+    "templateStep": "先挑一套模板起步",
+    "templateStepHint": "选中之后会把下面的配色与画幅设成这套模板的。正文仍然按你的素材来写。",
+    "templateSelected": "以《{name}》起步。",
+    "templateNone": "没挑模板——直接用下面的选项。"
   },
   "Projects": {
     "shellTitle": "项目",
@@ -629,7 +634,17 @@
     "all": "全部模板",
     "preview": "模板预览",
     "outline": "可编辑页面大纲",
-    "page": "第 {number} 页 · {role}"
+    "page": "第 {number} 页 · {role}",
+    "filterLabel": "按分类筛选",
+    "filterAll": "全部",
+    "countLabel": "{count} 套模板",
+    "categoryModern": "现代",
+    "categoryMinimal": "极简",
+    "categoryBold": "醒目",
+    "categoryPlayful": "活泼",
+    "categoryEducation": "教学",
+    "categoryLaunch": "发布",
+    "categoryStory": "故事"
   },
   "Tools": {
     "shellTitle": "工具",
@@ -662,6 +677,30 @@
     "metaTitle": "{name}草稿 — Orincard",
     "draftNotice": "草稿——尚未经过法律审阅，也未获准发布。"
   },
+  "Assistant": {
+    "label": "编辑器助手",
+    "heading": "助手",
+    "lead": "助手只读这份卡片，不会替你写。它提出的每一处改动都要等你确认。",
+    "idle": "问一句关于这份卡片的问题即可开始。",
+    "thinking": "正在读这份卡片并思考……",
+    "answered": "已回答。这一轮没有提出改动。",
+    "proposalReady": "助手提出了一处改动，确认前请先看一眼。",
+    "applying": "正在应用改动……",
+    "applied": "已应用，项目当前版本为 {revision}。",
+    "dismissed": "已丢弃。什么都没有写入，项目未变。",
+    "applyFailed": "改动没能应用，什么都没有写入。",
+    "conflict": "应用被拒绝——这条建议写成之后，项目已经变了。",
+    "conflictDetail": "这条建议是对着更早的版本写的，所以被整条拒绝，而不是合并进来。什么都没有写入。你可以丢弃它，或者让助手按现在的卡片重新看一遍。",
+    "blocked": "这个账号暂时没有可用的助手额度。模型没有被调用，也没有产生费用。",
+    "askFailed": "助手没能回答，什么都没有写入。",
+    "questionLabel": "就这份卡片提问",
+    "questionPlaceholder": "例如：把第 3 页改短些，开头先给结论。",
+    "send": "提问",
+    "threadLabel": "助手对话",
+    "you": "你",
+    "assistant": "助手",
+    "revision": "版本 {revision}"
+  },
   "AgentPanel": {
     "shellTitle": "AI 编排器",
     "heading": "说清你想要什么",
@@ -684,5 +723,51 @@
     "executionStarted": "已提交 {count} 个步骤。",
     "stepHeading": "第 {index} 步：{tool}",
     "blocked": "停在第 {step} 步（{code}）。此前已提交的步骤仍在执行。"
+  },
+  "Blog": {
+    "eyebrow": "博客",
+    "headline": "关于怎么做出留得住注意力的轮播图",
+    "lead": "结构、编辑和画幅选择方面的短文，写给真正要发东西的人，不是写给索引的。",
+    "metaTitle": "博客 — Orincard",
+    "listLabel": "文章",
+    "readArticle": "读这篇",
+    "backToIndex": "回到全部文章"
+  },
+  "Onboarding": {
+    "title": "关于这个编辑器，先知道三件事",
+    "progress": "第 {current} 步，共 {total} 步",
+    "step1Title": "左边：文字",
+    "step1Body": "每一页的眉题、标题和辅助文案都在左侧的内容面板里改。改的时候中间的画布会跟着变。",
+    "step2Title": "右边：样式",
+    "step2Body": "右侧的外观面板一次性切换整份轮播图的配色与画幅。换配色不会改写你的文字和图片。",
+    "step3Title": "然后：导出",
+    "step3Body": "读起来满意了，就到导出页把它导成 PNG、PDF、PPTX 或 MP4。",
+    "exportsLink": "打开导出页",
+    "back": "上一步",
+    "next": "下一步",
+    "done": "知道了",
+    "skip": "跳过"
+  },
+  "Platform": {
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "square": "方形（1:1）",
+    "presentation": "横屏（16:9）"
+  },
+  "NotFound": {
+    "eyebrow": "404",
+    "title": "这个页面不存在",
+    "body": "链接可能已经失效，也可能是地址打错了。其余内容都还在。",
+    "backHome": "回到首页",
+    "browseTemplates": "浏览模板"
+  },
+  "AppError": {
+    "eyebrow": "出错了",
+    "title": "这个页面没能渲染出来",
+    "body": "故障已被记录。重试通常有效；如果仍然不行，请回到首页再试一次。",
+    "retry": "重试",
+    "backHome": "回到首页",
+    "digestLabel": "错误编号"
   }
 }

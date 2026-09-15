@@ -2,6 +2,7 @@ import { createHash, createHmac } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isRevisionConflictCode } from "./db-errors";
 import {
+  isPlatformKey,
   parseCarouselDocument,
   type CarouselDocument,
   type Platform,
@@ -483,12 +484,8 @@ export function createProjectService(input: {
       },
     ) {
       const platform = filters.platform;
-      if (
-        platform !== undefined &&
-        platform !== "linkedin" &&
-        platform !== "instagram" &&
-        platform !== "tiktok"
-      ) {
+      // 从 platformPresets 派生，见 src/domain/document.ts 的注释。
+      if (platform !== undefined && !isPlatformKey(platform)) {
         throw new ProjectServiceError("INVALID_REQUEST", "Invalid platform.", 400);
       }
       const state = filters.state;

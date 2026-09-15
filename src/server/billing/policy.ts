@@ -23,6 +23,21 @@ function positiveInteger(value: unknown, label: string): number {
   return value as number;
 }
 
+/**
+ * 可选的非负整数。字段缺失返回 `undefined`，**不补 0**。
+ *
+ * 不能复用 `positiveInteger`：它要求 > 0，而把某个方案的图片额度配成 0
+ * 是一个合法且有意义的配置（「这个方案不送图」）。把「没配」折叠成 0 会让
+ * 两件不同的事看起来一样，发放侧就再也分不出来了。
+ */
+function optionalNonNegativeInteger(value: unknown, label: string): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!Number.isInteger(value) || (value as number) < 0) {
+    throw new Error(`${label} must be a non-negative integer`);
+  }
+  return value as number;
+}
+
 function boolean(value: unknown, label: string): boolean {
   if (typeof value !== "boolean") throw new Error(`${label} must be a boolean`);
   return value;
@@ -30,12 +45,19 @@ function boolean(value: unknown, label: string): boolean {
 
 function parseEntitlements(value: unknown, label: string): Entitlements {
   const input = object(value, label);
+  const monthlyImages = optionalNonNegativeInteger(
+    input.monthlyImages,
+    `${label}.monthlyImages`,
+  );
   return Object.freeze({
     maxPages: positiveInteger(input.maxPages, `${label}.maxPages`),
     monthlyGenerations: positiveInteger(
       input.monthlyGenerations,
       `${label}.monthlyGenerations`,
     ),
+    // 缺省时不放这个键，而不是放一个 undefined：让 `"monthlyImages" in entitlements`
+    // 这种判断也能如实反映「没配」。
+    ...(monthlyImages === undefined ? {} : { monthlyImages }),
     hdExport: boolean(input.hdExport, `${label}.hdExport`),
     pptxExport: boolean(input.pptxExport, `${label}.pptxExport`),
     mp4Export: boolean(input.mp4Export, `${label}.mp4Export`),

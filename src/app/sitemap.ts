@@ -11,6 +11,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...templates.map((template) => `/templates/${template.slug}`),
     ...listContent("help").map((slug) => `/help/${slug}`),
     ...listContent("guide").map((slug) => `/guides/${slug}`),
+    "/blog",
+    ...listContent("blog").map((slug) => `/blog/${slug}`),
   ];
   // 每条路径按语言各出一行，并互相声明 hreflang。只列英文版会让中文页永远进不了索引。
   return routing.locales.flatMap((locale) =>

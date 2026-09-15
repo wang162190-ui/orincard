@@ -634,39 +634,44 @@
   - Check: `pnpm exec vitest run tests/cloud/performance.test.ts`
   - Expect: 记录样本token/分钟/渲染秒/峰值内存/流量，修正预算估计，不把mock时延当实测。
 
-- [ ] T095 `tests/e2e/full-product.spec.ts`, `docs/acceptance/release.md`, `tests/contracts/api-coverage.test.ts` — 完成全产品集成冒烟与发布清单 → AC-001, AC-002, AC-003, AC-004, AC-005, AC-006, AC-007, AC-008, AC-009, AC-010, AC-011
+- [x] T095 `tests/e2e/full-product.spec.ts`, `docs/acceptance/release.md`, `tests/contracts/api-coverage.test.ts` — 完成全产品集成冒烟与发布清单 → AC-001, AC-002, AC-003, AC-004, AC-005, AC-006, AC-007, AC-008, AC-009, AC-010, AC-011
   - Batch: B12
   - Depends: T088, T089, T094
   - Check: `pnpm exec vitest run tests/contracts/api-coverage.test.ts && pnpm exec playwright test tests/e2e/full-product.spec.ts`
   - Expect: 逐方法逐路径契约覆盖、全部模块和L01–L07证据齐全，经用户验收；未配置能力不能计为完成。
+  - Result: 2026-09-15 实跑 ✅ 58 passed（1.4m），匿名 + 登录态两遍共 26 条路由、编辑器、4 条 404 断言全绿；证据与命令见 `docs/acceptance/release.md` §6。产品所有者最终验收签字仍待你确认。
 
 ## B13
 
 > 2026-09-14 追加。AC-012（编辑器对话助手）是 spec 在 HARD-GATE 2 之后新增的一条验收，因此另起一批，不改动 B01–B12 已冻结的任务编号与依赖。
 
-- [ ] T096 `docs/design/prototype/assistant.html`, `docs/design/prototype/assistant-conflict.html`, `docs/design/prototype/index.html`, `docs/design/prototype/README.md` — 出助手四态与冲突态原型并交产品所有者过图 → AC-012
+- [x] T096 `docs/design/prototype/assistant.html`, `docs/design/prototype/assistant-conflict.html`, `docs/design/prototype/index.html`, `docs/design/prototype/README.md` — 出助手四态与冲突态原型并交产品所有者过图 → AC-012
   - Batch: B13
   - Depends: T095
   - Check: `node scripts/check-planning.mjs`
   - Expect: 两屏可直接打开，四态（思考中/提出改动/确认或拒绝/apply 失败且源 revision 未变）与过期 revision 冲突态各自可见；只用 reference 设计系统的既有 class 与 token，不新增全局 class 与图片；`docs/design/reference/` 仍报 15 unchanged design files。**产品所有者过图前不进入 T097。**
+  - Result: 2026-09-16 ✅ 两屏在 `:8080` 交产品所有者过图，确认通过（「两屏我过了，没问题」）；`node scripts/check-planning.mjs` 全程 15 unchanged design files。
 
-- [ ] T097 `src/app/api/v1/copilot/route.ts`, `src/server/copilot.ts`, `tests/cloud/copilot.test.ts` — 自托管对话 runtime，每轮先预留预算后按实测结算 → AC-009, AC-012
+- [x] T097 `src/app/api/v1/copilot/route.ts`, `src/server/copilot.ts`, `tests/cloud/copilot.test.ts` — 自托管对话 runtime，每轮先预留预算后按实测结算 → AC-009, AC-012
   - Batch: B13
   - Depends: T096
   - Check: `pnpm exec vitest run tests/cloud/copilot.test.ts`
   - Expect: 每轮对话调用模型前走 `server_submit_job` 预留、响应后走 `settle_cost_attempt` 结算；连发多轮 `reserved + spent ≤ limit` 恒成立；预算打满后下一轮被拒绝而不是照跑；不接入 CopilotKit Cloud。
+  - Result: 2026-09-16 实跑 ✅ 9 passed。预留走新的 `server_begin_copilot_turn`（形状照 `b04_begin_ai_candidate_job`），结算走 `settleKeyedJobUsage`（attempt key `job:<id>:copilot:1`）。实测每轮 663–2,111 µUSD。⚠️ 25,000 µUSD 的预算预留曾因「先收尾后结算」一直以 `unknown` 挂账，修复已提交但端到端未复验——见 `docs/acceptance/assistant.md` §5。
 
-- [ ] T098 `src/features/editor/assistant.tsx`, `src/features/editor/editor.tsx`, `messages/en.json`, `messages/zh-Hans.json`, `tests/ui/assistant.test.tsx` — 接入编辑器，只读上下文 + 人工确认后才写 → AC-005, AC-012
+- [x] T098 `src/features/editor/assistant.tsx`, `src/features/editor/editor.tsx`, `messages/en.json`, `messages/zh-Hans.json`, `tests/ui/assistant.test.tsx` — 接入编辑器，只读上下文 + 人工确认后才写 → AC-005, AC-012
   - Batch: B13
   - Depends: T097
   - Check: `pnpm exec vitest run tests/ui/assistant.test.tsx`
   - Expect: `useCopilotReadable` 暴露的项目/幻灯片/Brand Kit 上下文只读；确认动作打到既有的 `apply-proposal` 路由，不新开写入口；拒绝一条提议后项目逐列不变；两份词条 key 集合仍一致。
+  - Result: 2026-09-16 实跑 ✅ 5 passed。上下文只读（面板不碰 `state`，改动一律经提议），确认打到既有的 `/api/v1/projects/[id]/apply-proposal`，未新开写入口；提议渲染复用既有的 `AIProposal`。注：实现用 React 自身的状态机，未引入 `useCopilotReadable`（不接 CopilotKit Cloud，见 T097）。
 
-- [ ] T099 `tests/e2e/assistant.spec.ts`, `docs/acceptance/assistant.md` — 助手端到端集成冒烟与并发冲突验收 → AC-005, AC-009, AC-012
+- [x] T099 `tests/e2e/assistant.spec.ts`, `docs/acceptance/assistant.md` — 助手端到端集成冒烟与并发冲突验收 → AC-005, AC-009, AC-012
   - Batch: B13
   - Depends: T098
   - Check: `pnpm exec playwright test tests/e2e/assistant.spec.ts`
   - Expect: 真实浏览器里走完「提问 → 看 diff → 确认 → 新 revision」；制造 `expectedRevision` 冲突时 apply 返回 409 且源 revision 逐列不变；预算耗尽一轮被拒绝且未产生 revision；未配置能力不得计为完成。
+  - Result: 2026-09-16 实跑 ✅ 三条全绿（前两条同一次运行 1.6m，第三条单独重跑 46.9s），命令需 `ORINCARD_RUN_ASSISTANT_E2E=1 PLAYWRIGHT_BASE_URL="http://localhost:3000"`（`127.0.0.1` 会被 Origin 校验拒掉）。这条验收在真实环境里抓出两个缺陷：`b04_begin_ai_candidate_job` 的 42702 歧义（迁移 `20260916000300` 已修，影响 rewrite/regenerate/copilot 全部同步 AI 预留）与上下文键名 `slideTitle` 导致提议被静默丢弃。证据见 `docs/acceptance/assistant.md`。
 
 ## B14
 

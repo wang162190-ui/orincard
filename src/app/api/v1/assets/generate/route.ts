@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { tasks } from "@trigger.dev/sdk";
 import { AiAssetError, createAiCandidateService, type AiCandidateStore } from "@/server/assets/ai-image";
+import { createEntitlementProvisioner } from "@/server/billing/entitlement-grant";
 import { readServerEnvironment } from "@/server/environment";
 import { createAdminSupabaseClient, createServerSupabaseClient, requireVerifiedUser } from "@/server/supabase";
 import { GENERATE_IMAGE_TASK_ID } from "@/trigger/generate-image";
@@ -43,7 +44,17 @@ export async function POST(request: Request) {
     try { ownerId = (await requireVerifiedUser(user)).id; } catch { throw new AiAssetError("AUTH_REQUIRED", "Sign in before generating an image.", 401); }
     let body: unknown;
     try { body = await request.json(); } catch { throw new AiAssetError("INVALID_REQUEST", "Request body must be valid JSON.", 400); }
-    const result = await createAiCandidateService({ store: candidateStore(createAdminSupabaseClient(), environment) }).submit(ownerId, body);
+    const admin = createAdminSupabaseClient();
+    // 发放放在提交之前，和 /generation、/agent、/tools/[tool] 同一个口径：
+    // private.begin_ai_candidate 是按 (owner, period_start, 'image') 精确相等找桶的，
+    // 桶不存在就直接 quota_exceeded。这条路由以前没有接发放回调，于是只画图、
+    // 从不生成轮播的用户永远拿不到 image 桶。发放幂等且额度只升不降。
+    await createEntitlementProvisioner({
+      client: admin,
+      appEnvironment: environment.appEnvironment,
+      rawPolicy: process.env.BILLING_POLICY_JSON,
+    })?.(ownerId, new Date());
+    const result = await createAiCandidateService({ store: candidateStore(admin, environment) }).submit(ownerId, body);
     try { await tasks.trigger(GENERATE_IMAGE_TASK_ID, { assetId: result.assetId, schemaVersion: 1 }); }
     catch { /* Candidate row is durable and can be retried by the worker reconciler. */ }
     return Response.json({ data: result, requestId }, { status: 202, headers: { "Cache-Control": "private, no-store" } });

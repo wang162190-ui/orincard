@@ -34,7 +34,8 @@
     "help": "Help",
     "support": "Support",
     "affiliate": "Affiliate",
-    "agent": "AI agent"
+    "agent": "AI agent",
+    "blog": "Blog"
   },
   "Marketing": {
     "previewNoticeLabel": "Early preview",
@@ -137,7 +138,11 @@
     "eyebrow": "New carousel",
     "heading": "Create a carousel",
     "lead": "Pick a platform, give Orincard a source, and continue to an editable draft.",
-    "chooseSource": "Choose a source"
+    "chooseSource": "Choose a source",
+    "templateStep": "Start from a template",
+    "templateStepHint": "Picking one sets the palette and canvas below. The copy is still written for your source.",
+    "templateSelected": "Starting from {name}.",
+    "templateNone": "No template picked — the options below are used as they are."
   },
   "Projects": {
     "shellTitle": "Projects",
@@ -629,7 +634,17 @@
     "all": "All templates",
     "preview": "Template preview",
     "outline": "Editable page outline",
-    "page": "Page {number} · {role}"
+    "page": "Page {number} · {role}",
+    "filterLabel": "Filter by category",
+    "filterAll": "All",
+    "countLabel": "{count} templates",
+    "categoryModern": "Modern",
+    "categoryMinimal": "Minimal",
+    "categoryBold": "Bold",
+    "categoryPlayful": "Playful",
+    "categoryEducation": "Education",
+    "categoryLaunch": "Launch",
+    "categoryStory": "Story"
   },
   "Tools": {
     "shellTitle": "Tools",
@@ -662,6 +677,30 @@
     "metaTitle": "{name} draft — Orincard",
     "draftNotice": "Draft — not legally reviewed or approved for publication."
   },
+  "Assistant": {
+    "label": "Editor assistant",
+    "heading": "Assistant",
+    "lead": "The assistant reads this carousel; it never writes it. Every change it suggests waits for your confirmation.",
+    "idle": "Ask about this carousel to get started.",
+    "thinking": "Reading the carousel and thinking…",
+    "answered": "Answered. No change was suggested for this one.",
+    "proposalReady": "The assistant suggests one change. Review it before applying.",
+    "applying": "Applying the change…",
+    "applied": "Applied. The project is now at revision {revision}.",
+    "dismissed": "Dismissed. Nothing was written and the project is unchanged.",
+    "applyFailed": "The change could not be applied. Nothing was written.",
+    "conflict": "Apply refused — the project moved on since this suggestion was written.",
+    "conflictDetail": "The suggestion was built against an older revision, so it was refused as a whole rather than merged. Nothing was written. Discard it, or ask again so the assistant reads the carousel as it stands now.",
+    "blocked": "This account has no assistant turns left right now. No model was called and nothing was charged.",
+    "askFailed": "The assistant could not answer. Nothing was written.",
+    "questionLabel": "Ask about this carousel",
+    "questionPlaceholder": "e.g. Make slide 3 shorter and lead with the outcome.",
+    "send": "Ask",
+    "threadLabel": "Assistant conversation",
+    "you": "You",
+    "assistant": "Assistant",
+    "revision": "Revision {revision}"
+  },
   "AgentPanel": {
     "shellTitle": "AI agent",
     "heading": "Describe what you want",
@@ -684,5 +723,51 @@
     "executionStarted": "{count} steps submitted.",
     "stepHeading": "Step {index}: {tool}",
     "blocked": "Stopped at step {step} ({code}). Earlier steps are still running."
+  },
+  "Blog": {
+    "eyebrow": "Blog",
+    "headline": "Notes on making carousels that hold attention",
+    "lead": "Short, practical pieces about structure, editing and canvas choices. Written for people who ship, not for the index.",
+    "metaTitle": "Blog — Orincard",
+    "listLabel": "Articles",
+    "readArticle": "Read the article",
+    "backToIndex": "All articles"
+  },
+  "Onboarding": {
+    "title": "Three things to know about this editor",
+    "progress": "Step {current} of {total}",
+    "step1Title": "Left: the words",
+    "step1Body": "Every slide’s eyebrow, headline and supporting line live in the content panel on the left. Edit them there — the canvas in the middle updates as you type.",
+    "step2Title": "Right: the look",
+    "step2Body": "The appearance panel on the right switches palette and canvas size for the whole carousel at once. Your text and images are never rewritten by a palette change.",
+    "step3Title": "Then: export",
+    "step3Body": "When the carousel reads the way you want, export it as PNG, PDF, PPTX or MP4 from the exports page.",
+    "exportsLink": "Open the exports page",
+    "back": "Back",
+    "next": "Next",
+    "done": "Got it",
+    "skip": "Skip"
+  },
+  "Platform": {
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "square": "Square (1:1)",
+    "presentation": "Presentation (16:9)"
+  },
+  "NotFound": {
+    "eyebrow": "404",
+    "title": "This page does not exist",
+    "body": "The link may be outdated, or the address may have a typo. Everything else is still here.",
+    "backHome": "Back to home",
+    "browseTemplates": "Browse templates"
+  },
+  "AppError": {
+    "eyebrow": "Something broke",
+    "title": "This page could not be rendered",
+    "body": "The failure has been recorded. Retrying often works; if it does not, go back to the home page and try again from there.",
+    "retry": "Try again",
+    "backHome": "Back to home",
+    "digestLabel": "Error reference"
   }
 }

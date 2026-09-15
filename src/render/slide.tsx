@@ -30,6 +30,7 @@ type SlideStyle = CSSProperties & {
   "--slide-aspect": string;
   "--slide-bg": string;
   "--slide-bg-opacity": number;
+  "--slide-density": number;
   "--slide-fg"?: string;
   "--slide-font-body"?: string;
   "--slide-font-display"?: string;
@@ -221,6 +222,27 @@ function BrandFooter({ input }: { readonly input: SlideRenderInput }) {
   );
 }
 
+/** 排版定标用的基准画幅，也就是 linkedin / instagram 的 1080×1350。 */
+const BASELINE_ASPECT = 1350 / 1080;
+
+/**
+ * 字号与竖向节奏的密度系数。
+ *
+ * slide.css 里所有尺寸都是 `cqw`，也就是**按容器宽度**定标的。竖版画幅里宽度小于高度，
+ * 这样定标没问题；一旦到了横屏，宽度反而是长边，同一个 `cqw` 在竖向上就被放大了
+ * 1080/1350 ÷ 1080/1920 ≈ 2.2 倍——于是 16:9 会在正常文案长度上裁掉末行、把序号压到
+ * 标题上、让箭头盖住正文。这是「按短边定标」的那一步。
+ *
+ * 只对**横屏**生效：宽 ≤ 高时恒为 1，所以 linkedin / instagram / tiktok / square 的
+ * 计算值一个像素都不变，这条改动对已发货画幅不可能造成回归。
+ */
+function densityFor(width: number, height: number): number {
+  if (width <= height) {
+    return 1;
+  }
+  return Number((height / width / BASELINE_ASPECT).toFixed(4));
+}
+
 export function SlideRenderer({ input }: { readonly input: SlideRenderInput }) {
   const { slide, theme } = input;
   const { width, height } = getPlatformDimensions(input.platform);
@@ -242,6 +264,7 @@ export function SlideRenderer({ input }: { readonly input: SlideRenderInput }) {
         ? backgroundOverride
         : theme.background.value,
     "--slide-bg-opacity": theme.background.opacity,
+    "--slide-density": densityFor(width, height),
     "--slide-fg":
       typeof foregroundOverride === "string" ? foregroundOverride : colors[1],
     "--slide-font-body": fontPair?.body,

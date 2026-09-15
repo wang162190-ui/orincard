@@ -53,14 +53,29 @@ describe("application routes", () => {
     expect(markup).not.toContain(".html");
   });
 
-  it("renders the create route with every approved source type", () => {
-    const markup = render(<CreatePage />);
+  // CreatePage 现在是 Server Component（为的是别把整份 templates.json 打进客户端包），
+  // 所以要先 await 出元素再渲染——直接 <CreatePage /> 会在同步渲染里挂起。
+  it("renders the create route with every approved source type", async () => {
+    const markup = render((await CreatePage()) as React.ReactElement);
 
     expect(markup).toContain('data-page="create"');
     expect(markup).toContain("Create a carousel");
     for (const source of ["Topic", "Text", "URL", "Video", "PDF", "Slides"]) {
       expect(markup).toContain(source);
     }
+  });
+
+  it("puts the template step before the source step", async () => {
+    const markup = render((await CreatePage()) as React.ReactElement);
+
+    expect(markup).toContain('data-testid="template-picker"');
+    expect(markup.indexOf("Start from a template")).toBeLessThan(
+      markup.indexOf("Choose a source"),
+    );
+    // 选择器渲染的是全部 14 套模板，但**只带展示字段**。正文块漏进客户端包会让
+    // /create 的首屏无谓地大一截，这条就是那道闸。
+    expect(markup).not.toContain("bodyBlocks");
+    expect(markup).not.toContain("layoutId");
   });
 });
 

@@ -97,10 +97,14 @@ node scripts/check-planning.mjs    # 102 tasks / 14 batches / 50 API paths / 15 
 
 ## 5. 五条已知未修，都写在 `docs/acceptance/agent.md` 里
 
-1. **`/api/v1/tools/[tool]` 绕开 `server_submit_job`**，用 `admin.from("jobs").upsert()` 直接建 job，从不写 `cost_reservations` → 从这个入口跑文本工具会 `22023 open cost reservation not found`。编排器不走这个入口（`executeAgentPlan` 自己调 `server_submit_job`），但**用户从 `/tools/[tool]` 页面手动跑同一个工具仍然是坏的**。
+1. ✅ **已修（2026-09-15）**：`/api/v1/tools/[tool]` 曾用 `admin.from("jobs").upsert()` 绕开 `server_submit_job`，从不写 `cost_reservations` → 从这个入口跑工具必然 `22023 open cost reservation not found`。现在走 `server_submit_job`，预留口径由 `toolReservedMicroUsd()`（`src/server/tools/application.ts`）统一给编排器和这个入口共用。
+   修的过程中暴露出下半环：两个工具 worker 都用裸 `update jobs set state='succeeded'` 收尾，从不结算，`usage_accounts.reserved` 只增不减。新增 `public.server_finalize_tool_job`（`20260915002000_tool_job_finalize.sql`，复用 generation 同款 `private.b04_finish_job_with_unknown_cost`），`src/trigger/tool.ts` 与 `src/trigger/visual-tool.ts` 的 succeed / fail / claim 期 `CONTEXT_UNAVAILABLE` 三条路径全部改走它。
+   **真实验证**（开发项目 + 真实 DeepSeek 调用 + `trigger dev`）：job `cdb9d002-1df4-4822-b28e-0e2dd46c5549` 成功，额度 `reserved 1→2→1`、`consumed 0→1`。回归测试：`tests/unit/tool-route.test.ts`（16 条）、`tests/cloud/tool-route-live.test.ts`（默认跳过，需 `ORINCARD_RUN_TOOL_CLOUD=1`，一次约 1,100 µUSD）。
+   遗留数据瑕疵：修好之前那次验证跑留下的一个单位预留还挂在测试账号 `c28c9a9a…` 上（`reserved=1`），没有手工改账去抹平。
 2. **`resource = 'image'` 从不发放**（`grantsForPlan` 只发 `generation`）。`Entitlements` 类型里没有图片额度字段，凭空发明一个等于替 B-1 做没人做过的商业决策。后果：计划里出现 `portrait` / `ai_image` 步骤会 `quota_exceeded` 被闸住（UI 上如实显示为 `blocked`，不是静默失败）。
 3. **`BILLING_POLICY_JSON` 带 `testOnly: true`**，production 下 `loadEntitlementPolicy` 会抛 `BILLING_NOT_CONFIGURED`。**这是刻意的**：免费额度的具体数字仍是 B-1 的未决事项。
-4. **计划的步骤入参会被静默截断**：`toTextWorkerRequest` 把一步的 `input` 压成单个字符串（`input.text ?? input.topic`），`count` / `instructions` 被丢弃。实测计划写 `count: 3`、worker 返回 5 条。要么扩 worker 载荷，要么规划侧别产出无效字段——**两者都没做**。
+4. ✅ **已修（2026-09-15）**：`toTextWorkerRequest` 曾把一步的 `input` 压成单个字符串，`count` / `instructions` 静默丢弃（计划写 `count: 3`、worker 回 5 条）。选的是扩 worker 载荷：`TextToolRequest` 增加两个可选字段，`count` 同时进喂给模型的 JSON Schema（`minItems = maxItems = count`）与事后 Zod 校验；`instructions` 只进不可信数据键 `userInstructions`，不并进系统指令字段。两字段皆 optional，旧 `input_ref` 照旧可解析。
+   **真实验证**：job `dd8437e8-b70c-4a3b-9ba0-dbc65ca00e10`（`post-ideas` + `count: 3`）成功，供应商回了正好 3 条。细节见 `docs/acceptance/agent.md` §3.5。
 5. **步骤之间不传产物**。计划每步的 `input` 自包含，「把第 1 步产出喂给第 2 步」这个通道不存在，也没假装存在。多步计划实际是多个并列的独立调用。
 
 另有一项规划本身的成本口径需要 B-1 拍板：**规划消耗一个 `generation` 额度单位**（`private.submit_job` 要求 `p_units > 0`，没有零额度提交的口子）。免费方案 10 个单位下，一次三步 run 花掉 4 个（1 规划 + 3 执行）。要不要给规划单独开桶，理由写在 `src/app/api/v1/agent/route.ts` 的 `PLAN_USAGE_UNITS` 注释里。

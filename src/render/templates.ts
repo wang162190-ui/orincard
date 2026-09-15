@@ -260,12 +260,40 @@ function textLength(slide: Slide): number {
   );
 }
 
+/**
+ * 每种画幅能装下多少字，相对 1080×1350 这个基准的倍数。
+ *
+ * 不是渲染缩放，是**文字容量**——超了就报 TEXT_OVERFLOW 冲突。刻意写成一张显式的表
+ * 而不是从尺寸推公式：tiktok 的 1.25 是已发货的实测值（面积比其实是 1.42，1.25 是
+ * 留了余量的），硬凑一个能还原它的公式只是假装精确。
+ *
+ * - `square` 1080×1080 是这里最紧的一块：实测（paper 主题）裁切临界 intro 382 /
+ *   content 425 / outro 345 字，换算成倍数是 1.51 / 1.12 / 1.26，最紧的是 1.12。
+ *   0.8 比它还保守约三成，保持不动——宁可早报，不要放行裁切。
+ * - `presentation` 1920×1080 取 1，与竖版基准同档。**这个 1 是量出来的，不是沿用的**：
+ *   横屏行更宽，同样字数占的行数更少，实测在 443 字（语料上限）之前 intro / content /
+ *   outro 三种 role 都没有裁切，而 1 对应的告警阈值是 378 字，仍在裁切点之前。
+ *
+ *   这里有过一次返工，值得留个记号：横屏最初**确实**在 146 字就裁切，当时把这个数调到
+ *   0.37 去躲。那是治标——真正的病根在 slide.css 全部用 `cqw`（按容器**宽度**定标），
+ *   横屏的宽度是长边，于是竖向被放大约 2.2 倍。病根修掉之后（见 slide.tsx 的
+ *   `densityFor`），横屏不再需要任何容量折扣。量法、截图与两次测量见
+ *   `docs/acceptance/release.md` 的 D2 一节。
+ */
+const platformCapacityScale: Record<Platform, number> = {
+  linkedin: 1,
+  instagram: 1,
+  tiktok: 1.25,
+  square: 0.8,
+  presentation: 1,
+};
+
 function collectConflicts(
   document: CarouselDocument,
   theme: ThemeDefinition,
 ): AppearanceConflict[] {
   const conflicts: AppearanceConflict[] = [];
-  const platformScale = document.platform === "tiktok" ? 1.25 : 1;
+  const platformScale = platformCapacityScale[document.platform];
 
   for (const slide of document.slides) {
     if (!theme.layouts[slide.role][slide.mode].includes(slide.layoutId)) {

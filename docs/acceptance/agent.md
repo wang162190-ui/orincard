@@ -70,10 +70,23 @@ E2E 需要一个在跑的 `trigger dev` worker，且**被测 app 的 `TRIGGER_SE
 
 **留给部署的前提**：这条链路要求 app 与 worker 在同一个 Trigger 环境。prod 环境目前那个部署是 09-14 之前的构建，**tool 任务在它那里不记账**——上线前必须重新 `deploy`，否则生产的文本工具花费会全部漏账。
 
-### 3.2 `/api/v1/tools/[tool]` 绕开 `server_submit_job`（Step 0 结论，本轮未修）
+### 3.2 `/api/v1/tools/[tool]` 绕开 `server_submit_job`（✅ 2026-09-15 已修）
 
-该路由用 `admin.from("jobs").upsert()` 直接建 job，从不写 `cost_reservations`，因此文本工具从这个入口跑会 `22023 open cost reservation not found`。
-**编排器不走这个入口**——`executeAgentPlan` 自己调 `server_submit_job`，所以编排出来的 tool 子任务有正常的额度与成本预留。但用户从 `/tools/[tool]` 页面手动跑同一个工具仍然是坏的。超出本轮范围。
+该路由曾用 `admin.from("jobs").upsert()` 直接建 job，从不写 `cost_reservations`，因此工具从这个入口跑必然 `22023 open cost reservation not found`。现已改走 `server_submit_job`，预留金额由 `toolReservedMicroUsd()`（`src/server/tools/application.ts`）统一，编排器与这个入口共用一份口径。
+
+修的过程中暴露出下半环：两个工具 worker 都用裸 `update jobs set state='succeeded'` 收尾，从不结算，`usage_accounts.reserved` 只增不减（旧代码没预留所以看不出来，修好提交侧才变成真漏）。新增 `public.server_finalize_tool_job`（`20260915002000_tool_job_finalize.sql`，复用 generation 同款 `private.b04_finish_job_with_unknown_cost`），`src/trigger/tool.ts`、`src/trigger/visual-tool.ts` 的 succeed / fail / claim 期 `CONTEXT_UNAVAILABLE` 三条路径全部改走它。
+
+**真实验证**：开发项目 + 真实 DeepSeek 调用 + `trigger dev`，job `cdb9d002-1df4-4822-b28e-0e2dd46c5549` 成功，额度 `reserved 1→2→1`、`consumed 0→1`。回归：`tests/unit/tool-route.test.ts`（16 条）、`tests/cloud/tool-route-live.test.ts`（需 `ORINCARD_RUN_TOOL_CLOUD=1`，一次约 1,100 µUSD）。
+
+**补正（同日）**：上面那版 `server_finalize_tool_job` 无条件走 `b04_finish_job_with_unknown_cost`，于是每跑一次工具就多一条 `unknown` 成本预留永久占着当月额度——正是 S6（`20260912030000_reservation_settlement_close.sql`）为访客路径量过并堵上的那个坑（18 条 / $1.223 / 告警永远红）。工具 worker 其实**有**实测数字：`settleKeyedJobUsage` 在 `generate` 的 `finally` 里跑，**先于** succeed/fail，收尾那一刻尝试行已是 `settled`。
+
+`20260915003000_tool_job_precise_settlement.sql` 新增 `private.finalize_job_reservation(p_job_id)`（`finalize_guest_reservation` 的 job 孪生体，审计条件逐条一致），`server_finalize_tool_job` 改为**先精确结算、再调 b04**——b04 的成本段只动 `state='open'` 的预留，结算完它在成本侧自动成为 no-op，用量与 jobs 终态仍由它一手完成，不复制逻辑。审计不过时不结算，兜底分支原样保留。
+
+**真实验证**：job `869e4484-0248-4802-a079-0ecd40d34cd5` 成功，`reserved 1→2→1`、`consumed 3→4`，且 `server_count_unsettled_reservations` **11 → 11**（修之前必然 11 → 12）。这条断言已加进 `tests/cloud/tool-route-live.test.ts`。
+
+两个如实说明的边界：
+- **视觉工具仍走兜底**。`src/trigger/visual-tool.ts` 从不登记 `cost_attempts`，一条尝试都没有时分不清「没花钱」和「花了没登记」，`finalize_job_reservation` 按访客版同样的理由返回 null。它的行为与本次改动前一致，没有变坏，但也没变好。
+- **只改了工具这一条链路**。`server_finalize_generation_job`、`server_complete_rewrite_proposal`、`server_complete_regeneration_candidate` 有同样的无条件兜底缺口，是先于本轮的系统性问题；一起改会把爆炸半径扩到本轮没验证过的三条链路上，留给它们各自的验收。存量的 11 条陈旧预留也没有动——核销要走 `server_write_off_stale_reservation`，那是一次显式的花钱决定。
 
 ### 3.3 `resource = 'image'` 从不发放
 
@@ -84,10 +97,17 @@ E2E 需要一个在跑的 `trigger dev` worker，且**被测 app 的 `TRIGGER_SE
 
 `.env.local` 里新写的策略带 `testOnly: true`，在 production 下 `loadEntitlementPolicy` 会抛 `BILLING_NOT_CONFIGURED`。**这是刻意的**：免费额度的具体数字仍是 B-1 的未决事项，不该由这一轮默默定下来。
 
-### 3.5 计划的步骤入参会被静默截断
+### 3.5 计划的步骤入参会被静默截断（✅ 2026-09-15 已修）
 
-计划里 `post-ideas` 步骤要 `count: 3`，worker 返回了 5 条。`toTextWorkerRequest` 把一步的 `input` 压成单个字符串（`input.text ?? input.topic`），`count` / `instructions` 被**静默丢弃**。
-这是规划与执行之间的契约损耗：计划上写着的东西，执行时不一定算数。要么扩 worker 载荷，要么在规划侧就别产出无效字段。**当前两者都没做。**
+计划里 `post-ideas` 步骤要 `count: 3`，worker 返回了 5 条：`toTextWorkerRequest` 把一步的 `input` 压成单个字符串（`input.text ?? input.topic`），`count` / `instructions` 被静默丢弃。这两个字段 `inputSchemas` 是收的，`buildToolCatalog` 还把它们广告给了规划模型——契约损耗出在载荷这一层。
+
+选的是**扩 worker 载荷**（另一条路是规划侧别产出，但那等于把模型已经会用的表达力砍掉）：`TextToolRequest` 增加 `count` / `instructions` 两个可选字段，`count` 同时收进喂给模型的 JSON Schema（`minItems = maxItems = count`）和事后 Zod 校验——只约束前者等于信供应商守约。两个字段都是 optional 而非 default，这次改动之前入库的 `input_ref` 照旧可解析，不带 `count` 时沿用 3–10 老区间。
+
+`instructions` 只进不可信的 `input` 数据键（`userInstructions`），**不并进** `generateStructured` 的 `instructions` 系统字段：用户写的加工要求是素材，不是能改写角色设定的指令。有一条测试专门守这个边界。
+
+同一处修好，`/tools/[tool]` 页面与编排器两个入口同时生效。
+
+**真实验证**：开发项目跑 `post-ideas` + `count: 3`，job `dd8437e8-b70c-4a3b-9ba0-dbc65ca00e10` 成功，供应商回了正好 3 条。回归：`tests/unit/tool-application.test.ts` 2 条、`tests/cloud/text-tools.test.ts` 3 条，以及 `tests/cloud/tool-route-live.test.ts` 里那条默认跳过的真跑（单测只能证明约束进了 JSON Schema，证明不了供应商照它出数）。
 
 ### 3.6 步骤之间不传产物
 

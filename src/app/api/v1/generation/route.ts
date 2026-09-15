@@ -1,6 +1,7 @@
 import { createHmac, randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isPlatformKey } from "../../../../domain/document";
 import { isGenerationLanguage, type GenerationOptions } from "../../../../server/generation";
 import {
   createSupabaseJobStore,
@@ -237,7 +238,9 @@ function parseGenerationBody(body: unknown): {
     typeof value.instructions !== "string" ||
     value.instructions.length > 2_000 ||
     !["ink", "paper", "signal", "blush", "butter", "sky"].includes(String(value.templateId)) ||
-    !["linkedin", "instagram", "tiktok"].includes(String(value.platform))
+    // 从 platformPresets 派生，不再手写。以前这里是一份独立的白名单：
+    // 加画幅时漏改这一处，UI 能选但提交被 400 拒，而且报错完全看不出是画幅的问题。
+    !isPlatformKey(value.platform)
   ) {
     throw new GenerationJobError("INVALID_REQUEST", "Generation options are invalid.", 400, false);
   }

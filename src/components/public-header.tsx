@@ -30,6 +30,7 @@ export function PublicFooter() {
       <nav className="row wrap" aria-label={nav("footer")}>
         <Link href="/pricing">{nav("plans")}</Link>
         <Link href="/tools">{nav("tools")}</Link>
+        <Link href="/blog">{nav("blog")}</Link>
         <Link href="/help/getting-started">{nav("help")}</Link>
         <Link href="/login">{nav("login")}</Link>
         <LanguageSwitcher />

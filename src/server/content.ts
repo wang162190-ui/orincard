@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
 
-export type ContentKind = "help" | "guide" | "legal";
+export type ContentKind = "help" | "guide" | "legal" | "blog";
 
 export type ContentBlock =
   | { readonly kind: "heading"; readonly level: 2 | 3; readonly text: string }
@@ -36,6 +36,11 @@ const CATALOG: readonly CatalogEntry[] = [
   { kind: "help", slug: "export-and-restore", file: "help/export-and-restore.mdx" },
   { kind: "help", slug: "billing-and-cancellation", file: "help/billing-and-cancellation.mdx" },
   { kind: "guide", slug: "text-to-carousel", file: "guides/text-to-carousel.mdx" },
+  // 博客与 guide 共用同一套解析、同一套双语镜像规则，唯一的区别是它有列表页、
+  // 并且会随文章增加而变长——所以它只是 CATALOG 里多出来的几行，不是第二套内容系统。
+  { kind: "blog", slug: "carousel-hook-first-slide", file: "blog/carousel-hook-first-slide.mdx" },
+  { kind: "blog", slug: "one-idea-per-slide", file: "blog/one-idea-per-slide.mdx" },
+  { kind: "blog", slug: "choosing-a-canvas-size", file: "blog/choosing-a-canvas-size.mdx" },
   { kind: "legal", slug: "privacy", file: "legal/privacy.mdx" },
   { kind: "legal", slug: "terms", file: "legal/terms.mdx" },
   { kind: "legal", slug: "affiliate", file: "legal/affiliate.mdx" },

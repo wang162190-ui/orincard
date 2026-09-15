@@ -67,6 +67,13 @@ const AUDIO_EXTENSIONS: Record<string, string> = {
 };
 
 export function createSupabaseVisualToolWorkerStore(client: SupabaseClient): VisualToolWorkerStore {
+  // 与 src/trigger/tool.ts 同一个理由：裸 UPDATE 不还 usage_accounts.reserved。
+  const finalize = async (jobId: string, ownerId: string, resultRef: Readonly<Record<string, unknown>> | null, errorCode: string | null) => {
+    const { data, error } = await client.rpc("server_finalize_tool_job", {
+      p_job_id: jobId, p_owner_id: ownerId, p_result_ref: resultRef, p_error_code: errorCode,
+    });
+    return !error && data === true;
+  };
   return {
     async claim(jobId) {
       const jobResult = await client.from("jobs").select("id,owner_id,project_id,input_ref,state,cancel_requested_at").eq("id", jobId).eq("kind", "tool").maybeSingle();
@@ -74,8 +81,8 @@ export function createSupabaseVisualToolWorkerStore(client: SupabaseClient): Vis
       const job = jobResult.data;
       const request = parseVisualWorkerRequest(job.input_ref);
       const failContext = async () => {
-        const finishedAt = new Date().toISOString();
-        await client.from("jobs").update({ state: "failed", error_code: "CONTEXT_UNAVAILABLE", finished_at: finishedAt, updated_at: finishedAt }).eq("id", jobId).eq("owner_id", job.owner_id).eq("state", job.state);
+        // 还没 claim 就判死，预留同样得释放。
+        await finalize(jobId, job.owner_id, null, "CONTEXT_UNAVAILABLE");
         return null;
       };
       if (request.contextProjectId) {
@@ -90,13 +97,12 @@ export function createSupabaseVisualToolWorkerStore(client: SupabaseClient): Vis
       return { jobId, ownerId: job.owner_id, request };
     },
     async succeed(jobId, ownerId, resultRef) {
-      const finishedAt = new Date().toISOString();
-      const result = await client.from("jobs").update({ state: "succeeded", stage: "upload", progress: 100, result_ref: resultRef, finished_at: finishedAt, updated_at: finishedAt }).eq("id", jobId).eq("owner_id", ownerId).eq("state", "running").select("id").maybeSingle();
-      return !result.error && Boolean(result.data);
+      // stage 只是给进度条看的展示字段，不参与记账，所以留在 RPC 之外单独推到终点。
+      await client.from("jobs").update({ stage: "upload" }).eq("id", jobId).eq("owner_id", ownerId).eq("state", "running");
+      return finalize(jobId, ownerId, resultRef, null);
     },
     async fail(jobId, ownerId, errorCode) {
-      const finishedAt = new Date().toISOString();
-      await client.from("jobs").update({ state: "failed", error_code: errorCode, finished_at: finishedAt, updated_at: finishedAt }).eq("id", jobId).eq("owner_id", ownerId).eq("state", "running");
+      await finalize(jobId, ownerId, null, errorCode);
     },
   };
 }

@@ -46,6 +46,8 @@ describe("CarouselDocument", () => {
     ["linkedin", 1080, 1350],
     ["instagram", 1080, 1350],
     ["tiktok", 1080, 1920],
+    ["square", 1080, 1080],
+    ["presentation", 1920, 1080],
   ] as const)("uses the fixed %s platform dimensions", (platform, width, height) => {
     expect(getPlatformDimensions(platform)).toEqual({ width, height });
   });

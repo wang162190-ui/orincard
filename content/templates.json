@@ -10,13 +10,91 @@
       "platform": "linkedin",
       "templateId": "paper",
       "templateVersion": 1,
-      "theme": { "paletteId": "paper", "fontPairId": "source-serif-inter", "textScale": 1, "spacing": "comfortable", "alignment": "left", "background": { "kind": "solid", "value": "#F5F1E8", "opacity": 1 }, "arrow": "line", "radius": 32, "counterStyle": "fraction" },
+      "theme": {
+        "paletteId": "paper",
+        "fontPairId": "source-serif-inter",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "left",
+        "background": {
+          "kind": "solid",
+          "value": "#F5F1E8",
+          "opacity": 1
+        },
+        "arrow": "line",
+        "radius": 32,
+        "counterStyle": "fraction"
+      },
       "brandSnapshot": null,
       "slides": [
-        { "id": "local-clear-01", "revision": 1, "role": "intro", "mode": "text", "layoutId": "intro-centered", "eyebrow": "PRACTICAL GUIDE", "title": "Turn one useful idea into four clear steps", "bodyBlocks": [], "cta": null, "assetSlots": [], "counterVisible": false, "overrides": {} },
-        { "id": "local-clear-02", "revision": 1, "role": "content", "mode": "text", "layoutId": "statement", "eyebrow": "01", "title": "Start with the conclusion", "bodyBlocks": [{ "kind": "paragraph", "text": "Give readers a reason to keep moving before adding detail.", "emphasisRanges": [] }], "cta": null, "assetSlots": [], "counterVisible": true, "overrides": {} },
-        { "id": "local-clear-03", "revision": 1, "role": "content", "mode": "text", "layoutId": "numbered-point", "eyebrow": "02", "title": "Make the next action concrete", "bodyBlocks": [{ "kind": "paragraph", "text": "Use a verb, a constraint, and one example.", "emphasisRanges": [] }], "cta": null, "assetSlots": [], "counterVisible": true, "overrides": {} },
-        { "id": "local-clear-04", "revision": 1, "role": "outro", "mode": "text", "layoutId": "outro-cta", "eyebrow": "YOUR TURN", "title": "Teach the idea you needed last year.", "bodyBlocks": [], "cta": "Save this outline for your next carousel.", "assetSlots": [], "counterVisible": false, "overrides": {} }
+        {
+          "id": "local-clear-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "PRACTICAL GUIDE",
+          "title": "Turn one useful idea into four clear steps",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-clear-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "01",
+          "title": "Start with the conclusion",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Give readers a reason to keep moving before adding detail.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-clear-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "numbered-point",
+          "eyebrow": "02",
+          "title": "Make the next action concrete",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Use a verb, a constraint, and one example.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-clear-04",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-cta",
+          "eyebrow": "YOUR TURN",
+          "title": "Teach the idea you needed last year.",
+          "bodyBlocks": [],
+          "cta": "Save this outline for your next carousel.",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
       ],
       "caption": "A simple structure for explaining one useful idea.",
       "assetRefs": []
@@ -33,13 +111,91 @@
       "platform": "instagram",
       "templateId": "signal",
       "templateVersion": 1,
-      "theme": { "paletteId": "signal", "fontPairId": "inter", "textScale": 1, "spacing": "comfortable", "alignment": "left", "background": { "kind": "solid", "value": "#151515", "opacity": 1 }, "arrow": "filled", "radius": 20, "counterStyle": "number" },
+      "theme": {
+        "paletteId": "signal",
+        "fontPairId": "inter",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "left",
+        "background": {
+          "kind": "solid",
+          "value": "#151515",
+          "opacity": 1
+        },
+        "arrow": "filled",
+        "radius": 20,
+        "counterStyle": "number"
+      },
       "brandSnapshot": null,
       "slides": [
-        { "id": "local-launch-01", "revision": 1, "role": "intro", "mode": "text", "layoutId": "intro-centered", "eyebrow": "NEW", "title": "A launch story people can understand quickly", "bodyBlocks": [], "cta": null, "assetSlots": [], "counterVisible": false, "overrides": {} },
-        { "id": "local-launch-02", "revision": 1, "role": "content", "mode": "text", "layoutId": "statement", "eyebrow": "THE PROBLEM", "title": "Name the friction in one sentence.", "bodyBlocks": [{ "kind": "paragraph", "text": "Keep the claim specific enough that readers recognise it.", "emphasisRanges": [] }], "cta": null, "assetSlots": [], "counterVisible": true, "overrides": {} },
-        { "id": "local-launch-03", "revision": 1, "role": "content", "mode": "text", "layoutId": "statement", "eyebrow": "THE CHANGE", "title": "Show what becomes easier now.", "bodyBlocks": [{ "kind": "paragraph", "text": "Describe the outcome before listing features.", "emphasisRanges": [] }], "cta": null, "assetSlots": [], "counterVisible": true, "overrides": {} },
-        { "id": "local-launch-04", "revision": 1, "role": "outro", "mode": "text", "layoutId": "outro-cta", "eyebrow": "NEXT STEP", "title": "Invite one clear action.", "bodyBlocks": [], "cta": "Try it, join the waitlist, or read the full story.", "assetSlots": [], "counterVisible": false, "overrides": {} }
+        {
+          "id": "local-launch-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "NEW",
+          "title": "A launch story people can understand quickly",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-launch-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "THE PROBLEM",
+          "title": "Name the friction in one sentence.",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Keep the claim specific enough that readers recognise it.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-launch-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "THE CHANGE",
+          "title": "Show what becomes easier now.",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Describe the outcome before listing features.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-launch-04",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-cta",
+          "eyebrow": "NEXT STEP",
+          "title": "Invite one clear action.",
+          "bodyBlocks": [],
+          "cta": "Try it, join the waitlist, or read the full story.",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
       ],
       "caption": "A direct four-page launch narrative.",
       "assetRefs": []
@@ -56,15 +212,1310 @@
       "platform": "tiktok",
       "templateId": "sky",
       "templateVersion": 1,
-      "theme": { "paletteId": "sky", "fontPairId": "inter", "textScale": 1, "spacing": "comfortable", "alignment": "center", "background": { "kind": "solid", "value": "#DCEEFF", "opacity": 1 }, "arrow": "line", "radius": 28, "counterStyle": "fraction" },
+      "theme": {
+        "paletteId": "sky",
+        "fontPairId": "inter",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "center",
+        "background": {
+          "kind": "solid",
+          "value": "#DCEEFF",
+          "opacity": 1
+        },
+        "arrow": "line",
+        "radius": 28,
+        "counterStyle": "fraction"
+      },
       "brandSnapshot": null,
       "slides": [
-        { "id": "local-story-01", "revision": 1, "role": "intro", "mode": "text", "layoutId": "intro-centered", "eyebrow": "SHORT STORY", "title": "The small decision that changed the outcome", "bodyBlocks": [], "cta": null, "assetSlots": [], "counterVisible": false, "overrides": {} },
-        { "id": "local-story-02", "revision": 1, "role": "content", "mode": "text", "layoutId": "statement", "eyebrow": "BEFORE", "title": "The obvious approach kept failing.", "bodyBlocks": [{ "kind": "paragraph", "text": "Describe the moment without adding a lesson too early.", "emphasisRanges": [] }], "cta": null, "assetSlots": [], "counterVisible": true, "overrides": {} },
-        { "id": "local-story-03", "revision": 1, "role": "content", "mode": "text", "layoutId": "statement", "eyebrow": "TURN", "title": "One constraint changed the choice.", "bodyBlocks": [{ "kind": "paragraph", "text": "Make the decision visible and specific.", "emphasisRanges": [] }], "cta": null, "assetSlots": [], "counterVisible": true, "overrides": {} },
-        { "id": "local-story-04", "revision": 1, "role": "outro", "mode": "text", "layoutId": "outro-cta", "eyebrow": "LESSON", "title": "End with what the reader can use.", "bodyBlocks": [], "cta": "What constraint would improve your next decision?", "assetSlots": [], "counterVisible": false, "overrides": {} }
+        {
+          "id": "local-story-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "SHORT STORY",
+          "title": "The small decision that changed the outcome",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-story-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "BEFORE",
+          "title": "The obvious approach kept failing.",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Describe the moment without adding a lesson too early.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-story-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "TURN",
+          "title": "One constraint changed the choice.",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Make the decision visible and specific.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-story-04",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-cta",
+          "eyebrow": "LESSON",
+          "title": "End with what the reader can use.",
+          "bodyBlocks": [],
+          "cta": "What constraint would improve your next decision?",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
       ],
       "caption": "A mobile-first story with one practical takeaway.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "modern-brief",
+    "name": "Modern Brief",
+    "description": "A tight four-beat argument for a professional feed.",
+    "category": "Modern",
+    "document": {
+      "schemaVersion": 1,
+      "title": "The brief that gets read",
+      "platform": "linkedin",
+      "templateId": "ink",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "ink",
+        "fontPairId": "source-serif-inter",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "left",
+        "background": {
+          "kind": "solid",
+          "value": "#1F1F1D",
+          "opacity": 1
+        },
+        "arrow": "line",
+        "radius": 32,
+        "counterStyle": "fraction"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-modernbr-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-editorial",
+          "eyebrow": "BRIEF",
+          "title": "The brief that gets read",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-modernbr-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "01",
+          "title": "Lead with the claim",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Say what you believe in one sentence, before any setup.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-modernbr-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "content-editorial",
+          "eyebrow": "02",
+          "title": "Show one piece of evidence",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "One number, one example, one source. Not three of each.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-modernbr-04",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "03",
+          "title": "Name the strongest objection",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Answering it early is what makes the claim credible.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-modernbr-05",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-cta",
+          "eyebrow": null,
+          "title": "What would change your mind?",
+          "bodyBlocks": [],
+          "cta": "Reply with your counter-example",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "Four beats: claim, evidence, objection, next step.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "modern-metrics",
+    "name": "Modern Metrics",
+    "description": "A widescreen deck for walking a team through numbers.",
+    "category": "Modern",
+    "document": {
+      "schemaVersion": 1,
+      "title": "The three numbers that matter",
+      "platform": "presentation",
+      "templateId": "signal",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "signal",
+        "fontPairId": "source-serif-inter",
+        "textScale": 1.04,
+        "spacing": "spacious",
+        "alignment": "left",
+        "background": {
+          "kind": "solid",
+          "value": "#526CB8",
+          "opacity": 1
+        },
+        "arrow": "filled",
+        "radius": 24,
+        "counterStyle": "number"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-modernme-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "QUARTERLY",
+          "title": "The three numbers that matter",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-modernme-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "numbered-point",
+          "eyebrow": "01",
+          "title": "Retention beats acquisition",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Growth built on a leaky bucket costs more every month.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-modernme-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "numbered-point",
+          "eyebrow": "02",
+          "title": "Activation predicts revenue",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Measure the first useful moment, not the signup.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-modernme-04",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "numbered-point",
+          "eyebrow": "03",
+          "title": "Payback sets the pace",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "How fast you recover cost decides how fast you can spend.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-modernme-05",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-centered",
+          "eyebrow": null,
+          "title": "Which number are you defending?",
+          "bodyBlocks": [],
+          "cta": "Bring one to the next review",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "A 16:9 deck built for sharing in a meeting, not a feed.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "minimal-note",
+    "name": "Minimal Note",
+    "description": "One idea per square, with nothing competing for attention.",
+    "category": "Minimal",
+    "document": {
+      "schemaVersion": 1,
+      "title": "Say less, land more",
+      "platform": "square",
+      "templateId": "paper",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "paper",
+        "fontPairId": "source-serif-inter",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "left",
+        "background": {
+          "kind": "solid",
+          "value": "#F5F1E8",
+          "opacity": 1
+        },
+        "arrow": "line",
+        "radius": 32,
+        "counterStyle": "fraction"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-minimaln-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "NOTE",
+          "title": "Say less, land more",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-minimaln-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "01",
+          "title": "Cut the setup",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Most openings can lose their first two sentences.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-minimaln-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "02",
+          "title": "Keep one idea per page",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "If a page needs a comma-splice, it is two pages.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-minimaln-04",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-centered",
+          "eyebrow": null,
+          "title": "What can you cut today?",
+          "bodyBlocks": [],
+          "cta": "Save this",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "A 1:1 set for a single idea and plenty of quiet space.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "minimal-quote",
+    "name": "Minimal Quote",
+    "description": "Let a borrowed line carry the post, with your read underneath.",
+    "category": "Minimal",
+    "document": {
+      "schemaVersion": 1,
+      "title": "Borrow a better sentence",
+      "platform": "instagram",
+      "templateId": "ink",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "ink",
+        "fontPairId": "source-serif-inter",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "left",
+        "background": {
+          "kind": "solid",
+          "value": "#1F1F1D",
+          "opacity": 1
+        },
+        "arrow": "line",
+        "radius": 32,
+        "counterStyle": "fraction"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-minimalq-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "QUOTE",
+          "title": "Borrow a better sentence",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-minimalq-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "quote",
+          "eyebrow": "01",
+          "title": "“Simplicity is the result of hard work.”",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Plain writing is edited writing, not unambitious writing.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-minimalq-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "02",
+          "title": "Your reading matters more",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "A quote without your take is someone else's post.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-minimalq-04",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-cta",
+          "eyebrow": null,
+          "title": "Whose line do you keep returning to?",
+          "bodyBlocks": [],
+          "cta": "Share it in the comments",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "A quote-led set: the line, your reading, the takeaway.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "bold-statement",
+    "name": "Bold Statement",
+    "description": "A high-contrast square set for one unambiguous position.",
+    "category": "Bold",
+    "document": {
+      "schemaVersion": 1,
+      "title": "Pick a side",
+      "platform": "square",
+      "templateId": "butter",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "butter",
+        "fontPairId": "source-serif-inter",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "left",
+        "background": {
+          "kind": "solid",
+          "value": "#E7CF62",
+          "opacity": 1
+        },
+        "arrow": "filled",
+        "radius": 28,
+        "counterStyle": "number"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-boldstat-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "POSITION",
+          "title": "Pick a side",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-boldstat-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "01",
+          "title": "Hedging reads as doubt",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "“Maybe” and “sort of” cost you the reader's trust.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-boldstat-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "02",
+          "title": "State it, then defend it",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "A clear claim invites a real argument. Take it.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-boldstat-04",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-cta",
+          "eyebrow": null,
+          "title": "What do you actually think?",
+          "bodyBlocks": [],
+          "cta": "Say it plainly",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "Built for one strong position, stated without hedging.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "bold-hot-take",
+    "name": "Bold Hot Take",
+    "description": "A vertical set that opens on the disagreement.",
+    "category": "Bold",
+    "document": {
+      "schemaVersion": 1,
+      "title": "Most advice here is survivorship bias",
+      "platform": "tiktok",
+      "templateId": "ink",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "ink",
+        "fontPairId": "source-serif-inter",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "left",
+        "background": {
+          "kind": "solid",
+          "value": "#1F1F1D",
+          "opacity": 1
+        },
+        "arrow": "line",
+        "radius": 32,
+        "counterStyle": "fraction"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-boldhott-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "HOT TAKE",
+          "title": "Most advice here is survivorship bias",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-boldhott-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "01",
+          "title": "You only hear from the winners",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "The people who did the same thing and failed never posted.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-boldhott-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "content-editorial",
+          "eyebrow": "02",
+          "title": "Ask what the losers did",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "If you cannot tell the stories apart, it is not a lesson.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-boldhott-04",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-cta",
+          "eyebrow": null,
+          "title": "What advice did you drop?",
+          "bodyBlocks": [],
+          "cta": "Tell me what stopped working",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "Opens on the disagreement, then earns it.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "playful-checklist",
+    "name": "Playful Checklist",
+    "description": "A friendly checklist set with scannable bullets.",
+    "category": "Playful",
+    "document": {
+      "schemaVersion": 1,
+      "title": "The pre-publish checklist",
+      "platform": "instagram",
+      "templateId": "blush",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "blush",
+        "fontPairId": "source-serif-inter",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "center",
+        "background": {
+          "kind": "solid",
+          "value": "#E8C8D8",
+          "opacity": 1
+        },
+        "arrow": "line",
+        "radius": 40,
+        "counterStyle": "fraction"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-playfulc-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "CHECKLIST",
+          "title": "The pre-publish checklist",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-playfulc-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "01",
+          "title": "Before you write",
+          "bodyBlocks": [
+            {
+              "kind": "bullets",
+              "items": [
+                "One reader",
+                "One promise",
+                "One next step"
+              ]
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-playfulc-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "02",
+          "title": "Before you publish",
+          "bodyBlocks": [
+            {
+              "kind": "bullets",
+              "items": [
+                "Read it aloud",
+                "Cut the first line",
+                "Check the ask"
+              ]
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-playfulc-04",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "03",
+          "title": "After it lands",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Reply to everyone for the first hour. That is the whole trick.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-playfulc-05",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-centered",
+          "eyebrow": null,
+          "title": "Which one do you skip?",
+          "bodyBlocks": [],
+          "cta": "Save the list",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "Five checks before anything goes out.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "playful-myths",
+    "name": "Playful Myths",
+    "description": "Myth, then correction, in a fast vertical rhythm.",
+    "category": "Playful",
+    "document": {
+      "schemaVersion": 1,
+      "title": "Three myths about posting daily",
+      "platform": "tiktok",
+      "templateId": "butter",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "butter",
+        "fontPairId": "source-serif-inter",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "left",
+        "background": {
+          "kind": "solid",
+          "value": "#E7CF62",
+          "opacity": 1
+        },
+        "arrow": "filled",
+        "radius": 28,
+        "counterStyle": "number"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-playfulm-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "MYTHS",
+          "title": "Three myths about posting daily",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-playfulm-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "numbered-point",
+          "eyebrow": "01",
+          "title": "Myth: volume beats quality",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Volume only helps once one post already worked.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-playfulm-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "numbered-point",
+          "eyebrow": "02",
+          "title": "Myth: you need a niche first",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "You find the niche by publishing, not before it.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-playfulm-04",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-cta",
+          "eyebrow": null,
+          "title": "Which one did you believe?",
+          "bodyBlocks": [],
+          "cta": "Pick a number",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "Each page pairs a myth with the correction.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "education-breakdown",
+    "name": "Education Breakdown",
+    "description": "A widescreen walkthrough that builds one concept in steps.",
+    "category": "Education",
+    "document": {
+      "schemaVersion": 1,
+      "title": "How compounding actually works",
+      "platform": "presentation",
+      "templateId": "sky",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "sky",
+        "fontPairId": "source-serif-inter",
+        "textScale": 1,
+        "spacing": "spacious",
+        "alignment": "center",
+        "background": {
+          "kind": "solid",
+          "value": "#BFD5EB",
+          "opacity": 1
+        },
+        "arrow": "line",
+        "radius": 36,
+        "counterStyle": "fraction"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-educatio-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "BREAKDOWN",
+          "title": "How compounding actually works",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-educatio-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "01",
+          "title": "It is a rate, not an amount",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Small percentages beat big one-time gains given enough time.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-educatio-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "02",
+          "title": "Time is the multiplier",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Starting earlier outperforms contributing more, almost always.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-educatio-04",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "content-editorial",
+          "eyebrow": "03",
+          "title": "The common mistake",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Interrupting it. A gap costs more than a lower rate.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-educatio-05",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-centered",
+          "eyebrow": null,
+          "title": "What are you compounding?",
+          "bodyBlocks": [],
+          "cta": "Pick one and protect it",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "A 16:9 walkthrough: definition, mechanism, mistake, practice.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "launch-changelog",
+    "name": "Launch Changelog",
+    "description": "A widescreen release note your team can present as-is.",
+    "category": "Launch",
+    "document": {
+      "schemaVersion": 1,
+      "title": "What shipped this month",
+      "platform": "presentation",
+      "templateId": "ink",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "ink",
+        "fontPairId": "source-serif-inter",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "left",
+        "background": {
+          "kind": "solid",
+          "value": "#1F1F1D",
+          "opacity": 1
+        },
+        "arrow": "line",
+        "radius": 32,
+        "counterStyle": "fraction"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-launchch-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-editorial",
+          "eyebrow": "CHANGELOG",
+          "title": "What shipped this month",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-launchch-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "numbered-point",
+          "eyebrow": "01",
+          "title": "Faster exports",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Rendering moved off the request path. No more timeouts.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-launchch-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "numbered-point",
+          "eyebrow": "02",
+          "title": "Two new canvas sizes",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Square and widescreen, with layouts tuned for each.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-launchch-04",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "content-editorial",
+          "eyebrow": "03",
+          "title": "Why these first",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "They were the two most common reasons people left mid-edit.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-launchch-05",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-cta",
+          "eyebrow": null,
+          "title": "What should we ship next?",
+          "bodyBlocks": [],
+          "cta": "Send us the gap you hit",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "A 16:9 changelog: what shipped, why, what is next.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "story-lessons",
+    "name": "Story Lessons",
+    "description": "A square set that turns one experience into transferable lessons.",
+    "category": "Story",
+    "document": {
+      "schemaVersion": 1,
+      "title": "What a failed launch taught me",
+      "platform": "square",
+      "templateId": "blush",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "blush",
+        "fontPairId": "source-serif-inter",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "center",
+        "background": {
+          "kind": "solid",
+          "value": "#E8C8D8",
+          "opacity": 1
+        },
+        "arrow": "line",
+        "radius": 40,
+        "counterStyle": "fraction"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-storyles-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "STORY",
+          "title": "What a failed launch taught me",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-storyles-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "01",
+          "title": "We built for applause",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "The demo landed. Nobody came back the next week.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-storyles-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "02",
+          "title": "Retention is the only review",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Ask what people do on day seven, not what they said on day one.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-storyles-04",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-centered",
+          "eyebrow": null,
+          "title": "What did yours teach you?",
+          "bodyBlocks": [],
+          "cta": "Tell me the day-seven number",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "One experience, three lessons someone else can use.",
       "assetRefs": []
     }
   }

@@ -52,7 +52,9 @@ import {
   LocalDraftStore,
   type DraftOwner,
 } from "./local-drafts";
+import { EditorOnboarding } from "./onboarding";
 import { SlidePanel } from "./slide-panel";
+import { AssistantPanel } from "./assistant";
 import { ThemePanel } from "./theme-panel";
 import { EditorMedia } from "../assets/editor-media";
 import { VersionHistory } from "./versions";
@@ -591,6 +593,7 @@ export function Editor({
           .editor-controls { grid-column: 1; grid-row: 3; }
         }
       `}</style>
+      <EditorOnboarding />
       <div className="editor-workbench">
         <Panel aria-label={t("slideContent")} className="editor-content">
           <PanelHeader><h2 className="h3">{t("content")}</h2></PanelHeader>
@@ -793,6 +796,16 @@ export function Editor({
               <ThemePanel document={state.document} onChange={applyAppearance} />
             </PanelBody>
           </Panel>
+
+          {/* 助手只在云端项目上出现：它要一个真实的 revision 才能安全地 apply，
+              本地草稿（local-generated-*）既没有 revision 也没有可写的服务端项目。 */}
+          {draftOwner?.kind === "account" && projectRevision ? (
+            <AssistantPanel
+              projectId={draftId}
+              projectRevision={projectRevision}
+              selectedSlideId={selectedSlideId}
+            />
+          ) : null}
 
           {draftOwner?.kind === "account" && projectRevision ? <VersionHistory projectId={draftId} revision={projectRevision} /> : null}
         </div>

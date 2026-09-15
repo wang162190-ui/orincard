@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { platformKeys } from "../../domain/document";
 import { GENERATION_LANGUAGES, type GenerationOptions } from "../../server/generation";
 
 export const DEFAULT_GENERATION_OPTIONS: GenerationOptions = {
@@ -18,6 +19,7 @@ export function GenerationOptionsFields(props: {
   readonly onChange: (value: GenerationOptions) => void;
 }) {
   const t = useTranslations("Options");
+  const platformLabel = useTranslations("Platform");
   function update<Key extends keyof GenerationOptions>(
     key: Key,
     value: GenerationOptions[Key],
@@ -36,9 +38,9 @@ export function GenerationOptionsFields(props: {
             value={props.value.platform}
             onChange={(event) => update("platform", event.target.value as GenerationOptions["platform"])}
           >
-            <option value="linkedin">LinkedIn</option>
-            <option value="instagram">Instagram</option>
-            <option value="tiktok">TikTok</option>
+            {platformKeys.map((platform) => (
+              <option key={platform} value={platform}>{platformLabel(platform)}</option>
+            ))}
           </select>
         </label>
         <label className="field">

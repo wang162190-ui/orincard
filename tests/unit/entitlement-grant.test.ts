@@ -9,10 +9,15 @@ import {
   type EntitlementGrantStore,
 } from "../../src/server/billing/entitlement-grant";
 
-function policy() {
+/**
+ * @param monthlyImages 省略即模拟「策略还没配图片额度」的线上现状；传数字（含 0）
+ *   即模拟已配置。两者行为必须不同，见下面 grants for plan 的三条。
+ */
+function policy(monthlyImages?: number) {
   const entitlements = (monthlyGenerations: number) => ({
     maxPages: 5,
     monthlyGenerations,
+    ...(monthlyImages === undefined ? {} : { monthlyImages }),
     hdExport: false,
     pptxExport: false,
     mp4Export: false,
@@ -61,9 +66,26 @@ describe("grants for plan", () => {
     expect(grantsForPlan(policy(), "pro")).toEqual([{ resource: "generation", granted: 200 }]);
   });
 
-  // 策略里没有 image 的字段，发多少是未定的商业决策，所以不发——这条守住「不要偷偷编一个数字」。
+  // 策略里没有 image 的字段时不发——这条守住「不要偷偷编一个数字」，也守住向后兼容：
+  // 线上现存的 BILLING_POLICY_JSON 没有该字段，加上这个特性不能改变它的行为。
   it("does not invent an image quota the policy never defines", () => {
-    expect(grantsForPlan(policy(), "free").map((grant) => grant.resource)).not.toContain("image");
+    expect(grantsForPlan(policy(), "free")).toEqual([{ resource: "generation", granted: 10 }]);
+  });
+
+  it("grants the image bucket once the policy defines one", () => {
+    expect(grantsForPlan(policy(25), "free")).toEqual([
+      { resource: "generation", granted: 10 },
+      { resource: "image", granted: 25 },
+    ]);
+  });
+
+  // 「配成 0」与「没配」必须可区分：前者发一个空桶（begin_ai_candidate 能查到它、
+  // 拒绝得明确），后者压根没有桶（submit 抛 22003）。折叠成同一种会丢掉这个差别。
+  it("treats an explicit zero as a configured bucket, not as absent", () => {
+    expect(grantsForPlan(policy(0), "free")).toEqual([
+      { resource: "generation", granted: 10 },
+      { resource: "image", granted: 0 },
+    ]);
   });
 });
 
@@ -87,6 +109,24 @@ describe("ensureEntitlementsForPeriod", () => {
       period,
       granted: 200,
     });
+  });
+
+  it("grants both buckets when the policy defines an image quota", async () => {
+    const store: EntitlementGrantStore = {
+      planKey: vi.fn(async () => "pro" as const),
+      grant: vi.fn(async () => {}),
+    };
+    await ensureEntitlementsForPeriod({
+      store,
+      policy: policy(100),
+      ownerId: "11111111-1111-4111-8111-111111111111",
+      at: new Date("2026-09-15T12:00:00Z"),
+    });
+    expect(store.grant).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(store.grant).mock.calls.map(([call]) => call.resource)).toEqual([
+      "generation",
+      "image",
+    ]);
   });
 });
 

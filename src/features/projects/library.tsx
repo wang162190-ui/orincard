@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button, Panel, PanelBody } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
+import { platformKeys } from "@/domain/document";
 import type { ProjectSummary } from "@/server/projects";
 
 type FilterState = Readonly<{ query: string; platform: string; state: string }>;
@@ -14,6 +15,7 @@ function operationKey(operation: string): string {
 
 export function ProjectLibrary({ initialProjects }: { readonly initialProjects: readonly ProjectSummary[] }) {
   const t = useTranslations("Projects");
+  const platformLabel = useTranslations("Platform");
   const [projects, setProjects] = useState(initialProjects);
   const [filters, setFilters] = useState<FilterState>({ query: "", platform: "", state: "" });
   const [loading, setLoading] = useState(false);
@@ -84,7 +86,10 @@ export function ProjectLibrary({ initialProjects }: { readonly initialProjects: 
         <label className="stack" style={{ gap: 4 }}>
           <span className="label">{t("platform")}</span>
           <select aria-label={t("platform")} value={filters.platform} onChange={(event) => updateFilter("platform", event.target.value)}>
-            <option value="">{t("allPlatforms")}</option><option value="linkedin">LinkedIn</option><option value="instagram">Instagram</option><option value="tiktok">TikTok</option>
+            <option value="">{t("allPlatforms")}</option>
+            {platformKeys.map((platform) => (
+              <option key={platform} value={platform}>{platformLabel(platform)}</option>
+            ))}
           </select>
         </label>
         <label className="stack" style={{ gap: 4 }}>

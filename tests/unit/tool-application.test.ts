@@ -10,6 +10,21 @@ describe("T066 explicit tool application", () => {
     expect(request.selectedSlideIds).toEqual(["22222222-2222-4222-8222-222222222222"]);
   });
 
+  // 回归：这两个字段 `inputSchemas` 收、`buildToolCatalog` 还广告给了规划模型，
+  // 从前却在这里被静默丢掉——计划写 count: 3，worker 照样回 5 条。
+  it("carries the count and instructions the input schema accepts", () => {
+    const request = toTextWorkerRequest({ tool: "post-ideas", input: { topic: "Shipping small", count: 3, instructions: "Keep each angle concrete." } });
+    expect(request.input).toBe("Shipping small");
+    expect(request.count).toBe(3);
+    expect(request.instructions).toBe("Keep each angle concrete.");
+  });
+
+  it("leaves both unset when the caller omitted them", () => {
+    const request = toTextWorkerRequest({ tool: "caption", input: { text: "Draft" } });
+    expect(request.count).toBeUndefined();
+    expect(request.instructions).toBeUndefined();
+  });
+
   it("changes only the requested caption and leaves the input snapshot immutable", () => {
     const before = structuredClone(baseDocument);
     const next = applyToolResultToDocument(before, { kind: "text", markdown: "New candidate" }, { kind: "caption" });

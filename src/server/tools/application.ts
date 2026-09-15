@@ -14,6 +14,10 @@ export function toTextWorkerRequest(request: ToolRequest): TextToolRequest {
   return {
     tool: request.tool as TextToolRequest["tool"],
     input: typeof input.text === "string" ? input.text : typeof input.topic === "string" ? input.topic : "",
+    // `inputSchemas` 把 count / instructions 广告给了调用方（也广告给了规划模型），
+    // 从前这里把它们静默丢掉：计划写 count: 3，worker 照样回 5 条。
+    count: typeof input.count === "number" ? input.count : undefined,
+    instructions: typeof input.instructions === "string" && input.instructions ? input.instructions : undefined,
     contextProjectId: context?.projectId,
     contextRevision: context?.expectedRevision,
     selectedContext: [context?.fields.title ? "title" : null, context?.fields.caption ? "caption" : null, context?.fields.slideIds?.length ? "slides" : null].filter((value): value is "title" | "caption" | "slides" => value !== null),
@@ -25,6 +29,25 @@ export function toTextWorkerRequest(request: ToolRequest): TextToolRequest {
 export const TOOL_OUTPUT_LIFETIME_MS = 7 * 24 * 60 * 60 * 1_000;
 
 export const VISUAL_TOOL_IDS = ["quote-card", "infographic", "portrait", "carousel-to-video"] as const satisfies readonly VisualToolName[];
+
+/**
+ * 一次工具调用的成本预留上界（µUSD）。
+ *
+ * 视觉那档取 25_000，与 `src/trigger/visual-tool.ts` 的 `PORTRAIT_RESERVED_MICRO_USD` 同值；
+ * 文本工具只出一次短文本，10_000 已经宽裕。预留是**上界**不是预算目标，多退少补由
+ * `private.settle_cost_attempt` 结算。
+ *
+ * 住在这里而不是各调用方各写一份：`/api/v1/tools/[tool]` 和编排器执行同一个工具时必须
+ * 预留同一笔钱，否则同一个工具从两个入口进来会记两种账。
+ */
+const TEXT_TOOL_RESERVED_MICRO_USD = 10_000;
+const VISUAL_TOOL_RESERVED_MICRO_USD = 25_000;
+
+export function toolReservedMicroUsd(tool: ToolId): number {
+  return VISUAL_TOOL_IDS.includes(tool as (typeof VISUAL_TOOL_IDS)[number])
+    ? VISUAL_TOOL_RESERVED_MICRO_USD
+    : TEXT_TOOL_RESERVED_MICRO_USD;
+}
 
 export type VisualWorkerRequest = {
   readonly tool: VisualToolName;

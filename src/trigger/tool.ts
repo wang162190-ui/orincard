@@ -19,6 +19,17 @@ export interface TextToolWorkerStore {
 }
 
 export function createSupabaseTextToolWorkerStore(client: SupabaseClient): TextToolWorkerStore {
+  /**
+   * 终结必须走 RPC，不能像从前那样裸 `update jobs set state = 'succeeded'`：
+   * 裸写只动 `jobs`，`usage_accounts.reserved` 里那一个单位永远不还，
+   * 免费额度跑满 10 次就被锁死，而 `consumed` 还是 0。
+   */
+  const finalize = async (jobId: string, ownerId: string, resultRef: Readonly<Record<string, unknown>> | null, errorCode: string | null) => {
+    const { data, error } = await client.rpc("server_finalize_tool_job", {
+      p_job_id: jobId, p_owner_id: ownerId, p_result_ref: resultRef, p_error_code: errorCode,
+    });
+    return !error && data === true;
+  };
   return {
     async claim(jobId) {
       const jobResult = await client.from("jobs").select("id,owner_id,project_id,input_ref,state,cancel_requested_at").eq("id", jobId).eq("kind", "tool").maybeSingle();
@@ -28,14 +39,13 @@ export function createSupabaseTextToolWorkerStore(client: SupabaseClient): TextT
       if (request.contextProjectId) {
         const project = await client.from("projects").select("document,revision").eq("id", request.contextProjectId).eq("owner_id", jobResult.data.owner_id).in("state", ["draft", "archived"]).maybeSingle();
         if (jobResult.data.project_id !== request.contextProjectId || project.error || !project.data || project.data.revision !== request.contextRevision) {
-          const finishedAt = new Date().toISOString();
-          await client.from("jobs").update({ state: "failed", error_code: "CONTEXT_UNAVAILABLE", finished_at: finishedAt, updated_at: finishedAt }).eq("id", jobId).eq("owner_id", jobResult.data.owner_id).eq("state", jobResult.data.state);
+          // 还没 claim 就判死，预留同样得释放——所以这里也走终结 RPC。
+          await finalize(jobId, jobResult.data.owner_id, null, "CONTEXT_UNAVAILABLE");
           return null;
         }
         selectedProjectContext = selectProjectContext(project.data.document, request.selectedContext, request.selectedSlideIds);
       } else if (jobResult.data.project_id !== null) {
-        const finishedAt = new Date().toISOString();
-        await client.from("jobs").update({ state: "failed", error_code: "CONTEXT_UNAVAILABLE", finished_at: finishedAt, updated_at: finishedAt }).eq("id", jobId).eq("owner_id", jobResult.data.owner_id).eq("state", jobResult.data.state);
+        await finalize(jobId, jobResult.data.owner_id, null, "CONTEXT_UNAVAILABLE");
         return null;
       }
       const now = new Date().toISOString();
@@ -44,13 +54,10 @@ export function createSupabaseTextToolWorkerStore(client: SupabaseClient): TextT
       return { jobId, ownerId: jobResult.data.owner_id, request, selectedProjectContext };
     },
     async succeed(jobId, ownerId, candidate) {
-      const finishedAt = new Date().toISOString();
-      const result = await client.from("jobs").update({ state: "succeeded", stage: "write", progress: 100, result_ref: { candidate }, finished_at: finishedAt, updated_at: finishedAt }).eq("id", jobId).eq("owner_id", ownerId).eq("state", "running").select("id").maybeSingle();
-      return !result.error && Boolean(result.data);
+      return finalize(jobId, ownerId, { candidate }, null);
     },
     async fail(jobId, ownerId, errorCode) {
-      const finishedAt = new Date().toISOString();
-      await client.from("jobs").update({ state: "failed", error_code: errorCode, finished_at: finishedAt, updated_at: finishedAt }).eq("id", jobId).eq("owner_id", ownerId).eq("state", "running");
+      await finalize(jobId, ownerId, null, errorCode);
     },
   };
 }
