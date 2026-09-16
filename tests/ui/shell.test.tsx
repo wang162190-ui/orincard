@@ -117,6 +117,7 @@ describe("workspace shell", () => {
         "/templates",
         "/tools",
         "/agent",
+        "/assets",
         "/brand-kits",
         "/billing",
         "/settings",

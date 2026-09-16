@@ -29,6 +29,7 @@
     "exports": "Exports",
     "brandKits": "Brand kits",
     "templates": "Templates",
+    "assets": "Assets",
     "billing": "Billing",
     "settings": "Settings",
     "help": "Help",
@@ -64,7 +65,9 @@
     "waitlistEyebrow": "Paid plans are being prepared",
     "waitlistTitle": "Want to hear when they open?",
     "waitlistCta": "Join the waitlist"
+    ,"templatesCta":"Explore the template library","heroAlt":"Original folded-paper Orincard editorial scene","formatsCard4":"Publish with confidence"
   },
+  "Assets": {"title":"Assets","eyebrow":"Visual library","heading":"A visual shelf for every story","lead":"Browse original editorial images, your private uploads, or search Pexels before placing an image into a card.","curated":"Orincard picks","mine":"My assets","search":"Search stock","original":"Original Orincard artwork","mineHint":"Your private uploads appear here after you sign in and add them from the editor.","openEditor":"Open editor","close":"Close preview"},
   "Pricing": {
     "eyebrow": "Plans",
     "headline": "Start free. Join the paid-plan waitlist.",

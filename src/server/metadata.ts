@@ -3,7 +3,7 @@ import { type Locale, localizedPath, routing, stripLocale } from "../i18n/routin
 
 export const PRIVATE_ROUTE_PREFIXES = [
   "/api", "/auth", "/billing", "/brand-kits", "/create", "/editor", "/exports",
-  "/login", "/projects", "/reset-password", "/settings", "/signup", "/tools",
+  "/login", "/projects", "/reset-password", "/settings", "/signup", "/tools", "/assets",
 ] as const;
 
 export function siteOrigin(environment: Readonly<Record<string, string | undefined>> = process.env) {

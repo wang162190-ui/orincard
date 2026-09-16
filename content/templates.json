@@ -31,13 +31,27 @@
           "id": "local-clear-01",
           "revision": 1,
           "role": "intro",
-          "mode": "text",
-          "layoutId": "intro-centered",
+          "mode": "text_image",
+          "layoutId": "intro-split",
           "eyebrow": "PRACTICAL GUIDE",
           "title": "Turn one useful idea into four clear steps",
           "bodyBlocks": [],
           "cta": null,
-          "assetSlots": [],
+          "assetSlots": [
+            {
+              "slotId": "curated-1",
+              "assetId": "local-curated-clear-idea-01",
+              "fit": "cover",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "opacity": 1,
+              "alt": "Clear Idea — original editorial illustration"
+            }
+          ],
           "counterVisible": false,
           "overrides": {}
         },
@@ -45,8 +59,8 @@
           "id": "local-clear-02",
           "revision": 1,
           "role": "content",
-          "mode": "text",
-          "layoutId": "statement",
+          "mode": "text_image",
+          "layoutId": "content-split",
           "eyebrow": "01",
           "title": "Start with the conclusion",
           "bodyBlocks": [
@@ -57,7 +71,21 @@
             }
           ],
           "cta": null,
-          "assetSlots": [],
+          "assetSlots": [
+            {
+              "slotId": "curated-2",
+              "assetId": "local-curated-clear-idea-02",
+              "fit": "cover",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "opacity": 1,
+              "alt": "Clear Idea — original editorial illustration"
+            }
+          ],
           "counterVisible": true,
           "overrides": {}
         },
@@ -97,7 +125,20 @@
         }
       ],
       "caption": "A simple structure for explaining one useful idea.",
-      "assetRefs": []
+      "assetRefs": [
+        {
+          "id": "local-curated-clear-idea-01",
+          "kind": "library",
+          "mimeType": "image/webp",
+          "rightsStatus": "verified"
+        },
+        {
+          "id": "local-curated-clear-idea-02",
+          "kind": "library",
+          "mimeType": "image/webp",
+          "rightsStatus": "verified"
+        }
+      ]
     }
   },
   {
@@ -132,13 +173,27 @@
           "id": "local-launch-01",
           "revision": 1,
           "role": "intro",
-          "mode": "text",
-          "layoutId": "intro-centered",
+          "mode": "text_image",
+          "layoutId": "intro-split",
           "eyebrow": "NEW",
           "title": "A launch story people can understand quickly",
           "bodyBlocks": [],
           "cta": null,
-          "assetSlots": [],
+          "assetSlots": [
+            {
+              "slotId": "curated-1",
+              "assetId": "local-curated-bold-launch-01",
+              "fit": "cover",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "opacity": 1,
+              "alt": "Bold Launch — original editorial illustration"
+            }
+          ],
           "counterVisible": false,
           "overrides": {}
         },
@@ -146,8 +201,8 @@
           "id": "local-launch-02",
           "revision": 1,
           "role": "content",
-          "mode": "text",
-          "layoutId": "statement",
+          "mode": "text_image",
+          "layoutId": "content-split",
           "eyebrow": "THE PROBLEM",
           "title": "Name the friction in one sentence.",
           "bodyBlocks": [
@@ -158,7 +213,21 @@
             }
           ],
           "cta": null,
-          "assetSlots": [],
+          "assetSlots": [
+            {
+              "slotId": "curated-2",
+              "assetId": "local-curated-bold-launch-02",
+              "fit": "cover",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "opacity": 1,
+              "alt": "Bold Launch — original editorial illustration"
+            }
+          ],
           "counterVisible": true,
           "overrides": {}
         },
@@ -198,7 +267,20 @@
         }
       ],
       "caption": "A direct four-page launch narrative.",
-      "assetRefs": []
+      "assetRefs": [
+        {
+          "id": "local-curated-bold-launch-01",
+          "kind": "library",
+          "mimeType": "image/webp",
+          "rightsStatus": "verified"
+        },
+        {
+          "id": "local-curated-bold-launch-02",
+          "kind": "library",
+          "mimeType": "image/webp",
+          "rightsStatus": "verified"
+        }
+      ]
     }
   },
   {
@@ -233,13 +315,27 @@
           "id": "local-story-01",
           "revision": 1,
           "role": "intro",
-          "mode": "text",
-          "layoutId": "intro-centered",
+          "mode": "text_image",
+          "layoutId": "intro-split",
           "eyebrow": "SHORT STORY",
           "title": "The small decision that changed the outcome",
           "bodyBlocks": [],
           "cta": null,
-          "assetSlots": [],
+          "assetSlots": [
+            {
+              "slotId": "curated-1",
+              "assetId": "local-curated-vertical-story-01",
+              "fit": "cover",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "opacity": 1,
+              "alt": "Vertical Story — original editorial illustration"
+            }
+          ],
           "counterVisible": false,
           "overrides": {}
         },
@@ -247,8 +343,8 @@
           "id": "local-story-02",
           "revision": 1,
           "role": "content",
-          "mode": "text",
-          "layoutId": "statement",
+          "mode": "text_image",
+          "layoutId": "content-split",
           "eyebrow": "BEFORE",
           "title": "The obvious approach kept failing.",
           "bodyBlocks": [
@@ -259,7 +355,21 @@
             }
           ],
           "cta": null,
-          "assetSlots": [],
+          "assetSlots": [
+            {
+              "slotId": "curated-2",
+              "assetId": "local-curated-vertical-story-02",
+              "fit": "cover",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "opacity": 1,
+              "alt": "Vertical Story — original editorial illustration"
+            }
+          ],
           "counterVisible": true,
           "overrides": {}
         },
@@ -299,7 +409,20 @@
         }
       ],
       "caption": "A mobile-first story with one practical takeaway.",
-      "assetRefs": []
+      "assetRefs": [
+        {
+          "id": "local-curated-vertical-story-01",
+          "kind": "library",
+          "mimeType": "image/webp",
+          "rightsStatus": "verified"
+        },
+        {
+          "id": "local-curated-vertical-story-02",
+          "kind": "library",
+          "mimeType": "image/webp",
+          "rightsStatus": "verified"
+        }
+      ]
     }
   },
   {
@@ -334,13 +457,27 @@
           "id": "local-modernbr-01",
           "revision": 1,
           "role": "intro",
-          "mode": "text",
-          "layoutId": "intro-editorial",
+          "mode": "text_image",
+          "layoutId": "intro-split",
           "eyebrow": "BRIEF",
           "title": "The brief that gets read",
           "bodyBlocks": [],
           "cta": null,
-          "assetSlots": [],
+          "assetSlots": [
+            {
+              "slotId": "curated-1",
+              "assetId": "local-curated-modern-brief-01",
+              "fit": "cover",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "opacity": 1,
+              "alt": "Modern Brief — original editorial illustration"
+            }
+          ],
           "counterVisible": false,
           "overrides": {}
         },
@@ -348,8 +485,8 @@
           "id": "local-modernbr-02",
           "revision": 1,
           "role": "content",
-          "mode": "text",
-          "layoutId": "statement",
+          "mode": "text_image",
+          "layoutId": "content-split",
           "eyebrow": "01",
           "title": "Lead with the claim",
           "bodyBlocks": [
@@ -360,7 +497,21 @@
             }
           ],
           "cta": null,
-          "assetSlots": [],
+          "assetSlots": [
+            {
+              "slotId": "curated-2",
+              "assetId": "local-curated-modern-brief-02",
+              "fit": "cover",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "opacity": 1,
+              "alt": "Modern Brief — original editorial illustration"
+            }
+          ],
           "counterVisible": true,
           "overrides": {}
         },
@@ -420,7 +571,20 @@
         }
       ],
       "caption": "Four beats: claim, evidence, objection, next step.",
-      "assetRefs": []
+      "assetRefs": [
+        {
+          "id": "local-curated-modern-brief-01",
+          "kind": "library",
+          "mimeType": "image/webp",
+          "rightsStatus": "verified"
+        },
+        {
+          "id": "local-curated-modern-brief-02",
+          "kind": "library",
+          "mimeType": "image/webp",
+          "rightsStatus": "verified"
+        }
+      ]
     }
   },
   {
@@ -576,13 +740,27 @@
           "id": "local-minimaln-01",
           "revision": 1,
           "role": "intro",
-          "mode": "text",
-          "layoutId": "intro-centered",
+          "mode": "text_image",
+          "layoutId": "intro-split",
           "eyebrow": "NOTE",
           "title": "Say less, land more",
           "bodyBlocks": [],
           "cta": null,
-          "assetSlots": [],
+          "assetSlots": [
+            {
+              "slotId": "curated-1",
+              "assetId": "local-curated-minimal-note-01",
+              "fit": "cover",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "opacity": 1,
+              "alt": "Minimal Note — original editorial illustration"
+            }
+          ],
           "counterVisible": false,
           "overrides": {}
         },
@@ -590,8 +768,8 @@
           "id": "local-minimaln-02",
           "revision": 1,
           "role": "content",
-          "mode": "text",
-          "layoutId": "statement",
+          "mode": "text_image",
+          "layoutId": "content-split",
           "eyebrow": "01",
           "title": "Cut the setup",
           "bodyBlocks": [
@@ -602,7 +780,21 @@
             }
           ],
           "cta": null,
-          "assetSlots": [],
+          "assetSlots": [
+            {
+              "slotId": "curated-2",
+              "assetId": "local-curated-minimal-note-02",
+              "fit": "cover",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "opacity": 1,
+              "alt": "Minimal Note — original editorial illustration"
+            }
+          ],
           "counterVisible": true,
           "overrides": {}
         },
@@ -642,7 +834,20 @@
         }
       ],
       "caption": "A 1:1 set for a single idea and plenty of quiet space.",
-      "assetRefs": []
+      "assetRefs": [
+        {
+          "id": "local-curated-minimal-note-01",
+          "kind": "library",
+          "mimeType": "image/webp",
+          "rightsStatus": "verified"
+        },
+        {
+          "id": "local-curated-minimal-note-02",
+          "kind": "library",
+          "mimeType": "image/webp",
+          "rightsStatus": "verified"
+        }
+      ]
     }
   },
   {
@@ -1208,13 +1413,27 @@
           "id": "local-educatio-01",
           "revision": 1,
           "role": "intro",
-          "mode": "text",
-          "layoutId": "intro-centered",
+          "mode": "text_image",
+          "layoutId": "intro-split",
           "eyebrow": "BREAKDOWN",
           "title": "How compounding actually works",
           "bodyBlocks": [],
           "cta": null,
-          "assetSlots": [],
+          "assetSlots": [
+            {
+              "slotId": "curated-1",
+              "assetId": "local-curated-education-breakdown-01",
+              "fit": "cover",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "opacity": 1,
+              "alt": "Education Breakdown — original editorial illustration"
+            }
+          ],
           "counterVisible": false,
           "overrides": {}
         },
@@ -1222,8 +1441,8 @@
           "id": "local-educatio-02",
           "revision": 1,
           "role": "content",
-          "mode": "text",
-          "layoutId": "statement",
+          "mode": "text_image",
+          "layoutId": "content-split",
           "eyebrow": "01",
           "title": "It is a rate, not an amount",
           "bodyBlocks": [
@@ -1234,7 +1453,21 @@
             }
           ],
           "cta": null,
-          "assetSlots": [],
+          "assetSlots": [
+            {
+              "slotId": "curated-2",
+              "assetId": "local-curated-education-breakdown-02",
+              "fit": "cover",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "opacity": 1,
+              "alt": "Education Breakdown — original editorial illustration"
+            }
+          ],
           "counterVisible": true,
           "overrides": {}
         },
@@ -1294,7 +1527,20 @@
         }
       ],
       "caption": "A 16:9 walkthrough: definition, mechanism, mistake, practice.",
-      "assetRefs": []
+      "assetRefs": [
+        {
+          "id": "local-curated-education-breakdown-01",
+          "kind": "library",
+          "mimeType": "image/webp",
+          "rightsStatus": "verified"
+        },
+        {
+          "id": "local-curated-education-breakdown-02",
+          "kind": "library",
+          "mimeType": "image/webp",
+          "rightsStatus": "verified"
+        }
+      ]
     }
   },
   {

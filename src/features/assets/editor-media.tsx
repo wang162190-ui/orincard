@@ -6,6 +6,7 @@ import type { CarouselDocument } from "../../domain/document";
 import type { SlideRenderAsset } from "../../render/slide";
 import { StockGallery } from "./gallery";
 import { MediaPanel, type MediaAsset, type MediaSource } from "./media-panel";
+import { curatedAssets } from "./curated";
 
 type LibraryItem = Readonly<{
   id: string; kind: "upload" | "stock" | "screenshot" | "ai_image" | "portrait" | "audio" | "derived";
@@ -72,8 +73,11 @@ export function EditorMedia({ document, selectedSlideId, onDocumentChange, onRen
       const body = await json(response);
       if (!response.ok) { setMessage(body.error?.message ?? t("libraryUnavailable")); return; }
       const next = body.data?.items ?? [];
-      setItems(next);
-      onRenderAssetsChange(Object.fromEntries(next.filter(isSelectable).flatMap((item) => item.previewUrl ? [[item.id, { id: item.id, src: item.previewUrl, state: "ready" as const, alt: t("libraryAlt") }]] : [])));
+      const curated: LibraryItem[] = document.assetRefs.some((ref) => ref.id.startsWith("local-curated-"))
+        ? curatedAssets.map((asset) => ({ id: asset.refId, kind: "stock", mime: "image/png", state: "ready", acceptedAt: new Date().toISOString(), previewUrl: asset.src }))
+        : [];
+      setItems([...curated, ...next]);
+      onRenderAssetsChange(Object.fromEntries([...curated, ...next].filter(isSelectable).flatMap((item) => item.previewUrl ? [[item.id, { id: item.id, src: item.previewUrl, state: "ready" as const, alt: t("libraryAlt"), width: 1536, height: 1024 }]] : [])));
     } catch { setMessage(t("libraryUnavailable")); }
   }
 

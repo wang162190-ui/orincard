@@ -1,4 +1,4 @@
-import templates from "../../../content/templates.json";
+import previews from "../../../content/template-previews.json";
 
 /**
  * 画廊与选择器里分类的展示顺序，也是**唯一**一份合法分类清单。
@@ -35,17 +35,13 @@ export interface TemplateCard {
   readonly platform: string;
   readonly templateId: string;
   readonly slideCount: number;
+  readonly hasImages?: boolean;
+  readonly thumbnail?: string;
+  readonly previews?: readonly string[];
+  readonly previewVersion?: string;
 }
 
-export const templateCards: readonly TemplateCard[] = templates.map((template) => ({
-  slug: template.slug,
-  name: template.name,
-  description: template.description,
-  category: template.category,
-  platform: template.document.platform,
-  templateId: template.document.templateId,
-  slideCount: template.document.slides.length,
-}));
+export const templateCards: readonly TemplateCard[] = previews;
 
 /** 按 `CATEGORY_ORDER` 分组，空分类不出现（分类导航不显示点不动的按钮）。 */
 export function groupByCategory(

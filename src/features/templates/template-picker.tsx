@@ -84,6 +84,7 @@ export function TemplatePicker(props: {
                 props.onSelect({ templateId: card.templateId, platform: card.platform });
               }}
             >
+              {card.thumbnail ? <img className="template-cover" src={card.thumbnail} alt="" width={240} height={300} loading="lazy" /> : null}
               <span className="eyebrow">
                 {templateLabel(`category${group.category}`)} · {card.platform}
               </span>

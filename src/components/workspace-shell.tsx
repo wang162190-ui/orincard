@@ -12,6 +12,7 @@ export type WorkspaceSection =
   | "exports"
   | "brand-kits"
   | "templates"
+  | "assets"
   | "tools"
   | "agent"
   | "billing"
@@ -134,6 +135,7 @@ const NAV_GROUPS: NavGroup[] = [
     headingKey: "library",
     items: [
       { id: "templates", href: "/templates", labelKey: "templates", icon: <Icon d={PATHS.templates} /> },
+      { id: "assets", href: "/assets", labelKey: "assets", icon: <Icon d="M4 5h16v14H4zM4 15l4-4 3 3 3-4 6 5" /> },
       { id: "tools", href: "/tools", labelKey: "tools", icon: <Icon d={PATHS.tools} /> },
       // 编排器和工具列表并排：它做的事就是「替你挑工具、排顺序」，放在工具旁边才说得通。
       { id: "agent", href: "/agent", labelKey: "agent", icon: <Icon d={PATHS.agent} /> },

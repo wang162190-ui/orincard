@@ -20,7 +20,7 @@ describe("S13 私有路由在带 locale 前缀时仍然私有", () => {
     const disallow = privateRouteDisallowList();
     expect(disallow).toContain("/billing/");
     expect(disallow).toContain("/zh-Hans/billing/");
-    expect(disallow).toHaveLength(13 * routing.locales.length);
+    expect(disallow).toHaveLength(14 * routing.locales.length);
   });
 });
 

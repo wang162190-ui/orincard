@@ -11,6 +11,7 @@ import { routing } from "@/i18n/routing";
 import { publicMetadata } from "@/server/metadata";
 import "@/styles/tokens.css";
 import "@/components/ui.css";
+import "@/styles/showcase.css";
 
 type LocaleParams = { readonly params: Promise<{ readonly locale: string }> };
 

@@ -1,0 +1,259 @@
+[
+  {
+    "slug": "clear-idea",
+    "name": "Clear Idea",
+    "description": "Explain one practical idea with a calm editorial rhythm.",
+    "category": "Education",
+    "platform": "linkedin",
+    "templateId": "paper",
+    "slideCount": 4,
+    "hasImages": true,
+    "thumbnail": "/media/templates/clear-idea-3325100795cb-1.png",
+    "previews": [
+      "/media/templates/clear-idea-3325100795cb-1.png",
+      "/media/templates/clear-idea-3325100795cb-2.png",
+      "/media/templates/clear-idea-3325100795cb-3.png",
+      "/media/templates/clear-idea-3325100795cb-4.png"
+    ],
+    "previewVersion": "3325100795cb"
+  },
+  {
+    "slug": "bold-launch",
+    "name": "Bold Launch",
+    "description": "Introduce a product or project with direct, high-energy statements.",
+    "category": "Launch",
+    "platform": "instagram",
+    "templateId": "signal",
+    "slideCount": 4,
+    "hasImages": true,
+    "thumbnail": "/media/templates/bold-launch-76b28048a566-1.png",
+    "previews": [
+      "/media/templates/bold-launch-76b28048a566-1.png",
+      "/media/templates/bold-launch-76b28048a566-2.png",
+      "/media/templates/bold-launch-76b28048a566-3.png",
+      "/media/templates/bold-launch-76b28048a566-4.png"
+    ],
+    "previewVersion": "76b28048a566"
+  },
+  {
+    "slug": "vertical-story",
+    "name": "Vertical Story",
+    "description": "A tall, concise sequence for mobile-first stories and lessons.",
+    "category": "Story",
+    "platform": "tiktok",
+    "templateId": "sky",
+    "slideCount": 4,
+    "hasImages": true,
+    "thumbnail": "/media/templates/vertical-story-ae466a8c3f72-1.png",
+    "previews": [
+      "/media/templates/vertical-story-ae466a8c3f72-1.png",
+      "/media/templates/vertical-story-ae466a8c3f72-2.png",
+      "/media/templates/vertical-story-ae466a8c3f72-3.png",
+      "/media/templates/vertical-story-ae466a8c3f72-4.png"
+    ],
+    "previewVersion": "ae466a8c3f72"
+  },
+  {
+    "slug": "modern-brief",
+    "name": "Modern Brief",
+    "description": "A tight four-beat argument for a professional feed.",
+    "category": "Modern",
+    "platform": "linkedin",
+    "templateId": "ink",
+    "slideCount": 5,
+    "hasImages": true,
+    "thumbnail": "/media/templates/modern-brief-e64ef4d6c141-1.png",
+    "previews": [
+      "/media/templates/modern-brief-e64ef4d6c141-1.png",
+      "/media/templates/modern-brief-e64ef4d6c141-2.png",
+      "/media/templates/modern-brief-e64ef4d6c141-3.png",
+      "/media/templates/modern-brief-e64ef4d6c141-4.png",
+      "/media/templates/modern-brief-e64ef4d6c141-5.png"
+    ],
+    "previewVersion": "e64ef4d6c141"
+  },
+  {
+    "slug": "modern-metrics",
+    "name": "Modern Metrics",
+    "description": "A widescreen deck for walking a team through numbers.",
+    "category": "Modern",
+    "platform": "presentation",
+    "templateId": "signal",
+    "slideCount": 5,
+    "hasImages": false,
+    "thumbnail": "/media/templates/modern-metrics-0b6be82ba8e3-1.png",
+    "previews": [
+      "/media/templates/modern-metrics-0b6be82ba8e3-1.png",
+      "/media/templates/modern-metrics-0b6be82ba8e3-2.png",
+      "/media/templates/modern-metrics-0b6be82ba8e3-3.png",
+      "/media/templates/modern-metrics-0b6be82ba8e3-4.png",
+      "/media/templates/modern-metrics-0b6be82ba8e3-5.png"
+    ],
+    "previewVersion": "0b6be82ba8e3"
+  },
+  {
+    "slug": "minimal-note",
+    "name": "Minimal Note",
+    "description": "One idea per square, with nothing competing for attention.",
+    "category": "Minimal",
+    "platform": "square",
+    "templateId": "paper",
+    "slideCount": 4,
+    "hasImages": true,
+    "thumbnail": "/media/templates/minimal-note-21b927790c17-1.png",
+    "previews": [
+      "/media/templates/minimal-note-21b927790c17-1.png",
+      "/media/templates/minimal-note-21b927790c17-2.png",
+      "/media/templates/minimal-note-21b927790c17-3.png",
+      "/media/templates/minimal-note-21b927790c17-4.png"
+    ],
+    "previewVersion": "21b927790c17"
+  },
+  {
+    "slug": "minimal-quote",
+    "name": "Minimal Quote",
+    "description": "Let a borrowed line carry the post, with your read underneath.",
+    "category": "Minimal",
+    "platform": "instagram",
+    "templateId": "ink",
+    "slideCount": 4,
+    "hasImages": false,
+    "thumbnail": "/media/templates/minimal-quote-63cc2042faf5-1.png",
+    "previews": [
+      "/media/templates/minimal-quote-63cc2042faf5-1.png",
+      "/media/templates/minimal-quote-63cc2042faf5-2.png",
+      "/media/templates/minimal-quote-63cc2042faf5-3.png",
+      "/media/templates/minimal-quote-63cc2042faf5-4.png"
+    ],
+    "previewVersion": "63cc2042faf5"
+  },
+  {
+    "slug": "bold-statement",
+    "name": "Bold Statement",
+    "description": "A high-contrast square set for one unambiguous position.",
+    "category": "Bold",
+    "platform": "square",
+    "templateId": "butter",
+    "slideCount": 4,
+    "hasImages": false,
+    "thumbnail": "/media/templates/bold-statement-6cfd7661cdfa-1.png",
+    "previews": [
+      "/media/templates/bold-statement-6cfd7661cdfa-1.png",
+      "/media/templates/bold-statement-6cfd7661cdfa-2.png",
+      "/media/templates/bold-statement-6cfd7661cdfa-3.png",
+      "/media/templates/bold-statement-6cfd7661cdfa-4.png"
+    ],
+    "previewVersion": "6cfd7661cdfa"
+  },
+  {
+    "slug": "bold-hot-take",
+    "name": "Bold Hot Take",
+    "description": "A vertical set that opens on the disagreement.",
+    "category": "Bold",
+    "platform": "tiktok",
+    "templateId": "ink",
+    "slideCount": 4,
+    "hasImages": false,
+    "thumbnail": "/media/templates/bold-hot-take-238fa7d94551-1.png",
+    "previews": [
+      "/media/templates/bold-hot-take-238fa7d94551-1.png",
+      "/media/templates/bold-hot-take-238fa7d94551-2.png",
+      "/media/templates/bold-hot-take-238fa7d94551-3.png",
+      "/media/templates/bold-hot-take-238fa7d94551-4.png"
+    ],
+    "previewVersion": "238fa7d94551"
+  },
+  {
+    "slug": "playful-checklist",
+    "name": "Playful Checklist",
+    "description": "A friendly checklist set with scannable bullets.",
+    "category": "Playful",
+    "platform": "instagram",
+    "templateId": "blush",
+    "slideCount": 5,
+    "hasImages": false,
+    "thumbnail": "/media/templates/playful-checklist-8715f92f5ae1-1.png",
+    "previews": [
+      "/media/templates/playful-checklist-8715f92f5ae1-1.png",
+      "/media/templates/playful-checklist-8715f92f5ae1-2.png",
+      "/media/templates/playful-checklist-8715f92f5ae1-3.png",
+      "/media/templates/playful-checklist-8715f92f5ae1-4.png",
+      "/media/templates/playful-checklist-8715f92f5ae1-5.png"
+    ],
+    "previewVersion": "8715f92f5ae1"
+  },
+  {
+    "slug": "playful-myths",
+    "name": "Playful Myths",
+    "description": "Myth, then correction, in a fast vertical rhythm.",
+    "category": "Playful",
+    "platform": "tiktok",
+    "templateId": "butter",
+    "slideCount": 4,
+    "hasImages": false,
+    "thumbnail": "/media/templates/playful-myths-9e0e9dac91dd-1.png",
+    "previews": [
+      "/media/templates/playful-myths-9e0e9dac91dd-1.png",
+      "/media/templates/playful-myths-9e0e9dac91dd-2.png",
+      "/media/templates/playful-myths-9e0e9dac91dd-3.png",
+      "/media/templates/playful-myths-9e0e9dac91dd-4.png"
+    ],
+    "previewVersion": "9e0e9dac91dd"
+  },
+  {
+    "slug": "education-breakdown",
+    "name": "Education Breakdown",
+    "description": "A widescreen walkthrough that builds one concept in steps.",
+    "category": "Education",
+    "platform": "presentation",
+    "templateId": "sky",
+    "slideCount": 5,
+    "hasImages": true,
+    "thumbnail": "/media/templates/education-breakdown-96be79e7b528-1.png",
+    "previews": [
+      "/media/templates/education-breakdown-96be79e7b528-1.png",
+      "/media/templates/education-breakdown-96be79e7b528-2.png",
+      "/media/templates/education-breakdown-96be79e7b528-3.png",
+      "/media/templates/education-breakdown-96be79e7b528-4.png",
+      "/media/templates/education-breakdown-96be79e7b528-5.png"
+    ],
+    "previewVersion": "96be79e7b528"
+  },
+  {
+    "slug": "launch-changelog",
+    "name": "Launch Changelog",
+    "description": "A widescreen release note your team can present as-is.",
+    "category": "Launch",
+    "platform": "presentation",
+    "templateId": "ink",
+    "slideCount": 5,
+    "hasImages": false,
+    "thumbnail": "/media/templates/launch-changelog-ce00d12bb5ce-1.png",
+    "previews": [
+      "/media/templates/launch-changelog-ce00d12bb5ce-1.png",
+      "/media/templates/launch-changelog-ce00d12bb5ce-2.png",
+      "/media/templates/launch-changelog-ce00d12bb5ce-3.png",
+      "/media/templates/launch-changelog-ce00d12bb5ce-4.png",
+      "/media/templates/launch-changelog-ce00d12bb5ce-5.png"
+    ],
+    "previewVersion": "ce00d12bb5ce"
+  },
+  {
+    "slug": "story-lessons",
+    "name": "Story Lessons",
+    "description": "A square set that turns one experience into transferable lessons.",
+    "category": "Story",
+    "platform": "square",
+    "templateId": "blush",
+    "slideCount": 4,
+    "hasImages": false,
+    "thumbnail": "/media/templates/story-lessons-3d589088024d-1.png",
+    "previews": [
+      "/media/templates/story-lessons-3d589088024d-1.png",
+      "/media/templates/story-lessons-3d589088024d-2.png",
+      "/media/templates/story-lessons-3d589088024d-3.png",
+      "/media/templates/story-lessons-3d589088024d-4.png"
+    ],
+    "previewVersion": "3d589088024d"
+  }
+]

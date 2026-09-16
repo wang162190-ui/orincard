@@ -120,6 +120,7 @@ export function MediaPanel({
             onClick={() => onDocumentChange(withAsset(document, selectedSlideId, asset))}
             type="button"
           >
+            {asset.previewUrl ? <img src={asset.previewUrl} alt="" width={96} height={64} loading="lazy" style={{ width: 96, height: 64, objectFit: "cover", borderRadius: 6, display: "block", marginBottom: 6 }} /> : null}
             {t("assetEntry", { label: asset.label, source: asset.source })}
           </button>
         ))}
