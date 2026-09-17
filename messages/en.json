@@ -106,10 +106,20 @@
     "creatorPoint1": "Higher creation allowance",
     "creatorPoint2": "Carousel-to-video tools",
     "creatorPoint3": "All advanced export options",
+    "benefitPages": "Up to {count} pages per carousel",
+    "benefitGenerations": "{count} generations per month",
+    "benefitImages": "{count} AI images per month",
+    "benefitHd": "HD image export",
+    "benefitPptx": "PPTX export",
+    "benefitMp4": "MP4 video export",
+    "included": "included",
+    "notIncluded": "not included",
+    "benefitsUnapproved": "Exact allowances for this plan are published once its pricing policy is approved. The list above describes the plan; it is not a commitment on numbers.",
+    "benefitsUnavailable": "Allowances cannot be read right now, so no numbers are shown.",
+    "priceUnannounced": "Price not announced yet.",
     "waitlistEyebrow": "Waitlist status",
     "waitlistTitle": "Paid access is not open yet.",
-    "waitlistBody": "Waitlist signup is being connected to a provider. No email is collected or stored on this page today. Check back here for an approved signup option.",
-    "returnHome": "Return home"
+    "waitlistBody": "Checkout is not open yet. Leave your email and we will tell you when paid plans open. We store the address for that notice only."
   },
   "Auth": {
     "loginTitle": "Sign in — Orincard",
@@ -488,10 +498,12 @@
   },
   "Waitlist": {
     "heading": "Join the waitlist",
-    "lead": "Paid plans are not open yet. Leave this dialog ready for the waitlist provider you choose later.",
+    "lead": "Paid plans are not open yet. Leave your email and we will tell you when they are.",
     "email": "Email address",
-    "notOpen": "Waitlist registration is not open yet. Your email has not been submitted or stored.",
-    "idle": "No email is sent or stored while the waitlist provider is unconfigured.",
+    "idle": "We store your address so we can send that one notice. Nothing is charged and no account is created.",
+    "sending": "Adding you to the waitlist…",
+    "joined": "You are on the waitlist. We will email you when paid plans open.",
+    "failed": "We could not record your email. Please try again.",
     "close": "Close",
     "submit": "Join waitlist"
   },

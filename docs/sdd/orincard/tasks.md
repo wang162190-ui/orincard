@@ -2,7 +2,7 @@
 
 > source: docs/sdd/orincard/spec.md
 
-2026-09-04，HARD-GATE 2 已批准（95 项 / 12 批）。**2026-09-14 追加 B13 共 4 项，对应 spec 新增的 AC-012；2026-09-15 追加 B14 共 2 项，为 AI 编排器。**现共 101 项任务，14 批；按依赖执行，标记 `[P]` 的任务按 `Parallel` 组在最多三条隔离工作线中并行，未标记者串行收口。
+2026-09-04，HARD-GATE 2 已批准（95 项 / 12 批）。**2026-09-14 追加 B13 共 4 项，对应 spec 新增的 AC-012；2026-09-15 追加 B14 共 2 项，为 AI 编排器；2026-09-17 追加 B15 共 2 项，为等候名单登记与定价页权益展示。**现共 104 项任务，15 批；按依赖执行，标记 `[P]` 的任务按 `Parallel` 组在最多三条隔离工作线中并行，未标记者串行收口。
 
 ## 执行约定
 
@@ -694,6 +694,22 @@
   - Status: ✅ 2026-09-15 全自动通过（`1 passed, 52.7s`）。前提：app 的 `TRIGGER_SECRET_KEY` 必须与 `trigger dev` 同在 dev 环境；详见 `docs/acceptance/agent.md` §3.1。
   - Expect: 真实供应商调用走完「描述需求 → 看计划 → 确认 → 执行至少一步」；`private.cost_attempts` 出现 `job:<id>:agent:1` 且状态为 settled，实测 µUSD 与 7,000 的估算逐项对照写入验收文档；跑不通的链路标 ❌ 并写明原因，不得用 mock 凑绿。
 
+## B15
+
+- [x] T103 `supabase/migrations/20260917000100_waitlist.sql`, `src/app/api/v1/waitlist/route.ts`, `src/features/billing/waitlist-form.tsx`, `src/features/billing/upgrade-dialog.tsx`, `tests/unit/waitlist-route.test.ts` — 等候名单登记真正落库 → AC-009, AC-011
+  - Batch: B15
+  - Depends: T083
+  - Check: `pnpm exec vitest run tests/unit/waitlist-route.test.ts`
+  - Status: ⏳ 2026-09-17 代码与单测通过；`waitlist_signups` 尚未推到开发库，推之前 POST /waitlist 返回 503 WAITLIST_UNAVAILABLE。
+  - Expect: 邮箱真的写进 `public.waitlist_signups`（RLS 开、无策略，只有 service role 能写），重复提交按小写去重、不报错也不产生第二条；跨源提交在碰库之前就被拒；写库失败返回 503 而不是谎报成功。
+
+- [x] T104 `src/server/billing/plan-benefits.ts`, `src/app/[locale]/pricing/page.tsx`, `tests/unit/plan-benefits.test.ts`, `tests/e2e/waitlist.spec.ts` — 定价页权益展示与等候名单集成冒烟 → AC-009, AC-011
+  - Batch: B15
+  - Depends: T103
+  - Check: `pnpm exec playwright test tests/e2e/waitlist.spec.ts`
+  - Status: ⏳ 2026-09-17 页面与单测通过；端到端提交的最终状态要等迁移落库后才能断言成「已登记」。
+  - Expect: 定价页的额度数字全部来自运行时 `BILLING_POLICY_JSON`，付费档在策略仍为 `testOnly` 时只给定性描述、不给数字；价格一律留空，不得自行编造；表单确实把邮箱 POST 到 `/api/v1/waitlist`，而不是只在前端显示一句提示。
+
 ## AC覆盖索引
 
 | AC | 任务 |
@@ -706,7 +722,7 @@
 | AC-006 | T002, T003, T004, T005, T006, T011, T019, T024, T025, T034, T035, T036, T037, T054, T055, T056, T061, T064, T065, T090, T091, T093, T094, T095 |
 | AC-007 | T004, T006, T010, T015, T016, T017, T020, T021, T022, T023, T026, T035, T036, T037, T049, T056, T057, T058, T059, T060, T061, T082, T083, T085, T086, T087, T088, T089, T092, T095 |
 | AC-008 | T013, T015, T018, T020, T026, T038, T050, T051, T052, T053, T059, T088, T092, T095 |
-| AC-009 | T019, T020, T024, T025, T044, T068, T069, T070, T071, T072, T073, T083, T085, T086, T088, T089, T092, T094, T095, T097, T099 |
+| AC-009 | T103, T104, T019, T020, T024, T025, T044, T068, T069, T070, T071, T072, T073, T083, T085, T086, T088, T089, T092, T094, T095, T097, T099 |
 | AC-010 | T062, T063, T064, T065, T066, T067, T095, T100, T101 |
-| AC-011 | T001, T008, T066, T074, T075, T076, T077, T078, T079, T080, T081, T082, T083, T084, T085, T089, T095 |
+| AC-011 | T103, T104, T001, T008, T066, T074, T075, T076, T077, T078, T079, T080, T081, T082, T083, T084, T085, T089, T095 |
 | AC-012 | T096, T097, T098, T099 |

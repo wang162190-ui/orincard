@@ -106,10 +106,20 @@
     "creatorPoint1": "更高的创作额度",
     "creatorPoint2": "轮播图转视频工具",
     "creatorPoint3": "全部进阶导出选项",
+    "benefitPages": "单套轮播图最多 {count} 页",
+    "benefitGenerations": "每月 {count} 次生成",
+    "benefitImages": "每月 {count} 张 AI 图片",
+    "benefitHd": "高清图片导出",
+    "benefitPptx": "PPTX 导出",
+    "benefitMp4": "MP4 视频导出",
+    "included": "包含",
+    "notIncluded": "不包含",
+    "benefitsUnapproved": "该档位的具体额度要等定价策略审定之后才会公布。上面几条是对档位的描述，不构成对具体数字的承诺。",
+    "benefitsUnavailable": "此刻读不到额度配置，因此不展示任何数字。",
+    "priceUnannounced": "价格尚未公布。",
     "waitlistEyebrow": "等候名单状态",
     "waitlistTitle": "付费尚未开放。",
-    "waitlistBody": "等候名单的登记功能正在接入服务商。本页面今天不收集、也不存储任何邮箱。开放登记后会在此更新。",
-    "returnHome": "返回首页"
+    "waitlistBody": "现在还不能付款。留下邮箱，开放付费时我们会通知你。这个地址只用于这一封通知。"
   },
   "Auth": {
     "loginTitle": "登录 — Orincard",
@@ -488,10 +498,12 @@
   },
   "Waitlist": {
     "heading": "加入等候名单",
-    "lead": "付费套餐尚未开放。这个对话框先留着，等你之后选定等候名单服务商再接上。",
+    "lead": "付费套餐尚未开放。留下邮箱，开放时我们会告诉你。",
     "email": "邮箱地址",
-    "notOpen": "等候名单登记尚未开放。你的邮箱没有被提交，也没有被存储。",
-    "idle": "在等候名单服务商接入之前，不会发送也不会存储任何邮箱。",
+    "idle": "我们会保存这个地址，只用来发这一封开放通知。不会扣款，也不会替你创建账户。",
+    "sending": "正在登记…",
+    "joined": "已登记。付费开放时我们会发邮件通知你。",
+    "failed": "登记没有成功，请再试一次。",
     "close": "关闭",
     "submit": "加入等候名单"
   },

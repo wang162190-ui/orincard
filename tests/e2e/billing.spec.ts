@@ -35,8 +35,14 @@ test("T072 shows payment, period and balance states and keeps cancellation in St
   await page.goto("/billing");
   await page.getByRole("button", { name: "Join the waitlist" }).click();
   await page.getByLabel("Email address").fill("creator@example.com");
-  await page.getByRole("button", { name: "Join waitlist" }).click();
-  await expect(page.getByRole("status")).toContainText("has not been submitted or stored");
+  // 2026-09-17：原来断言的是「has not been submitted or stored」——那是对话框只在前端弹提示时的行为。
+  // 现在这个入口和定价页收的是同一份名单，判据因此变成「邮箱确实被提交到了 /api/v1/waitlist」，
+  // 并且带着 source=billing，好分辨哪条路径真的带来了付费意向。
+  const [waitlist] = await Promise.all([
+    page.waitForRequest((candidate) => candidate.url().includes("/api/v1/waitlist") && candidate.method() === "POST"),
+    page.getByRole("button", { name: "Join waitlist" }).click(),
+  ]);
+  expect(waitlist.postDataJSON()).toEqual({ email: "creator@example.com", source: "billing", locale: "en" });
 });
 
 test("T072 reports scheduled cancellation without deleting saved work", async ({ page }) => {

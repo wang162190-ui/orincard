@@ -47,15 +47,17 @@ function flatten(routes: Map<string, ReadonlySet<string>>): readonly string[] {
 }
 
 describe("T095 API contract coverage", () => {
-  it("declares and implements the same 51 paths", () => {
+  it("declares and implements the same 52 paths", () => {
     const code = implemented();
     const contract = declared();
+    // 52 而非 51：2026-09-17 新增 POST /waitlist（T102）——支付通道未开通期间唯一的付费意向入口，
+    // 邮箱真的写进 public.waitlist_signups，不再是只在前端弹一句「没有存储」的占位。
     // 51 而非 50：2026-09-16 新增 GET/POST /copilot（AC-012 / T097）——编辑器助手的对话入口。
     // 它只产出提议，应用仍走既有的 POST /projects/:id/apply-proposal，所以只多这一条路径。
     // 50 而非 48：2026-09-15 新增 GET/POST /agent 与 POST /agent/execute（B14 / T100）。
     // 执行单开一个入口是因为它是**用户确认后**的显式动作，不是规划成功的自动续跑。
     // 这个数字是精确断言，改它必须连带在 contracts/api.md 里声明路径、在 tasks.md 里认领 route.ts。
-    expect(code.size).toBe(51);
+    expect(code.size).toBe(52);
     expect([...contract.keys()].sort()).toEqual([...code.keys()].sort());
   });
 

@@ -10,7 +10,10 @@ test("T074 presents the original marketing path and honest paid-plan waitlist", 
   await page.goto("/pricing");
   await expect(page.getByRole("heading", { level: 1, name: /paid-plan waitlist/i })).toBeVisible();
   for (const plan of ["Free", "Pro", "Creator"]) await expect(page.getByRole("heading", { name: plan, exact: true })).toBeVisible();
-  await expect(page.getByText(/No email is collected or stored/)).toBeVisible();
+  // 2026-09-17：这里原本断言「No email is collected or stored」。等候名单接上之后那句话就是假的——
+  // 邮箱真的会写进 public.waitlist_signups。改成断言页面确实有登记表单，并如实说明这个地址的唯一用途。
+  await expect(page.getByLabel("Email address")).toBeVisible();
+  await expect(page.getByText(/We store the address for that notice only/)).toBeVisible();
   await expect(page.getByText(/\$\d+/)).toHaveCount(0);
   await expect(page.locator('a[href*="checkout"], form[action*="billing"], form[action*="stripe"]')).toHaveCount(0);
 });

@@ -88,6 +88,7 @@ GET私有资源禁用公共缓存，响应`Cache-Control: private, no-store`。�
 - POST /affiliate/apply、GET /affiliate/dashboard：申请/查看脱敏归因与佣金；批准通过内部受控运维，不提供客户端改审批状态的接口。
 - POST /affiliate/attribute：同意记录+推荐码，由服务器校验非自荐、窗口和规则版本。未同意不设置营销归因cookie。
 - POST /support：category、message、用户选择的diagnosticRefs；不能自动附原文。
+- POST /waitlist：email、可选planKey（不接受free）、source、locale；支付通道未开通期间这是唯一的付费意向入口。校验同源后以service role写入`public.waitlist_signups`，该表开RLS且无策略，因此名单不可被任何客户端读取。重复提交按邮箱小写去重并同样返回201，不暴露某个地址是否已登记；登记不要求登录，已登录则关联owner_id。
 
 真实收费、退款和Affiliate payout均由配置开关阻断直至政策和主体确认；Sandbox seed只是`[ILLUSTRATIVE-EXAMPLE: 测试价目与政策]`，绝不能出现在公开价格页作为真实承诺。
 
