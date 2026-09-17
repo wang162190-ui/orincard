@@ -22,10 +22,12 @@ test("T075 lists controlled templates and exposes a slug detail", async ({ page 
   );
 
   // 定位到具体那张卡片，不用 .first()：分类顺序一变，靠顺序的点击就会点开别的模板。
+  // `exact` 是必需的：卡片加了预览图之后，图片本身也是个链接，无障碍名是
+  // "View template Clear Idea"，不加 exact 会同时命中两个，直接 strict mode 报错。
   await page
     .getByRole("article")
     .filter({ has: page.getByRole("heading", { name: "Clear Idea" }) })
-    .getByRole("link", { name: "View template" })
+    .getByRole("link", { name: "View template", exact: true })
     .click();
 
   await expect(page).toHaveURL(/\/templates\/clear-idea$/);

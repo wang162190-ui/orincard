@@ -28,6 +28,10 @@ test("T072 shows payment, period and balance states and keeps cancellation in St
   await expect.poll(() => portalCalls).toBe(1);
   expect(projectDeletes).toEqual([]);
 
+  // portal 接口返回的是一个跳转地址，应用点完之后会真的跳过去。不等这次跳转落地就直接
+  // goto，会把在途的导航打断，Playwright 抛 net::ERR_ABORTED——这是用例自己的竞态，
+  // 不是产品行为。
+  await page.waitForURL(/portal=opened/);
   await page.goto("/billing");
   await page.getByRole("button", { name: "Join the waitlist" }).click();
   await page.getByLabel("Email address").fill("creator@example.com");
