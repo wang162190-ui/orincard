@@ -74,7 +74,12 @@ test("the workspace shell names its navigation and marks the current page", asyn
 
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
   await expect(navigation).toBeVisible();
-  await expect(navigation.getByRole("link", { name: "Workspace" })).toHaveAttribute("href", "/");
+  // 「工作台」现在指向 /projects：指 `/` 的时候它是唯一一个把用户踢出 (workspace) 路由组、
+  // 连带整个外壳重建的导航项。首页入口在左上角 logo 上，没丢。
+  await expect(navigation.getByRole("link", { name: "Workspace" })).toHaveAttribute(
+    "href",
+    "/projects",
+  );
   await expect(navigation.getByRole("link", { name: "New carousel" })).toHaveAttribute(
     "aria-current",
     "page",

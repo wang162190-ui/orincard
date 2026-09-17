@@ -90,7 +90,9 @@ test("the desktop core flow reaches the editor and keeps the draft across a relo
   await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", {
     name: "Workspace",
   }).click();
-  await expect(page).toHaveURL(/\/$/);
+  // 落点从 `/` 改成了 `/projects`（见 workspace-rail.tsx 里那条注释）。这里要验的仍然是
+  // 「编辑器里点侧边栏能回到工作区」，只是现在回的是组内的地方，外壳不再整个重建。
+  await expect(page).toHaveURL(/\/projects$/);
   await page.goto("/exports");
   await expect(page.getByRole("heading", { level: 1, name: "Exports" })).toBeVisible();
 });

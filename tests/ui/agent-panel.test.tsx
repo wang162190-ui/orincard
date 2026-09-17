@@ -12,7 +12,8 @@ vi.mock("next/navigation", async (importOriginal) => ({
   usePathname: () => "/agent",
 }));
 
-import AgentPage from "../../src/app/[locale]/agent/page";
+import AgentPage from "../../src/app/[locale]/(workspace)/agent/page";
+import WorkspaceLayout from "../../src/app/[locale]/(workspace)/layout";
 import { AgentPanel } from "../../src/features/agent/agent-panel";
 
 // 用真实的词条文件渲染：key 少一个就渲染不出对应文案，用例直接红，
@@ -43,8 +44,10 @@ describe("agent panel", () => {
     expect(Object.keys(en.AgentPanel).sort()).toEqual(Object.keys(zh.AgentPanel).sort());
   });
 
+  // 侧边栏现在归 (workspace)/layout.tsx，页面自己只渲染标题栏和正文——所以这条要把
+  // 页面套回 layout 里才是真实的挂载形态。这也顺带验证了两半拼起来仍然是原来那棵树。
   it("mounts inside the workspace shell and lights up its own rail entry", async () => {
-    const markup = render(await AgentPage());
+    const markup = render(<WorkspaceLayout>{await AgentPage()}</WorkspaceLayout>);
 
     expect(markup).toContain('href="/agent"');
     expect(markup).toContain('aria-current="page"');

@@ -756,3 +756,54 @@ button.card.template-option[disabled] {
     padding: 10px 18px;
   }
 }
+
+/*
+ * 切页进度条。RSC 导航是阻塞的——点下去之后旧页面留在原地等服务端，本地实测约 200ms 没有
+ * 任何反馈。这条 2px 的线补上那段空档。
+ *
+ * 钉在视口顶部满宽，不是贴在 topbar 下沿：下面两个媒体查询会改侧栏宽度和 topbar 高度，
+ * 满宽的条不受影响。z-index 要压过 topbar 的 20。
+ */
+.nav-progress {
+  position: fixed;
+  top: 0;
+  inset-inline: 0;
+  z-index: 60;
+  height: 2px;
+  transform-origin: left center;
+  background: var(--focus);
+  pointer-events: none;
+}
+
+/* 缓出到 90% 就停住——真实耗时未知，冲到 100% 再干等着比停在 90% 更假。 */
+.nav-progress[data-state="loading"] {
+  animation: nav-progress-grow 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.nav-progress[data-state="done"] {
+  animation: nav-progress-finish 320ms ease-out forwards;
+}
+
+@keyframes nav-progress-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(0.9); }
+}
+
+@keyframes nav-progress-finish {
+  from { transform: scaleX(0.9); opacity: 1; }
+  60% { transform: scaleX(1); opacity: 1; }
+  to { transform: scaleX(1); opacity: 0; }
+}
+
+/* 减少动态效果时只留一条静态的线：反馈还在，横向滑动没了。 */
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress {
+    animation: none !important;
+    transform: none;
+  }
+
+  .nav-progress[data-state="done"] {
+    opacity: 0;
+    transition: opacity 120ms linear;
+  }
+}

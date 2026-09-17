@@ -1,8 +1,12 @@
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "../../messages/en.json";
+
+// 侧边栏现在自己从路径算高亮（见 workspace-rail.tsx 的注释），所以用例要能摆布当前路径。
+// 带语言前缀，因为 next-intl 的 usePathname 是在 next/navigation 的返回值上剥前缀的。
+let pathname = "/en";
 
 // `setRequestLocale` 是请求作用域的静态渲染开关，在 Next 的 react-server 条件外不可用
 // （vitest 解析到 next-intl 的 react-client 出口，它会直接抛错）。这里只把这一个调用
@@ -14,12 +18,18 @@ vi.mock("next-intl/server", async () => (await import("../helpers/intl-server"))
 vi.mock("next/navigation", async (importOriginal) => ({
   ...(await importOriginal<typeof import("next/navigation")>()),
   useRouter: () => ({ replace: () => {}, push: () => {}, refresh: () => {}, back: () => {}, forward: () => {}, prefetch: () => {} }),
-  usePathname: () => "/",
+  usePathname: () => pathname,
 }));
-import CreatePage from "../../src/app/[locale]/create/page";
+import CreatePage from "../../src/app/[locale]/(workspace)/create/page";
+import WorkspaceLayout from "../../src/app/[locale]/(workspace)/layout";
 import LocaleLayout, { generateMetadata, generateStaticParams } from "../../src/app/[locale]/layout";
 import HomePage from "../../src/app/[locale]/page";
-import { WorkspaceShell } from "../../src/components/workspace-shell";
+import {
+  sectionFromPathname,
+  WorkspaceRail,
+  type WorkspaceSection,
+} from "../../src/components/workspace-rail";
+import { WorkspacePage } from "../../src/components/workspace-page";
 
 // 用真实的 messages/en.json 渲染：这样断言里的英文来自词条文件本身，
 // key 打错或漏翻会直接让用例失败，而不是悄悄渲染出占位符。
@@ -80,15 +90,25 @@ describe("application routes", () => {
 });
 
 describe("workspace shell", () => {
+  beforeEach(() => {
+    pathname = "/en";
+  });
+
   it("uses the approved crane, rail, and current-page navigation semantics", () => {
+    pathname = "/en/create";
+    // `div.app` 和 `div.main` 现在归 (workspace)/layout.tsx，rail 只负责 aside 那一半。
     const markup = render(
-      <WorkspaceShell current="create" title="New carousel">
-        <p>Content</p>
-      </WorkspaceShell>,
+      <WorkspaceLayout>
+        <WorkspacePage title="New carousel">
+          <p>Content</p>
+        </WorkspacePage>
+      </WorkspaceLayout>,
     );
 
     expect(markup).toContain('class="app"');
     expect(markup).toContain('class="rail"');
+    expect(markup).toContain('class="topbar"');
+    expect(markup).toContain('class="work"');
     expect(markup).toContain('aria-label="Main navigation"');
     expect(markup).toContain('aria-label="Orincard home"');
     expect(markup).toContain('aria-label="New carousel"');
@@ -96,16 +116,45 @@ describe("workspace shell", () => {
     expect(createLink).toContain('aria-current="page"');
   });
 
+  // 搬迁前这份归属关系是每个页面用 `current` prop 传的，服务端说了算；现在由 rail 自己
+  // 按路径算。这张表就是那批 prop 的逐条留影——错一行就是高亮落在别的分组上。
+  it("keeps every route pointing at the same rail section it did before", () => {
+    const expected: [string, WorkspaceSection][] = [
+      ["/", "workspace"],
+      ["/create", "create"],
+      ["/projects", "projects"],
+      ["/editor/abc-123", "projects"],
+      ["/exports", "exports"],
+      ["/templates", "templates"],
+      ["/templates/pulse-briefing", "templates"],
+      ["/assets", "assets"],
+      ["/tools", "tools"],
+      ["/tools/hook-lab", "tools"],
+      ["/agent", "agent"],
+      ["/brand-kits", "brand-kits"],
+      ["/billing", "billing"],
+      ["/settings", "settings"],
+      ["/affiliate", "affiliate"],
+      ["/affiliate/dashboard", "affiliate"],
+      ["/help/getting-started", "help"],
+      ["/guides/first-carousel", "help"],
+      // /support 归 help 看着别扭，但搬迁前就是这样（support/page.tsx 传的是 current="help"），
+      // 照抄而不是借机改，免得这次重构里混进一个没人要求的行为变化。
+      ["/support", "help"],
+      ["/templates/", "templates"],
+    ];
+
+    for (const [path, section] of expected) {
+      expect(sectionFromPathname(path), path).toBe(section);
+    }
+  });
+
   // The rail used to link only "/" and "/create", which left a dozen built routes with
   // no entry point anywhere in the product. The guard is still the same one — the rail
   // must not link anywhere unimplemented — but the allowed set is now explicit, so
   // adding a link to a route that does not exist still fails here.
   it("links only to routes that are actually implemented", () => {
-    const markup = render(
-      <WorkspaceShell current="workspace" title="Workspace">
-        <p>Content</p>
-      </WorkspaceShell>,
-    );
+    const markup = render(<WorkspaceRail />);
     const hrefs = [...markup.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
 
     expect(new Set(hrefs)).toEqual(

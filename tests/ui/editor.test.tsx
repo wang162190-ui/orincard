@@ -43,7 +43,7 @@ import {
   LocalDraftStore,
   type DraftOwner,
 } from "../../src/features/editor/local-drafts";
-import EditorPage from "../../src/app/[locale]/editor/[id]/page";
+import EditorPage from "../../src/app/[locale]/(workspace)/editor/[id]/page";
 
 function documentFixture(): CarouselDocument {
   return parseCarouselDocument(structuredClone(fixture));
