@@ -91,34 +91,36 @@
 
 ## 阻塞清单（等产品所有者）
 
-**B-3 已于 2026-09-12 由产品所有者答复解锁**，剩下 B-1 / B-2 两项挂着不空等 —— 它们只卡住 S9 / S10，其余 20 步照常推进。
+**B-1 已于 2026-09-17、B-3 已于 2026-09-12 由产品所有者答复解锁**，只剩 **B-2**（Stripe 测试密钥）和 **B-4**（GitHub `production` 环境）挂着。
 
-### B-1 · 法律文本 12 项商业决策 🔒 卡 T088 → T095
+### B-1 · 法律文本 12 项商业决策 ✅ 2026-09-17 已解锁
 
-守卫只要求 `content/legal/{terms,privacy,affiliate}.mdx` 的 `publicationStatus: draft → approved`，**改 4 个字符就能变绿**。但三份文件正文明写着自己无效：
+产品所有者于 2026-09-17 逐项答复，三份正文已按答复重写并签成 `approved`（`policyVersion` 统一为 `<slug>-2026-09-17`），中英各三份共六个文件。
 
-- `terms.mdx:10` — "It is not a legally reviewed agreement and **must not be used as production terms**."
-- `terms.mdx:30` — "**No refund promise is approved in this draft.**"
-- `affiliate.mdx:26` — "No commission rate, currency, threshold, schedule, or payment promise is approved here."
+已拍板的口径：
 
-只改状态会让产品带着一份自称无效的条款上线，而 T095 的发布清单会把它当作已审定的发布物。真正要定的是 12 项：
-
-| # | 文件 | 待定事项 |
+| # | 文件 | 结论 |
 |---|---|---|
-| 1 | terms | 签约主体与适用法域 |
-| 2 | terms | 续费时点 / 扣款失败处理 / 降档规则 |
-| 3 | terms | **退款规则**（资格、时限、部分周期、已消耗额度） |
-| 4 | terms | 保证免责、责任上限、争议解决 |
-| 5 | privacy | 各类数据的**具体保留期** + 各地区合法性基础 |
-| 6 | privacy | 已批准的供应商名单与处理地点 |
-| 7 | privacy | 跨境传输条款与子处理者 |
-| 8 | privacy | 控制者身份、联系人、年龄下限、投诉权 |
-| 9 | affiliate | 佣金率 / 币种 / 结算门槛 / 周期 |
-| 10 | affiliate | 归因窗口 |
-| 11 | affiliate | 退款冲正规则 |
-| 12 | affiliate | 打款服务商与税务核验 |
+| 1 | terms | 签约主体：常住**中国香港**的个人经营者（尚未注册公司）；香港法律、香港法院专属管辖 |
+| 2 | terms | 周期末自动续费；涨价提前 14 天通知；扣款失败进逾期状态、Stripe 重试至多 14 天后降回免费层；取消只停下一次续订；降档在当期末生效；额度不结转 |
+| 3 | terms | **一律不退款**，只允许取消续订。三条强制法例外：欧盟/英国 14 天法定撤回权（可按已提供比例计费）、当地更强的消费者法优先、错扣/重扣/取消后仍扣一律退 |
+| 4 | terms | 免责默示保证；责任上限 = 事件前 12 个月已付金额，未付费则 100 美元；死亡/人身伤害/欺诈不设限 |
+| 5 | privacy | 保留期**按库里实际执行的值**写：素材 / 未采纳候选 / 导出包各 7 天，未通过校验的素材 24 小时，操作回执 30 天，账单税务 7 年（香港税法）。合法性基础：履行合同 / 正当利益 / 法定义务 |
+| 6 | privacy | 供应商按代码实际使用的写：Supabase、Vercel、**DeepSeek**（明写在中国内地基础设施上处理）、Trigger.dev、Stripe、Resend |
+| 7 | privacy | 跨境传输依 SCCs / UK IDTA；明写「不想让文本出境就别用生成功能，编辑器和导出照常可用」 |
+| 8 | privacy | 控制者 = 该个人经营者，不设 DPO；年龄下限 16 岁；可向所在国监管机构或香港私隐专员公署投诉 |
+| 9 | affiliate | **20%**、美元、门槛 **50 美元**（不足结转）、账单付款后 45 天转已核准、**次月 15 日**结算 |
+| 10 | affiliate | 归因窗口 **30 天**，窗口内多人推荐取最近一次符合条件的 |
+| 11 | affiliate | 退款 / 争议 / 拒付 / 欺诈 / 自我推荐 / 重复 / 因违约关户 → 冲正；已付则从下次结算扣回 |
+| 12 | affiliate | 通过 Stripe 打款，首次结算前须完成 Stripe 身份与税务核验 |
 
-定完由我改写正文，签字（改 `publicationStatus`）是产品所有者的动作，**不代改**。
+同时改掉的三处：
+
+- `src/app/[locale]/legal/[slug]/page.tsx` 原来**无条件**渲染草稿横幅并硬写 `robots: noindex`，只翻 frontmatter 不会有任何可见变化。现在两者都以 `publicationStatus === "draft"` 为条件，已签字的正文改显示「Version <version>. In effect now.」并可被索引。新增词条 `Legal.eyebrowPublished` / `metaTitlePublished` / `versionNotice`（中英各一份）。
+- `tests/e2e/support.spec.ts` T082 与 `tests/e2e/growth.spec.ts` T084 原本断言草稿状态，已改为断言已发布状态。**顺带删掉了 T082 里那条长期假阳性的断言**（`"This directory is a review workspace."` 只存在于从不渲染的 `content/legal/README.md`）——这条红灯自 2026-09-14 记录以来一直挂着，现在两条用例都是绿的。
+- `tests/unit/legal-policy.test.ts` 的「草稿」组断言改为「已签发」，门禁函数对草稿的行为改用合成草稿 fixture 继续覆盖。
+
+**诚实边界（必须让产品所有者看见）**：正文由我按产品所有者的答复撰写，**没有经过律师审阅**。`publicationStatus` 改成 `approved` 也是产品所有者在明确知晓「以未经律师审阅的文本作为正式条款上线，法律风险在你这边」之后的授权决定。另外 `legalPublicationDecision()` 这个带人工签字证据的门禁函数**目前只被单测引用，`src/` 里没有任何地方调用它**——也就是说线上并不存在「签字证据」这道闸，页面只看 frontmatter。
 
 ### B-2 · Stripe 测试密钥 🔒 卡 T073 → T084
 
@@ -272,3 +274,6 @@
 | 2026-09-15 | **`/pricing` 自己抄了一份页头并且已经抄歪了**：缺 Plans 和 Log in，`nav` 没有 `wrap`，语言切换器溢出 72px 页头。抽成 `PublicHeader`/`PublicFooter` 两个共用组件，首页与定价页同用一份；法务页原本是光秃秃一个 `<main>`，落地的人没有任何返回入口，也接上了 |
 | 2026-09-15 | **`tests/ui/shell.test.tsx` 那条「不链接到未实现路由」的守卫改了断言、没改用意**。它原本断言侧栏 href 集合恰好是 `{"/", "/create"}`；现在断言等于那 13 条**逐条实测过 200** 的路由集合，链到不存在的路由照样红。`pnpm test` 314 passed / 7 skipped / 0 failed，`pnpm typecheck` 干净 |
 | 2026-09-15 | **以上改动只在本地验证过，公开站还是旧构建**。`vercel --prod` 被权限分类器拦下，没有部署。本地 `:3000` 上逐页看过：tools / templates / legal / pricing / settings / brand-kits / tools/caption / editor / 首页，中英两种语言都对。**公开站要等这次部署放行之后才谈得上验证** |
+| 2026-09-17 | **B-1 解锁并落地**：产品所有者逐项答复 12 项决策（香港个人经营者 / 全球含欧盟英国 / 一律不退但保留法定撤回权 / 20%·12 个月·30 天·50 美元·次月 15 日），六份法律正文按答复重写并签成 `approved`。**保留期一节按迁移里的真实值写**——素材、未采纳候选、导出包都是 7 天，不是初稿里写的 30 天；写一个产品并不执行的期限就是在政策里编故事 |
+| 2026-09-17 | **只翻 frontmatter 是没用的**：`legal/[slug]/page.tsx` 原来无条件渲染草稿横幅并硬写 `noindex`，签字后页面照样显示「尚未经过法律审阅」。已改成按 `publicationStatus` 分支。连带 T082 那条自 2026-09-14 记录在案的红灯转绿——它挂的假断言（`"This directory is a review workspace."` 只在从不渲染的 README 里）一并删除。`pnpm test` 62 files / 508 passed / 7 skipped，`pnpm typecheck` 干净，support + growth 两个 spec chromium 9 passed |
+| 2026-09-17 | **诚实边界**：法律正文未经律师审阅，签字是产品所有者在知晓风险后的授权。另外 `legalPublicationDecision()`（要求人工签字证据的门禁）**只有单测引用，`src/` 里无人调用**，线上不存在这道闸 |

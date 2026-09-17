@@ -64,10 +64,24 @@
     "formatsCard3": "可以继续打磨",
     "waitlistEyebrow": "付费套餐正在准备中",
     "waitlistTitle": "开放时想收到通知吗？",
-    "waitlistCta": "加入等候名单"
-    ,"templatesCta":"浏览模板库","heroAlt":"Orincard 原创纸艺编辑场景","formatsCard4":"放心发布"
+    "waitlistCta": "加入等候名单",
+    "templatesCta": "浏览模板库",
+    "heroAlt": "Orincard 原创纸艺编辑场景",
+    "formatsCard4": "放心发布"
   },
-  "Assets": {"title":"素材","eyebrow":"视觉素材库","heading":"为每个故事准备的视觉货架","lead":"浏览 Orincard 原创图片、你的私人上传内容，或搜索 Pexels，再把素材放进轮播图。","curated":"Orincard 精选","mine":"我的素材","search":"搜索图库","original":"Orincard 原创素材","mineHint":"登录并从编辑器添加素材后，你的私人上传内容会显示在这里。","openEditor":"打开编辑器","close":"关闭预览"},
+  "Assets": {
+    "title": "素材",
+    "eyebrow": "视觉素材库",
+    "heading": "为每个故事准备的视觉货架",
+    "lead": "浏览 Orincard 原创图片、你的私人上传内容，或搜索 Pexels，再把素材放进轮播图。",
+    "curated": "Orincard 精选",
+    "mine": "我的素材",
+    "search": "搜索图库",
+    "original": "Orincard 原创素材",
+    "mineHint": "登录并从编辑器添加素材后，你的私人上传内容会显示在这里。",
+    "openEditor": "打开编辑器",
+    "close": "关闭预览"
+  },
   "Pricing": {
     "eyebrow": "套餐",
     "headline": "先免费开始。付费套餐可加入等候名单。",
@@ -679,7 +693,10 @@
     "terms": "服务条款",
     "affiliate": "推广计划政策",
     "metaTitle": "{name}草稿 — Orincard",
-    "draftNotice": "草稿——尚未经过法律审阅，也未获准发布。"
+    "draftNotice": "草稿——尚未经过法律审阅，也未获准发布。",
+    "eyebrowPublished": "法律条款",
+    "metaTitlePublished": "{name} — Orincard",
+    "versionNotice": "版本 {version}，现行有效。"
   },
   "Assistant": {
     "label": "编辑器助手",

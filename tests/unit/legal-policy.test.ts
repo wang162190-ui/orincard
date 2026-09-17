@@ -6,23 +6,30 @@ const approvedPolicy = () => parseTrustedMarkdown(
   { kind: "legal", slug: "privacy" },
 );
 
+// 三份正文在 2026-09-17 由产品所有者签成 approved（版本号 <slug>-2026-09-17），
+// 所以「草稿」这组断言换成了「已发布」。门禁函数本身对草稿的行为没变，改用一份合成草稿来测。
+const draftPolicy = () => parseTrustedMarkdown(
+  "---\ntitle: Draft policy\ndescription: Draft policy fixture\npublicationStatus: draft\npolicyVersion: policy-draft-2026-09-10\n---\n\n## Scope\n\nDraft policy text.\n",
+  { kind: "legal", slug: "privacy" },
+);
+
 describe("T083 legal policy publication gate", () => {
   it.each([
-    ["privacy", "Information covered by this draft"],
-    ["terms", "Plans and billing"],
-    ["affiliate", "Commission draft"],
-  ] as const)("loads the %s policy as a versioned review draft", async (slug, heading) => {
+    ["privacy", "What we process"],
+    ["terms", "Plans, renewal, and failed payments"],
+    ["affiliate", "Commission"],
+  ] as const)("loads the %s policy as approved text carrying its own version", async (slug, heading) => {
     const policy = await readContent("legal", slug);
 
-    expect(policy.publicationStatus).toBe("draft");
-    expect(policy.policyVersion).toContain("draft-2026-09-10");
+    expect(policy.publicationStatus).toBe("approved");
+    expect(policy.policyVersion).toBe(`${slug}-2026-09-17`);
     expect(policy.contentHash).toMatch(/^[a-f0-9]{64}$/);
     expect(policy.blocks).toContainEqual(expect.objectContaining({ kind: "heading", text: heading }));
-    expect(policy.blocks.some((block) => block.kind === "paragraph" && /not .*?(?:legally reviewed|approved)/i.test(block.text))).toBe(true);
+    expect(policy.blocks.some((block) => block.kind === "paragraph" && /not .*?(?:legally reviewed|approved)/i.test(block.text))).toBe(false);
   });
 
-  it("blocks a draft even when approval-shaped evidence is supplied", async () => {
-    const policy = await readContent("legal", "privacy");
+  it("blocks a draft even when approval-shaped evidence is supplied", () => {
+    const policy = draftPolicy();
     expect(legalPublicationDecision(policy, {
       slug: policy.slug,
       policyVersion: policy.policyVersion!,

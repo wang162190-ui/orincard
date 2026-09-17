@@ -1,37 +1,92 @@
 ---
-title: Privacy Policy Draft
-description: Review draft covering account data, source files, generated content, retention, and user controls.
-publicationStatus: draft
-policyVersion: privacy-draft-2026-09-10
+title: Privacy Policy
+description: What Orincard collects, which providers process it, how long it is kept, where it is transferred, and the rights you can exercise.
+publicationStatus: approved
+policyVersion: privacy-2026-09-17
 ---
 
-## Review status
+## Who is responsible for your data
 
-This is a product policy draft for human review. It has not been approved as legal advice or as Orincard production policy.
+Orincard is operated by an individual sole operator resident in the Hong Kong Special Administrative Region, who is the data controller for the personal data described here. The operator's legal name and postal address are on file and are provided on request through Support. There is no separate data protection officer; requests go through the Support page and are handled by the operator.
 
-## Information covered by this draft
+## What we process
 
-Orincard may process account identifiers, profile preferences, project documents, uploaded source files, generated assets, export records, usage records, support messages, and limited billing status. Payment card details remain with the hosted payment provider and are not intended to be stored by Orincard.
+- Account data: email address, authentication identifiers, sign-in timestamps, interface language, and plan status.
+- Project data: the documents you create, the text and files you upload as sources, generated drafts, accepted assets, and version history.
+- Export data: the export packages you generate and the records of when they were produced and downloaded.
+- Usage data: quota counters, feature events needed to enforce limits and detect abuse, and error diagnostics.
+- Support data: the message you send, plus the diagnostic identifiers you explicitly tick before sending. Nothing is attached that you did not tick.
+- Billing status: plan, period, payment state, and the Stripe customer identifier. Card numbers never reach Orincard; they stay with Stripe.
 
-## How product data is used
+We do not sell personal data, and we do not use your project content to train any model.
 
-Account and project data is used to authenticate the user, provide requested generation and editing features, save versions, create exports, restore user-confirmed packages, enforce quotas, prevent abuse, and answer support requests. A support request includes diagnostic IDs only when the user explicitly selects them.
+## Why we process it, and on what legal basis
 
-## Providers and access
+- To provide the service you asked for, including authentication, generation, editing, storage, and export. Basis: performance of a contract.
+- To enforce plan limits, prevent abuse, and keep the service secure. Basis: legitimate interests.
+- To take payment and keep tax and accounting records. Basis: performance of a contract and legal obligation.
+- To answer support requests. Basis: performance of a contract.
+- To send service notices about outages, security, or changes to these policies. Basis: legitimate interests.
 
-Selected content may be sent to configured infrastructure, AI, media, email, storage, and payment providers when required for a feature the user requests. The production policy must identify approved providers, processing locations, and applicable contractual safeguards before publication.
+Where we rely on legitimate interests you can object, and we will stop unless we have grounds that override your objection.
 
-## Retention and deletion
+## Providers that process data for us
 
-Source files, generated candidates, and downloadable exports may use product-specific expiry periods. Saved projects and accepted assets remain until the user deletes them or the account deletion process reaches the relevant cleanup stage. Backups, billing audit records, fraud controls, and legal obligations may require separate limited retention. Exact periods require approval before publication.
+These are the providers used today. Each processes data only on the operator's instructions.
 
-## User controls
+- Supabase: authentication, database, and object storage for account, project, and export data.
+- Vercel: application hosting, request routing, and content delivery.
+- DeepSeek: text generation. The text you submit for a generation request, and the prompt built from it, are sent to DeepSeek and processed on infrastructure in mainland China.
+- Trigger.dev: running background export and reconciliation jobs, which read the project data needed for the job.
+- Stripe: checkout, subscription management, and payment records.
+- Resend: delivery of transactional email such as sign-in confirmations and support replies.
 
-Users can review project versions, export an account data package, delete projects, and request staged account deletion. Restoration creates new private identifiers and does not revive another account's object keys. Requests about access, correction, deletion, or portability can be sent through Support.
+If we add or replace a provider we update this list and change the version identifier at the top of this page before the change goes live.
 
-## Review questions
+## International transfers
 
-- Confirm every retention period and lawful basis for each operating region.
-- Confirm international transfer and subprocessors language.
-- Confirm contact identity, controller details, age limits, and complaint rights.
-- Confirm which deletion exceptions are legally required.
+The operator is in Hong Kong and the providers above operate outside your country in most cases, including the United States, the European Union, Singapore, and, for text generation, mainland China. That means your data is transferred across borders as a normal part of running the service.
+
+For users in the European Economic Area and the United Kingdom, these transfers rely on the European Commission's Standard Contractual Clauses, or the UK International Data Transfer Addendum, as incorporated into each provider's data processing terms. You can ask through Support for the transfer terms that apply to a specific provider.
+
+If you do not want your text sent to a generation provider in mainland China, do not use the generation features. The editor, templates, storage, and export work without them.
+
+## How long we keep it
+
+These are the periods the service actually enforces in the database, not aspirations.
+
+- Uploaded source files: 7 days after upload, then expired automatically.
+- Generated candidates you did not accept: 7 days, then expired automatically.
+- Export packages: 7 days after they are produced, then expired automatically. Download them before that.
+- Assets that were uploaded but never completed validation: 24 hours.
+- Operation receipts, the internal records that stop the same request being charged twice: 30 days.
+- Projects, accepted assets, and version history: until you delete them, or until account deletion completes.
+- Account record: until you request deletion. Deletion cuts off access immediately and the physical cleanup runs as a background job afterwards.
+- Support messages: kept while the request is open and for a reasonable period afterwards so we can handle follow-ups.
+- Billing and tax records: 7 years, because Hong Kong tax law requires business records to be kept that long. This is the one category that survives account deletion.
+- Security and abuse logs: kept only as long as needed for the security purpose they were collected for.
+- Backups: deleted records age out of the database provider's backup cycle after the backup window has passed.
+
+## Your rights
+
+Wherever you are, you can ask us to give you a copy of your data, correct it, delete it, or stop a particular use. Use the Support page; we reply within 30 days.
+
+If you are in the European Economic Area or the United Kingdom, you also have the rights to access, rectification, erasure, restriction of processing, data portability, and objection, and the right to withdraw consent where processing is based on consent. You can lodge a complaint with your national supervisory authority. If you are in Hong Kong, you can complain to the Office of the Privacy Commissioner for Personal Data.
+
+You can export an account data package and delete individual projects at any time from inside the product without contacting us.
+
+## Children
+
+Orincard is not intended for anyone under 16, or under the higher minimum age set by the law where you live. We do not knowingly collect data from children. If you believe a child has created an account, contact Support and we will delete it.
+
+## Security
+
+Access to the database and object storage is controlled by row-level rules tied to your account. Restoring an export creates new private identifiers and cannot reach another account's stored objects. Data is encrypted in transit, and at rest by the storage providers. No system is perfect; if a breach affects your personal data and is likely to put you at risk, we will notify you and the relevant authority within the time the law requires.
+
+## Changes to this policy
+
+The version identifier at the top of this page changes whenever the text does. For a change that materially affects how your data is used, we give at least 30 days notice in the product before it takes effect.
+
+## Contact
+
+Privacy requests and questions go through the Support page in the product.

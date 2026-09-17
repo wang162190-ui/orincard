@@ -79,11 +79,11 @@ test("T084 sends only support diagnostic IDs selected by the user", async ({ pag
   expect(submitted?.diagnosticRefs).toEqual([{ type: "export", id: "11111111-1111-4111-8111-111111111111" }]);
 });
 
-test("T084 exposes legal text only as non-indexed, unapproved review drafts", async ({ page }) => {
+test("T084 exposes legal text as published policy with a version identifier", async ({ page }) => {
   for (const slug of ["privacy", "terms", "affiliate"]) {
     await page.goto(`/legal/${slug}`);
-    await expect(page.getByText("Draft — not legally reviewed or approved for publication.")).toBeVisible();
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
-    await expect(page.getByRole("heading", { name: "Review status" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByText(`Version ${slug}-2026-09-17. In effect now.`)).toBeVisible();
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "index, follow");
   }
 });

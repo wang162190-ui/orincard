@@ -29,11 +29,14 @@ test("T082 keeps unselected diagnostic values out after toggling selection off",
   expect(submitted?.diagnosticRefs).toEqual([]);
 });
 
-test("T082 labels unapproved legal routes as non-indexed drafts", async ({ page }) => {
+// 三份正文在 2026-09-17 由产品所有者签成 approved，页面因此不再挂草稿横幅和 noindex。
+// 原来还有一条断言找 "This directory is a review workspace."——那句话只存在于
+// content/legal/README.md，从来没有被渲染过，一直是条假断言，这轮一并删掉。
+test("T082 publishes approved legal routes with their policy version", async ({ page }) => {
   for (const slug of ["privacy", "terms", "affiliate"]) {
     await page.goto(`/legal/${slug}`);
-    await expect(page.getByText("Draft — not legally reviewed or approved for publication.")).toBeVisible();
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
-    await expect(page.getByText("This directory is a review workspace.", { exact: false })).toBeVisible();
+    await expect(page.getByText(`Version ${slug}-2026-09-17. In effect now.`)).toBeVisible();
+    await expect(page.getByText("Draft — not legally reviewed or approved for publication.")).toHaveCount(0);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "index, follow");
   }
 });
