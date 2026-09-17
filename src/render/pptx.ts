@@ -4,6 +4,7 @@ import {
   parseCarouselDocument,
   type CarouselDocument,
 } from "../domain/document";
+import { CJK_FAMILY, resolveFontPair } from "./font-pairs";
 import type { SlideRenderAsset } from "./slide";
 
 const PX_PER_INCH = 96;
@@ -49,11 +50,9 @@ export function deckHasCjk(document: CarouselDocument): boolean {
 
 function fontFace(fontPairId: string, display: boolean, cjk: boolean): string {
   // 中文一律走 Noto Sans SC：仓库里打包的就是它，导出件与预览用的是同一套字形。
-  if (cjk) return "Noto Sans SC";
-  if (fontPairId === "source-serif-inter") {
-    return display ? "Source Serif 4" : "Inter";
-  }
-  return "Arial";
+  if (cjk) return CJK_FAMILY;
+  const pair = resolveFontPair(fontPairId);
+  return display ? pair.display.pptx : pair.body.pptx;
 }
 
 function textAlign(value: CarouselDocument["theme"]["alignment"]): "left" | "center" | "right" {

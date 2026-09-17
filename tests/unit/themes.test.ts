@@ -31,7 +31,7 @@ function documentFixture() {
 afterEach(cleanup);
 
 describe("theme catalogue", () => {
-  it("defines the six approved original themes with complete role and mode layouts", () => {
+  it("defines the approved themes with complete role and mode layouts", () => {
     expect(THEME_IDS).toEqual([
       "ink",
       "paper",
@@ -39,6 +39,8 @@ describe("theme catalogue", () => {
       "blush",
       "butter",
       "sky",
+      "prism",
+      "pulse",
     ]);
 
     for (const id of THEME_IDS) {
@@ -226,9 +228,9 @@ describe("ThemePanel", () => {
     );
 
     expect(screen.getByRole("group", { name: "Theme" })).toBeTruthy();
-    expect(screen.getAllByRole("radio", { name: /Ink|Paper|Signal|Blush|Butter|Sky/ })).toHaveLength(
-      6,
-    );
+    expect(
+      screen.getAllByRole("radio", { name: /Ink|Paper|Signal|Blush|Butter|Sky|Prism|Pulse/ }),
+    ).toHaveLength(THEME_IDS.length);
     expect(screen.getByRole("group", { name: "Platform" })).toBeTruthy();
     expect(screen.getAllByRole("radio", { name: /LinkedIn|Instagram|TikTok/ })).toHaveLength(
       3,

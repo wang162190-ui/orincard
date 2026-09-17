@@ -16,6 +16,8 @@ export const CATEGORY_ORDER = [
   "Education",
   "Launch",
   "Story",
+  // 矢量系列：图形层是生成的 SVG，不是照片，所以它自成一类而不是塞进 Modern。
+  "Vector",
 ] as const;
 
 export type TemplateCategory = (typeof CATEGORY_ORDER)[number];

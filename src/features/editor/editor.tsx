@@ -585,6 +585,8 @@ export function Editor({
         .theme-panel__option [data-theme-preview="blush"] { background: var(--tpl-blush-bg); }
         .theme-panel__option [data-theme-preview="butter"] { background: var(--tpl-butter-bg); }
         .theme-panel__option [data-theme-preview="sky"] { background: var(--tpl-sky-bg); }
+        .theme-panel__option [data-theme-preview="prism"] { background: var(--tpl-prism-bg); }
+        .theme-panel__option [data-theme-preview="pulse"] { background: var(--tpl-pulse-bg); }
         .theme-panel [role="status"] p { margin: 0; color: var(--muted); font-size: 12px; }
         @media (max-width: 1000px) {
           .editor-workbench { grid-template-columns: minmax(0, 1fr); }

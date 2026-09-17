@@ -67,21 +67,32 @@ export function EditorMedia({ document, selectedSlideId, onDocumentChange, onRen
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
+  function resolve(all: readonly LibraryItem[]) {
+    setItems(all);
+    onRenderAssetsChange(Object.fromEntries(all.filter(isSelectable).flatMap((item) => item.previewUrl ? [[item.id, { id: item.id, src: item.previewUrl, state: "ready" as const, alt: t("libraryAlt"), width: 1536, height: 1024 }]] : [])));
+  }
+
   async function load() {
+    // Curated artwork ships inside the app bundle, so it resolves before the library call
+    // and survives its failure. Gating it on a 200 from /api/v1/assets is why a signed-out
+    // visitor opening a template with built-in art saw an "Image required" placeholder.
+    const curated: LibraryItem[] = document.assetRefs.some((ref) => ref.id.startsWith("local-curated-"))
+      ? curatedAssets.map((asset) => ({ id: asset.refId, kind: "stock", mime: asset.mimeType, state: "ready", acceptedAt: new Date().toISOString(), previewUrl: asset.src }))
+      : [];
+    resolve(curated);
     try {
       const response = await fetch("/api/v1/assets?limit=50", { cache: "no-store" });
       const body = await json(response);
       if (!response.ok) { setMessage(body.error?.message ?? t("libraryUnavailable")); return; }
-      const next = body.data?.items ?? [];
-      const curated: LibraryItem[] = document.assetRefs.some((ref) => ref.id.startsWith("local-curated-"))
-        ? curatedAssets.map((asset) => ({ id: asset.refId, kind: "stock", mime: "image/png", state: "ready", acceptedAt: new Date().toISOString(), previewUrl: asset.src }))
-        : [];
-      setItems([...curated, ...next]);
-      onRenderAssetsChange(Object.fromEntries([...curated, ...next].filter(isSelectable).flatMap((item) => item.previewUrl ? [[item.id, { id: item.id, src: item.previewUrl, state: "ready" as const, alt: t("libraryAlt"), width: 1536, height: 1024 }]] : [])));
+      resolve([...curated, ...(body.data?.items ?? [])]);
     } catch { setMessage(t("libraryUnavailable")); }
   }
 
-  useEffect(() => { void load(); }, []);
+  // The editor mounts a blank document and swaps the real one in once the draft loads, so a
+  // mount-only effect decided whether to resolve curated artwork while assetRefs was still
+  // empty. Keying on the refs themselves reloads when the document that needs them arrives.
+  const curatedRefs = document.assetRefs.filter((ref) => ref.id.startsWith("local-curated-")).map((ref) => ref.id).join(",");
+  useEffect(() => { void load(); }, [curatedRefs]);
   const assets = useMemo(() => items.map((item) => asMedia(item, t)).filter((item): item is MediaAsset => item !== null), [items, t]);
 
   async function request(path: string, body: Record<string, unknown>) {

@@ -647,7 +647,8 @@
     "categoryPlayful": "活泼",
     "categoryEducation": "教学",
     "categoryLaunch": "发布",
-    "categoryStory": "故事"
+    "categoryStory": "故事",
+    "categoryVector": "矢量"
   },
   "Tools": {
     "shellTitle": "工具",

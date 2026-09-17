@@ -35,6 +35,13 @@
   --tpl-sky-bg: oklch(83.0% 0.063 250);
   --tpl-sky-fg: oklch(19.3% 0.010 117);
   --tpl-sky-accent: oklch(44% 0.15 252);
+  /* 矢量系列。彩度明显高于上面六套，是有意的：纸艺那组靠柔和取胜，这组靠撞色。 */
+  --tpl-prism-bg: oklch(22.1% 0.069 289);
+  --tpl-prism-fg: oklch(97.3% 0.015 299);
+  --tpl-prism-accent: oklch(72.3% 0.185 3);
+  --tpl-pulse-bg: oklch(96.4% 0.005 95);
+  --tpl-pulse-fg: oklch(19.1% 0.014 292);
+  --tpl-pulse-accent: oklch(64.0% 0.213 31);
 
   --fg-soft: color-mix(in oklch, var(--fg) 5%, transparent);
   --fg-line: color-mix(in oklch, var(--fg) 14%, transparent);

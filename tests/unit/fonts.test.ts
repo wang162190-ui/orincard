@@ -6,16 +6,17 @@ import {
 } from "../../src/render/fonts";
 
 describe("render font manifest", () => {
-  it("declares the four fixed OFL font resources", () => {
+  it("declares the five fixed OFL font resources", () => {
     expect(fontManifest.schemaVersion).toBe(1);
     expect(fontManifest.fonts.map((font) => font.family)).toEqual([
       "Inter",
       "Source Serif 4",
+      "JetBrains Mono",
       "Noto Sans SC",
       // 400 与 700 是两条记录：中文标题要真粗体，伪粗体的笔画会糊。
       "Noto Sans SC",
     ]);
-    expect(fontManifest.fonts.map((font) => font.weight)).toEqual(["100 900", "200 900", "400", "700"]);
+    expect(fontManifest.fonts.map((font) => font.weight)).toEqual(["100 900", "200 900", "100 800", "400", "700"]);
     for (const font of fontManifest.fonts) {
       expect(font.license).toBe("OFL-1.1");
       expect(font.packageVersion).toBe("5.3.0");
@@ -27,6 +28,7 @@ describe("render font manifest", () => {
   it.each([
     "inter-latin-variable",
     "source-serif-4-latin-variable",
+    "jetbrains-mono-latin-variable",
     "noto-sans-sc-simplified-400",
     "noto-sans-sc-simplified-700",
   ])("loads and verifies %s without a network request", async (id) => {

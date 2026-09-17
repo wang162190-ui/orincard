@@ -647,7 +647,8 @@
     "categoryPlayful": "Playful",
     "categoryEducation": "Education",
     "categoryLaunch": "Launch",
-    "categoryStory": "Story"
+    "categoryStory": "Story",
+    "categoryVector": "Vector"
   },
   "Tools": {
     "shellTitle": "Tools",

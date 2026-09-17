@@ -1,6 +1,9 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { CarouselDocument, Platform } from "../domain/document";
 import { getPlatformDimensions } from "../domain/document";
+import { resolveFontPair } from "./font-pairs";
+import { isIconName, SlideIcon, type IconName } from "./icon";
+import { SlideMotif } from "./motif";
 import "./slide.css";
 
 type Slide = CarouselDocument["slides"][number];
@@ -39,25 +42,20 @@ type SlideStyle = CSSProperties & {
   "--slide-title-scale": number;
 };
 
-const FONT_PAIR_STYLES: Record<
-  string,
-  { readonly body: string; readonly display: string }
-> = {
-  "source-serif-inter": {
-    body: '"Inter Variable", "Noto Sans SC", sans-serif',
-    display: '"Source Serif 4 Variable", "Noto Sans SC", serif',
-  },
-};
-
-function textBlock(block: TextBlock, index: number): ReactNode {
+function textBlock(block: TextBlock, index: number, icon: IconName | null): ReactNode {
   switch (block.kind) {
     case "paragraph":
       return <p key={index}>{block.text}</p>;
     case "bullets":
       return (
-        <ul key={index}>
+        // The marker is a real element rather than a ::marker glyph so it can be an icon; with no
+        // icon set the list keeps its default disc via the list-style rule in slide.css.
+        <ul key={index} data-bullet={icon ? "icon" : "disc"}>
           {block.items.map((item, itemIndex) => (
-            <li key={itemIndex}>{item}</li>
+            <li key={itemIndex}>
+              {icon ? <SlideIcon className="orincard-slide__bullet-icon" name={icon} /> : null}
+              <span>{item}</span>
+            </li>
           ))}
         </ul>
       );
@@ -247,7 +245,7 @@ export function SlideRenderer({ input }: { readonly input: SlideRenderInput }) {
   const { slide, theme } = input;
   const { width, height } = getPlatformDimensions(input.platform);
   const colors = theme.colors ?? [];
-  const fontPair = FONT_PAIR_STYLES[theme.fontPairId];
+  const fontPair = resolveFontPair(theme.fontPairId);
   const backgroundOverride = slide.overrides.background;
   const foregroundOverride = slide.overrides.foreground;
   const accentOverride = slide.overrides.accent;
@@ -255,6 +253,10 @@ export function SlideRenderer({ input }: { readonly input: SlideRenderInput }) {
   const textScaleOverride = slide.overrides.textScale;
   const radiusOverride = slide.overrides.radius;
   const alignmentOverride = slide.overrides.alignment;
+  // An unknown name falls back to the plain marker rather than throwing: themes are stored
+  // documents, and a deck saved against a later icon set must still render.
+  const bulletIcon =
+    theme.bulletIcon && isIconName(theme.bulletIcon) ? theme.bulletIcon : null;
   const style: SlideStyle = {
     "--slide-accent":
       typeof accentOverride === "string" ? accentOverride : colors[2],
@@ -267,8 +269,8 @@ export function SlideRenderer({ input }: { readonly input: SlideRenderInput }) {
     "--slide-density": densityFor(width, height),
     "--slide-fg":
       typeof foregroundOverride === "string" ? foregroundOverride : colors[1],
-    "--slide-font-body": fontPair?.body,
-    "--slide-font-display": fontPair?.display,
+    "--slide-font-body": fontPair.body.css,
+    "--slide-font-display": fontPair.display.css,
     "--slide-radius": `${
       typeof radiusOverride === "number" && radiusOverride >= 0
         ? radiusOverride
@@ -295,6 +297,7 @@ export function SlideRenderer({ input }: { readonly input: SlideRenderInput }) {
       className={`orincard-slide orincard-slide--${slide.mode} orincard-slide--${slide.role} orincard-slide--palette-${theme.paletteId ?? "custom"} orincard-slide--layout-${slide.layoutId}`}
       data-arrow={theme.arrow}
       data-background-shape={theme.background.shape ?? undefined}
+      data-background-motif={theme.background.motif ?? undefined}
       data-background-texture={theme.background.texture ?? undefined}
       data-font-pair={theme.fontPairId}
       data-layout={slide.layoutId}
@@ -307,6 +310,11 @@ export function SlideRenderer({ input }: { readonly input: SlideRenderInput }) {
       style={style}
     >
       <span className="orincard-slide__background" aria-hidden="true" />
+      {/* Before the photo, not after: on an image slide the motif would otherwise sit on top of
+          the picture it is meant to sit behind. */}
+      {theme.background.motif ? (
+        <SlideMotif motif={theme.background.motif} seed={slide.id} />
+      ) : null}
       {slide.mode === "image" ? <VisualAsset input={input} /> : null}
       {slide.mode === "image" ? (
         <div
@@ -325,6 +333,11 @@ export function SlideRenderer({ input }: { readonly input: SlideRenderInput }) {
       ) : null}
       {slide.eyebrow ? (
         <p className="orincard-slide__eyebrow" data-slide-content>
+          {/* Only the numbered-point layout sets its eyebrow in display type, so it is the one
+              place where an icon reads as part of the mark rather than as decoration. */}
+          {bulletIcon && slide.layoutId === "numbered-point" ? (
+            <SlideIcon className="orincard-slide__eyebrow-icon" name={bulletIcon} />
+          ) : null}
           {slide.eyebrow}
         </p>
       ) : null}
@@ -336,7 +349,7 @@ export function SlideRenderer({ input }: { readonly input: SlideRenderInput }) {
           {slide.title ? <h2>{slide.title}</h2> : null}
           {slide.bodyBlocks.length > 0 ? (
             <div className="orincard-slide__body">
-              {slide.bodyBlocks.map(textBlock)}
+              {slide.bodyBlocks.map((block, index) => textBlock(block, index, bulletIcon))}
             </div>
           ) : null}
         </div>

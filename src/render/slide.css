@@ -17,6 +17,31 @@
   );
 }
 
+/*
+ * theme.background.motif —— 矢量主题的图形层（见 src/render/motif.tsx）。
+ *
+ * 1. **颜色走变量，不写死。** 生成器吃的是 `var(--motif-1…5)`，所以同一个 motif 换主题就换色；
+ *    下面这组兜底由 `--slide-accent` / `--slide-fg` 混出，自定义品牌色也能拿到协调的一组。
+ * 2. **右下角出血的一大块，不是满幅。** 满幅会让生成器最外圈那块颜色变成整张卡的底色，主题底色
+ *    就白定了（见 .orincard-slide__motif 处的实测记录）。
+ * 3. **内联 SVG，不是 data-URI。** render-deck.ts 的 assertLocalAssets 只放行 data:/file:，
+ *    而 data-URI 里引用不到上面那组变量——那就等于放弃第 1 条。
+ */
+.orincard-slide {
+  --motif-1: var(--slide-accent, #315f9e);
+  --motif-2: color-mix(in oklab, var(--slide-accent, #315f9e) 55%, var(--slide-fg, #141310));
+  --motif-3: color-mix(in oklab, var(--slide-accent, #315f9e) 30%, var(--slide-bg, #f5f1e8));
+  --motif-4: color-mix(in oklab, var(--slide-fg, #141310) 45%, var(--slide-bg, #f5f1e8));
+  --motif-5: color-mix(in oklab, var(--slide-accent, #315f9e) 75%, var(--slide-bg, #f5f1e8));
+  --slide-motif-opacity: 0.3;
+}
+
+/* 有 motif 的时候纹理让一档：两层图案叠在同一块地方，浅色主题会发灰（实测 lattice + bauhaus
+   在 1920×1080 下就是这样），而纹理本来的作用只是让底不那么平。 */
+.orincard-slide[data-background-motif] .orincard-slide__background {
+  --slide-texture-ink: color-mix(in oklab, var(--slide-fg, #141310) 5%, transparent);
+}
+
 .orincard-slide__background {
   position: absolute;
   inset: 0;
@@ -25,12 +50,118 @@
   pointer-events: none;
 }
 
-.orincard-slide[data-background-texture="paper-grain"] .orincard-slide__background {
-  background-color: var(--slide-bg);
+/*
+ * theme.background.texture 的其余取值。三条约束决定了它们为什么长这样：
+ *
+ * 1. **画的是前景色，不是黑或白。** `--slide-texture-ink` 由 `--slide-fg` 混出，所以同一条
+ *    规则在 ink 的深底和 butter 的亮底上都能看见，不必按明暗各写一份。paper-grain 用固定的
+ *    黑白两层是历史写法，保留不动。
+ * 2. **尺寸一律 cqw。** 同一张卡要导 1080×1080 到 1920×1080，px 会让纹理在不同画幅上疏密
+ *    不一；cqw 跟着卡宽走。
+ * 3. **纯 CSS 渐变，不用 SVG data-URI。** src/render/render-deck.ts 把 slide.css 原样读进导出
+ *    HTML，渐变是零字节；而 data-URI 里引用不到 CSS 变量，等于放弃第 1 条。
+ */
+.orincard-slide__background {
+  /* 上限压在 7%：再高就从「纸的底纹」变成「图案」，会和正文抢注意力。 */
+  --slide-texture-ink: color-mix(in oklab, var(--slide-fg, #141310) 7%, transparent);
+  --slide-texture-tile: 5cqw;
+}
+
+.orincard-slide[data-background-texture] .orincard-slide__background::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+.orincard-slide[data-background-texture="paper-grain"] .orincard-slide__background::after {
   background-image:
     radial-gradient(circle at 20% 30%, rgb(255 255 255 / 14%) 0 0.08cqw, transparent 0.1cqw),
     radial-gradient(circle at 70% 65%, rgb(0 0 0 / 8%) 0 0.07cqw, transparent 0.1cqw);
   background-size: 2.2cqw 2cqw, 2.8cqw 2.5cqw;
+}
+
+.orincard-slide[data-background-texture="dot-grid"] .orincard-slide__background::after {
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    var(--slide-texture-ink) 0 0.42cqw,
+    transparent 0.46cqw
+  );
+  background-size: var(--slide-texture-tile) var(--slide-texture-tile);
+}
+
+.orincard-slide[data-background-texture="grid-lines"] .orincard-slide__background::after {
+  background-image:
+    linear-gradient(to right, var(--slide-texture-ink) 0 0.14cqw, transparent 0.14cqw),
+    linear-gradient(to bottom, var(--slide-texture-ink) 0 0.14cqw, transparent 0.14cqw);
+  background-size: var(--slide-texture-tile) var(--slide-texture-tile);
+}
+
+.orincard-slide[data-background-texture="diagonal-stripes"] .orincard-slide__background::after {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--slide-texture-ink) 0 0.6cqw,
+    transparent 0.6cqw 3.4cqw
+  );
+}
+
+.orincard-slide[data-background-texture="cross-hatch"] .orincard-slide__background::after {
+  background-image:
+    repeating-linear-gradient(45deg, var(--slide-texture-ink) 0 0.2cqw, transparent 0.2cqw 3cqw),
+    repeating-linear-gradient(-45deg, var(--slide-texture-ink) 0 0.2cqw, transparent 0.2cqw 3cqw);
+}
+
+.orincard-slide[data-background-texture="lattice"] .orincard-slide__background::after {
+  background-image:
+    linear-gradient(45deg, transparent 43%, var(--slide-texture-ink) 43% 57%, transparent 57%),
+    linear-gradient(-45deg, transparent 43%, var(--slide-texture-ink) 43% 57%, transparent 57%);
+  background-size: var(--slide-texture-tile) var(--slide-texture-tile);
+  background-position: 0 0, calc(var(--slide-texture-tile) / 2) 0;
+}
+
+.orincard-slide[data-background-texture="concentric-rings"] .orincard-slide__background::after {
+  background-image: repeating-radial-gradient(
+    circle at 50% 50%,
+    var(--slide-texture-ink) 0 0.22cqw,
+    transparent 0.22cqw 3.6cqw
+  );
+}
+
+/* 鱼鳞：半圆弧的半径取半个格宽，两层错开半格互扣。 */
+.orincard-slide[data-background-texture="scales"] .orincard-slide__background::after {
+  background-image:
+    radial-gradient(
+      circle at 50% 0,
+      transparent 0 2.85cqw,
+      var(--slide-texture-ink) 2.85cqw 3cqw,
+      transparent 3cqw
+    ),
+    radial-gradient(
+      circle at 50% 0,
+      transparent 0 2.85cqw,
+      var(--slide-texture-ink) 2.85cqw 3cqw,
+      transparent 3cqw
+    );
+  background-size: 6cqw 6cqw;
+  background-position: 0 0, 3cqw 3cqw;
+}
+
+/* 位置与半径都刻意不成比例，平铺接缝才不会连成一条可见的线。 */
+.orincard-slide[data-background-texture="confetti"] .orincard-slide__background::after {
+  background-image:
+    radial-gradient(circle at 18% 22%, var(--slide-texture-ink) 0 0.5cqw, transparent 0.55cqw),
+    radial-gradient(circle at 63% 41%, var(--slide-texture-ink) 0 0.32cqw, transparent 0.36cqw),
+    radial-gradient(circle at 37% 78%, var(--slide-texture-ink) 0 0.4cqw, transparent 0.44cqw),
+    radial-gradient(circle at 86% 88%, var(--slide-texture-ink) 0 0.26cqw, transparent 0.3cqw);
+  background-size: 11cqw 13cqw;
+}
+
+/* 半调：大点与小点各自一套间距，错位叠出疏密变化。 */
+.orincard-slide[data-background-texture="halftone"] .orincard-slide__background::after {
+  background-image:
+    radial-gradient(circle at 50% 50%, var(--slide-texture-ink) 0 0.6cqw, transparent 0.65cqw),
+    radial-gradient(circle at 50% 50%, var(--slide-texture-ink) 0 0.24cqw, transparent 0.28cqw);
+  background-size: 7cqw 7cqw, 3.5cqw 3.5cqw;
+  background-position: 0 0, 1.75cqw 1.75cqw;
 }
 
 .orincard-slide::before,
@@ -70,6 +201,32 @@
 .orincard-slide--palette-sky {
   --slide-fg: var(--tpl-sky-fg, #141310);
   --slide-accent: var(--tpl-sky-accent, #3254ad);
+}
+
+/*
+ * 矢量系列的两套配色。和上面六套的差别不只是色值：它们额外定死 --motif-1…5，因为 motif 的
+ * 兜底是由 accent 混出来的近亲色，好看但单薄——矢量主题要的正是几个互不相让的颜色撞在一起。
+ */
+.orincard-slide--palette-prism {
+  --slide-fg: var(--tpl-prism-fg, #f7f4ff);
+  --slide-accent: var(--tpl-prism-accent, #ff6b9a);
+  --motif-1: #2b1a5e;
+  --motif-2: #ff6b9a;
+  --motif-3: #7c5cff;
+  --motif-4: #2dd4bf;
+  --motif-5: #ffc857;
+}
+
+.orincard-slide--palette-pulse {
+  --slide-fg: var(--tpl-pulse-fg, #14131a);
+  --slide-accent: var(--tpl-pulse-accent, #f2452f);
+  --motif-1: #f4f3ef;
+  --motif-2: #f2452f;
+  --motif-3: #1b6bff;
+  --motif-4: #12b886;
+  --motif-5: #ffc300;
+  /* 浅底上 0.3 太淡，图形几乎看不出来；0.38 仍然离正文对比度的红线很远。 */
+  --slide-motif-opacity: 0.38;
 }
 
 .orincard-slide > .orincard-slide__eyebrow,
@@ -126,6 +283,33 @@
   height: 42cqw;
   border-width: 0.5cqw 0 0;
   border-radius: 50% 50% 0 0;
+}
+
+/*
+ * 图形靠右下角出血，不铺满。满幅试过（inset: 0 + preserveAspectRatio slice），结果是生成器最外圈
+ * 的那一块颜色变成整张卡的底色——pulse 的奶白底被 bauhaus 的青色吃掉，prism 的深紫底被 ring 的
+ * 外环吃掉，主题配色等于白定。切成角落里的一大块之后，底色还是主题的底色，图形是压在上面的装饰。
+ * 正文一律左对齐（两套矢量主题都是），所以往右下角放不会压字。
+ */
+.orincard-slide__motif {
+  position: absolute;
+  right: -12cqw;
+  bottom: -14cqw;
+  width: 54cqw;
+  aspect-ratio: 1;
+  display: block;
+  /* 圆形裁切。生成器每种画风都先铺一块不透明的方形底，不裁的话版面正中会横着一条硬邦邦的矩形边，
+     看起来像渲染出错而不像设计。裁成圆之后那条边没了，剩下一块从角上探进来的圆形色块。 */
+  border-radius: 50%;
+  overflow: hidden;
+  opacity: var(--slide-motif-opacity);
+  pointer-events: none;
+}
+
+.orincard-slide__motif svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .orincard-slide__counter {
@@ -255,6 +439,42 @@
 
 .orincard-slide__body ul {
   padding-inline-start: 1.2em;
+}
+
+/*
+ * theme.bulletIcon swaps the ::marker glyph for a real element, so the list gives up its own
+ * indent and each row lays the mark out itself. Sizes are in em rather than cqw: the body font is
+ * already cqw-based, so the icon tracks the text at every platform size without a second scale.
+ */
+.orincard-slide__body ul[data-bullet="icon"] {
+  padding-inline-start: 0;
+  list-style: none;
+}
+
+.orincard-slide__body ul[data-bullet="icon"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+
+.orincard-slide__bullet-icon {
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
+  /* Nudged down to sit on the first line's optical centre rather than its cap height. */
+  margin-top: 0.22em;
+  color: var(--slide-accent);
+}
+
+.orincard-slide__eyebrow-icon {
+  /* Stated rather than inherited: src/components/ui.css:25 sets `img, svg { display: block }`,
+     which broke the mark onto its own line above the number, and the exported HTML does not load
+     that file — so leaving it implicit means the editor and the exported card disagree. */
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-inline-end: 0.34em;
+  vertical-align: -0.13em;
 }
 
 .orincard-slide__body figcaption {

@@ -11,7 +11,7 @@
 | 路径 | 类别 | 许可 | rightsId | 证据 |
 |---|---|---|---|---|
 | `content/templates.json` | 模板 | proprietary-owned | orincard-editorial-copy | 团队为 T012 撰写的模板文案与版式，git 历史即出处 |
-| `docs/design/reference/assets/img/avatar-elena.jpg` | 设计参考图 | 未知 | - | 无 |
+| `docs/design/reference/assets/img/avatar-elena.jpg` | 设计参考人像 | client-supplied-internal | - | `docs/design/reference/README.md` 记载 2026-09-04 原样复制；产品所有者 2026-09-12 书面确认其来自同批 Open Design 导出、人像为 AI 生成或持有授权，见 [../roadmap.md](../roadmap.md) B-3 |
 | `docs/design/reference/assets/img/credits.json` | 设计参考出处记录 | client-supplied-internal | - | `docs/design/reference/README.md` 记载 2026-09-04 原样复制 |
 | `docs/design/reference/assets/img/desk-morning.jpg` | 设计参考图 | CC BY 2.0 | - | `docs/design/reference/assets/img/credits.json`，作者 Shixart1985，Wikimedia Commons |
 | `docs/design/reference/assets/img/glasses-notebook.jpg` | 设计参考图 | CC BY 2.0 | - | `docs/design/reference/assets/img/credits.json`，作者 Shixart1985，Wikimedia Commons |
@@ -27,13 +27,87 @@
 | `docs/design/reference/index.html` | 设计参考页面 | client-supplied-internal | - | 同上 |
 | `docs/design/reference/manifest.json` | 设计参考清单 | client-supplied-internal | - | 同上 |
 | `docs/design/reference/projects.html` | 设计参考页面 | client-supplied-internal | - | 同上 |
+| `public/media/curated/paper-arrow-steps.webp` | 内置插画 | proprietary-owned | orincard-synthesised-media | 纸艺静物原创图：折纸箭头与纸块，OpenAI ImageGen 生成，无第三方参考照片 |
+| `public/media/curated/paper-crane-cards.webp` | 内置插画 | proprietary-owned | orincard-synthesised-media | 纸艺静物原创图：纸鹤与卡片堆，OpenAI ImageGen 生成，无第三方参考照片 |
+| `public/media/curated/paper-lotus-sphere.webp` | 内置插画 | proprietary-owned | orincard-synthesised-media | 纸艺静物原创图：纸瓣与玻璃球，OpenAI ImageGen 生成，无第三方参考照片 |
+| `public/media/templates/bold-hot-take-5475c4a75a81-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 bold-hot-take 第 1 页的真实渲染，版本 5475c4a75a81 |
+| `public/media/templates/bold-hot-take-5475c4a75a81-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 bold-hot-take 第 2 页的真实渲染，版本 5475c4a75a81 |
+| `public/media/templates/bold-hot-take-5475c4a75a81-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 bold-hot-take 第 3 页的真实渲染，版本 5475c4a75a81 |
+| `public/media/templates/bold-hot-take-5475c4a75a81-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 bold-hot-take 第 4 页的真实渲染，版本 5475c4a75a81 |
+| `public/media/templates/bold-launch-9709664b4948-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 bold-launch 第 1 页的真实渲染，版本 9709664b4948 |
+| `public/media/templates/bold-launch-9709664b4948-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 bold-launch 第 2 页的真实渲染，版本 9709664b4948 |
+| `public/media/templates/bold-launch-9709664b4948-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 bold-launch 第 3 页的真实渲染，版本 9709664b4948 |
+| `public/media/templates/bold-launch-9709664b4948-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 bold-launch 第 4 页的真实渲染，版本 9709664b4948 |
+| `public/media/templates/bold-statement-3243971dad4c-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 bold-statement 第 1 页的真实渲染，版本 3243971dad4c |
+| `public/media/templates/bold-statement-3243971dad4c-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 bold-statement 第 2 页的真实渲染，版本 3243971dad4c |
+| `public/media/templates/bold-statement-3243971dad4c-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 bold-statement 第 3 页的真实渲染，版本 3243971dad4c |
+| `public/media/templates/bold-statement-3243971dad4c-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 bold-statement 第 4 页的真实渲染，版本 3243971dad4c |
+| `public/media/templates/clear-idea-59fc0cca0981-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 clear-idea 第 1 页的真实渲染，版本 59fc0cca0981 |
+| `public/media/templates/clear-idea-59fc0cca0981-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 clear-idea 第 2 页的真实渲染，版本 59fc0cca0981 |
+| `public/media/templates/clear-idea-59fc0cca0981-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 clear-idea 第 3 页的真实渲染，版本 59fc0cca0981 |
+| `public/media/templates/clear-idea-59fc0cca0981-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 clear-idea 第 4 页的真实渲染，版本 59fc0cca0981 |
+| `public/media/templates/education-breakdown-bd90d09d0502-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 education-breakdown 第 1 页的真实渲染，版本 bd90d09d0502 |
+| `public/media/templates/education-breakdown-bd90d09d0502-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 education-breakdown 第 2 页的真实渲染，版本 bd90d09d0502 |
+| `public/media/templates/education-breakdown-bd90d09d0502-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 education-breakdown 第 3 页的真实渲染，版本 bd90d09d0502 |
+| `public/media/templates/education-breakdown-bd90d09d0502-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 education-breakdown 第 4 页的真实渲染，版本 bd90d09d0502 |
+| `public/media/templates/education-breakdown-bd90d09d0502-5.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 education-breakdown 第 5 页的真实渲染，版本 bd90d09d0502 |
+| `public/media/templates/launch-changelog-313cdf88061f-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 launch-changelog 第 1 页的真实渲染，版本 313cdf88061f |
+| `public/media/templates/launch-changelog-313cdf88061f-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 launch-changelog 第 2 页的真实渲染，版本 313cdf88061f |
+| `public/media/templates/launch-changelog-313cdf88061f-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 launch-changelog 第 3 页的真实渲染，版本 313cdf88061f |
+| `public/media/templates/launch-changelog-313cdf88061f-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 launch-changelog 第 4 页的真实渲染，版本 313cdf88061f |
+| `public/media/templates/launch-changelog-313cdf88061f-5.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 launch-changelog 第 5 页的真实渲染，版本 313cdf88061f |
+| `public/media/templates/minimal-note-53cefed9a3d1-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 minimal-note 第 1 页的真实渲染，版本 53cefed9a3d1 |
+| `public/media/templates/minimal-note-53cefed9a3d1-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 minimal-note 第 2 页的真实渲染，版本 53cefed9a3d1 |
+| `public/media/templates/minimal-note-53cefed9a3d1-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 minimal-note 第 3 页的真实渲染，版本 53cefed9a3d1 |
+| `public/media/templates/minimal-note-53cefed9a3d1-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 minimal-note 第 4 页的真实渲染，版本 53cefed9a3d1 |
+| `public/media/templates/minimal-quote-e726c29d8d41-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 minimal-quote 第 1 页的真实渲染，版本 e726c29d8d41 |
+| `public/media/templates/minimal-quote-e726c29d8d41-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 minimal-quote 第 2 页的真实渲染，版本 e726c29d8d41 |
+| `public/media/templates/minimal-quote-e726c29d8d41-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 minimal-quote 第 3 页的真实渲染，版本 e726c29d8d41 |
+| `public/media/templates/minimal-quote-e726c29d8d41-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 minimal-quote 第 4 页的真实渲染，版本 e726c29d8d41 |
+| `public/media/templates/modern-brief-0e59b0a40af5-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 modern-brief 第 1 页的真实渲染，版本 0e59b0a40af5 |
+| `public/media/templates/modern-brief-0e59b0a40af5-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 modern-brief 第 2 页的真实渲染，版本 0e59b0a40af5 |
+| `public/media/templates/modern-brief-0e59b0a40af5-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 modern-brief 第 3 页的真实渲染，版本 0e59b0a40af5 |
+| `public/media/templates/modern-brief-0e59b0a40af5-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 modern-brief 第 4 页的真实渲染，版本 0e59b0a40af5 |
+| `public/media/templates/modern-brief-0e59b0a40af5-5.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 modern-brief 第 5 页的真实渲染，版本 0e59b0a40af5 |
+| `public/media/templates/modern-metrics-397dcb4810c5-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 modern-metrics 第 1 页的真实渲染，版本 397dcb4810c5 |
+| `public/media/templates/modern-metrics-397dcb4810c5-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 modern-metrics 第 2 页的真实渲染，版本 397dcb4810c5 |
+| `public/media/templates/modern-metrics-397dcb4810c5-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 modern-metrics 第 3 页的真实渲染，版本 397dcb4810c5 |
+| `public/media/templates/modern-metrics-397dcb4810c5-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 modern-metrics 第 4 页的真实渲染，版本 397dcb4810c5 |
+| `public/media/templates/modern-metrics-397dcb4810c5-5.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 modern-metrics 第 5 页的真实渲染，版本 397dcb4810c5 |
+| `public/media/templates/playful-checklist-6da37af4b8a0-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 playful-checklist 第 1 页的真实渲染，版本 6da37af4b8a0 |
+| `public/media/templates/playful-checklist-6da37af4b8a0-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 playful-checklist 第 2 页的真实渲染，版本 6da37af4b8a0 |
+| `public/media/templates/playful-checklist-6da37af4b8a0-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 playful-checklist 第 3 页的真实渲染，版本 6da37af4b8a0 |
+| `public/media/templates/playful-checklist-6da37af4b8a0-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 playful-checklist 第 4 页的真实渲染，版本 6da37af4b8a0 |
+| `public/media/templates/playful-checklist-6da37af4b8a0-5.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 playful-checklist 第 5 页的真实渲染，版本 6da37af4b8a0 |
+| `public/media/templates/playful-myths-5612b5d114ad-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 playful-myths 第 1 页的真实渲染，版本 5612b5d114ad |
+| `public/media/templates/playful-myths-5612b5d114ad-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 playful-myths 第 2 页的真实渲染，版本 5612b5d114ad |
+| `public/media/templates/playful-myths-5612b5d114ad-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 playful-myths 第 3 页的真实渲染，版本 5612b5d114ad |
+| `public/media/templates/playful-myths-5612b5d114ad-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 playful-myths 第 4 页的真实渲染，版本 5612b5d114ad |
+| `public/media/templates/prism-launch-f1af3770a57b-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 prism-launch 第 1 页的真实渲染，版本 f1af3770a57b |
+| `public/media/templates/prism-launch-f1af3770a57b-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 prism-launch 第 2 页的真实渲染，版本 f1af3770a57b |
+| `public/media/templates/prism-launch-f1af3770a57b-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 prism-launch 第 3 页的真实渲染，版本 f1af3770a57b |
+| `public/media/templates/prism-launch-f1af3770a57b-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 prism-launch 第 4 页的真实渲染，版本 f1af3770a57b |
+| `public/media/templates/prism-launch-f1af3770a57b-5.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 prism-launch 第 5 页的真实渲染，版本 f1af3770a57b |
+| `public/media/templates/pulse-briefing-89f19c410df8-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 pulse-briefing 第 1 页的真实渲染，版本 89f19c410df8 |
+| `public/media/templates/pulse-briefing-89f19c410df8-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 pulse-briefing 第 2 页的真实渲染，版本 89f19c410df8 |
+| `public/media/templates/pulse-briefing-89f19c410df8-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 pulse-briefing 第 3 页的真实渲染，版本 89f19c410df8 |
+| `public/media/templates/pulse-briefing-89f19c410df8-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 pulse-briefing 第 4 页的真实渲染，版本 89f19c410df8 |
+| `public/media/templates/pulse-briefing-89f19c410df8-5.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 pulse-briefing 第 5 页的真实渲染，版本 89f19c410df8 |
+| `public/media/templates/story-lessons-b1f1f74012d1-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 story-lessons 第 1 页的真实渲染，版本 b1f1f74012d1 |
+| `public/media/templates/story-lessons-b1f1f74012d1-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 story-lessons 第 2 页的真实渲染，版本 b1f1f74012d1 |
+| `public/media/templates/story-lessons-b1f1f74012d1-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 story-lessons 第 3 页的真实渲染，版本 b1f1f74012d1 |
+| `public/media/templates/story-lessons-b1f1f74012d1-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 story-lessons 第 4 页的真实渲染，版本 b1f1f74012d1 |
+| `public/media/templates/vertical-story-dd1695059afa-1.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 vertical-story 第 1 页的真实渲染，版本 dd1695059afa |
+| `public/media/templates/vertical-story-dd1695059afa-2.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 vertical-story 第 2 页的真实渲染，版本 dd1695059afa |
+| `public/media/templates/vertical-story-dd1695059afa-3.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 vertical-story 第 3 页的真实渲染，版本 dd1695059afa |
+| `public/media/templates/vertical-story-dd1695059afa-4.webp` | 模板预览图 | proprietary-owned | orincard-synthesised-media | `scripts/render-template-previews.mjs` 截取模板 vertical-story 第 4 页的真实渲染，版本 dd1695059afa |
 | `tests/fixtures/base-document.json` | 验收夹具 | proprietary-owned | orincard-editorial-copy | 团队撰写的样例文档，git 历史即出处 |
 | `tests/fixtures/corpus.json` | 验收夹具 | proprietary-owned | orincard-editorial-copy | T090 素材清单，每条自带 `rightsId` |
 | `tests/fixtures/rights.json` | 权利登记表 | proprietary-owned | - | 登记表本身由团队维护，不含第三方素材 |
 
 三点必须随表一起读：
 
-1. **`avatar-elena.jpg` 是当前唯一的未知项。** 同目录的 `credits.json` 记了 6 条，而目录里有 7 张 jpg，这一张没有对应条目，无法核对作者、来源 URL 与许可。它是一张人像，未知许可的人像风险高于风景图。闭合方式只有两条：补齐可核对的上游出处（Wikimedia 页面或原始授权），或删除该文件并改用已登记的图片。**在此之前 T088 不能勾选**，守卫会持续失败，这是正确结果。
+1. **`avatar-elena.jpg` 的出处由产品所有者答复闭合，不是由文件本身证明。** 同目录的 `credits.json` 记 6 条而目录里有 7 张 jpg，少的就是它；EXIF 只有 Photoshop 痕迹，没有来源信息。本文件此前给的处置建议是「删除该文件」，**那条建议不可行**：它在 `docs/design/reference/manifest.json` 里有 SHA-256 锁，且被 5 个 `reference/` 页与 3 个 `prototype/` 页引用，删它会同时破锁和破 8 个页面。实际闭合方式是路线图 B-3：产品所有者 2026-09-12 书面确认它与 `orincard.css` 及 5 个 HTML 同批来自 Open Design 项目 `9d82ca96-…` 的导出，人像为 AI 生成或持有肖像授权，因此按 `client-supplied-internal` 登记。**证据强度是「所有者声明」而非可核对的上游 URL**，与其余六张 CC BY 图片不同；若该文件日后要进入产品界面或对外分发，必须重新取证。`credits.json` 受锁，补不了第 7 条，登记只落在本表。
 2. **六张 CC BY 2.0 图片带署名义务。** 任何再分发（含把 `docs/design/reference/` 打包交付）必须同时保留 `credits.json` 里的作者、标题与许可字段。它们只是设计参考，不进产品构建；一旦被引入产品界面，需重新按 CC BY 的署名位置要求审查。
 3. **`client-supplied-internal` 的含义是「出处清楚、但未获对外再分发授权」。** 这批文件是用户在 2026-09-04 指定的设计快照的原样副本，供内部迁移比对使用，不随产品分发，也不得单独对外发布。
 
@@ -43,6 +117,7 @@
 |---|---|---|---|---|
 | `inter-latin-variable` | Inter | `@fontsource-variable/inter@5.3.0` | SIL OFL 1.1 | `src/render/font-manifest.json` 记录 SHA-256，装载前校验 |
 | `source-serif-4-latin-variable` | Source Serif 4 | `@fontsource-variable/source-serif-4@5.3.0` | SIL OFL 1.1 | 同上 |
+| `jetbrains-mono-latin-variable` | JetBrains Mono | `@fontsource-variable/jetbrains-mono@5.3.0` | SIL OFL 1.1 | 同上 |
 | `noto-sans-sc-simplified-400` | Noto Sans SC | `@fontsource/noto-sans-sc@5.3.0` | SIL OFL 1.1 | 同上 |
 | `noto-sans-sc-simplified-700` | Noto Sans SC | `@fontsource/noto-sans-sc@5.3.0` | SIL OFL 1.1 | 同上 |
 
@@ -74,3 +149,22 @@
 守卫从 `src/**/*.ts` 里抽取实际写死的模型标识（`model:` / `resourceId:` 字面量、`AI_*_MODEL` 常量、`process.env.AI_*_MODEL ?? "…"` 的兜底值），与本表做双向比对：出现未登记模型失败，本表登记了代码已不再调用的模型也失败。
 
 `AI_TEXT_MODEL` 与 `AI_TRANSCRIBE_MODEL` 可由环境变量覆盖。**覆盖成一个未登记的模型不会被本守卫拦住**——守卫读的是代码，读不到运行环境。运维侧的约束写在 [../acceptance/security.md](../acceptance/security.md)。
+
+## 5. 第三方矢量素材（随构建内联，文件来自 GitHub）
+
+| id | 来源 | commit | 文件数 | 许可 | 需署名 | 产物 |
+|---|---|---|---|---|---|---|
+| `tabler-icons` | [tabler/tabler-icons](https://github.com/tabler/tabler-icons) | `55f87a73f45cf1d9eaf16d7da705065483a9e4f9` | 226 | MIT | 否 | `src/assets/generated/tabler-icons.ts` |
+| `boring-avatars` | [boringdesigners/boring-avatars](https://github.com/boringdesigners/boring-avatars) | `d0ff2582a8921b643a89de4a4912be28938a828b` | 8 | MIT | 否 | `src/assets/generated/boring-avatars.tsx` |
+
+`boring-avatars` 收的不是图，是**生成器**：上游每种画风一个 React 组件，按传入的 `name` 种子确定性地算出一张 SVG。矢量主题的图形层（`src/render/motif.tsx`）用它，颜色传 `var(--motif-1…5)`，所以同一个图形换主题就换色。上游六种画风里只放行五种，`beam` 画的是人脸、不是底纹，`src/render/motifs.ts` 有意不列它。
+
+与 Tabler 那条不同的是，这个转换需要把多个源文件拼成一个模块，而每个文件都各自声明了同名的 `SIZE` / `ELEMENTS` / `generateColors`。脚本的做法是把每个文件的函数体原样包进一个 IIFE（只删 `import` 行、把 `export default X` 改成 IIFE 的返回值），**不改上游代码的字节**——`sha256` 校验的就是那些字节。
+
+本项目只收**免署名**许可：CC0-1.0 / MIT / Apache-2.0 / ISC / OFL-1.1。白名单写在 `src/assets/vendor-manifest.json` 的 `allowedLicenses`，`scripts/vendor-assets.mjs` 在下载之前就按它判定，`src/assets/vendor.ts` 的 `assertVendorLicense()` 在代码侧重复同一判定；GPL/AGPL/LGPL 不是「没列进来」，是**必须一直不在里面**（`tests/unit/vendor-assets.test.ts` 逐条钉住）。
+
+来源固定到 40 位 commit sha 而不是 tag——tag 可以被指到别的字节上。归档包本身有 `archiveSha256`，包内每个文件另有自己的 SHA-256，两层都在生成产物之前校验，任一不符即抛错（`ASSET_HASH_MISMATCH` / `ARCHIVE_HASH_MISMATCH`）。
+
+上游许可原文随仓库分发在 `docs/licenses/vendor/<id>-LICENSE.txt`，由脚本从归档包里抄出，不手写。
+
+这些素材**不以图片文件形式进 Git**：脚本把上游代码生成成 TypeScript 模块，渲染时内联成 `<svg>`，颜色走 CSS 变量（图标是 `currentColor`，motif 是 `var(--motif-1…5)`）。因此它们和字体一样不出现在第 1 节，也不受 `assertLocalAssets`（`src/render/render-deck.ts`）的外链限制。

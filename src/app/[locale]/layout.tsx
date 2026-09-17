@@ -1,5 +1,8 @@
 import "@fontsource-variable/inter/wght.css";
 import "@fontsource-variable/source-serif-4/wght.css";
+// mono-sans 配对的标题字体。导出件自己内联字体，所以少了这一行只有编辑器和预览会静默回退到
+// Inter——而那正是用户看着选配对的地方。
+import "@fontsource-variable/jetbrains-mono/wght.css";
 import "@fontsource/noto-sans-sc/400.css";
 // 700 也要装：中文标题是粗的，只有 400 时浏览器会合成伪粗体，和导出件对不上。
 import "@fontsource/noto-sans-sc/700.css";

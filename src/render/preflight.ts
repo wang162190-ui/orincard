@@ -1,5 +1,6 @@
 import type { SlideRenderAsset, SlideRenderInput } from "./slide";
 import fontManifestJson from "./font-manifest.json";
+import { resolveFontPair } from "./font-pairs";
 
 export const VISUAL_EXPORT_FORMATS = ["png", "jpg", "pdf", "pptx", "mp4"] as const;
 
@@ -65,20 +66,8 @@ type FontManifest = {
   }[];
 };
 
-const FONT_PAIR_MANIFEST_IDS: Readonly<Record<string, readonly string[]>> = {
-  "source-serif-inter": [
-    "source-serif-4-latin-variable",
-    "inter-latin-variable",
-    "noto-sans-sc-simplified-400",
-    "noto-sans-sc-simplified-700",
-  ],
-};
-
 function selectedFontFamilies(fontPairId: string): readonly string[] {
-  const ids = FONT_PAIR_MANIFEST_IDS[fontPairId];
-  if (!ids) {
-    return [];
-  }
+  const ids = resolveFontPair(fontPairId).manifestIds;
 
   const manifest = fontManifestJson as FontManifest;
   const entries = ids.map((id) => manifest.fonts.find((font) => font.id === id));

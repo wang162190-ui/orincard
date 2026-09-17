@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Button, Panel, PanelBody, PanelHeader } from "@/components/ui";
+import { FONT_PAIRS } from "@/render/font-pairs";
 import { DEFAULT_BRAND_SETTINGS, type BrandKit, type BrandProjectImpact, type BrandSettings } from "@/server/brands";
 import { DeleteBrandDialog } from "./delete-dialog";
 
@@ -72,7 +73,7 @@ export function BrandEditor({ fetcher = fetch }: { readonly fetcher?: typeof fet
         <label>{t("website")}<input value={settings.website ?? ""} placeholder="https://example.com" onChange={(event) => update("website", event.target.value || null)} /></label>
         <label>{t("cta")}<input value={settings.cta ?? ""} maxLength={18} onChange={(event) => update("cta", event.target.value || null)} /></label>
         <label>{t("colors")}<input value={settings.colors.join(", ")} onChange={(event) => update("colors", event.target.value.split(",").map((color) => color.trim()).filter(Boolean))} /></label>
-        <label>{t("fontPair")}<select value={settings.fontPairId} onChange={(event) => update("fontPairId", event.target.value)}><option value="serif-sans">{t("fontSerifSans")}</option><option value="sans-serif">{t("fontSansSerif")}</option><option value="mono-sans">{t("fontMonoSans")}</option></select></label>
+        <label>{t("fontPair")}<select value={settings.fontPairId} onChange={(event) => update("fontPairId", event.target.value)}>{Object.entries(FONT_PAIRS).map(([id, pair]) => <option key={id} value={id}>{t(pair.labelKey)}</option>)}</select></label>
         <label><input type="checkbox" checked={settings.counterDefaults.visible} onChange={(event) => update("counterDefaults", { ...settings.counterDefaults, visible: event.target.checked })} /> {t("showCounter")}</label>
         <label>{t("counterStyle")}<select value={settings.counterDefaults.style} onChange={(event) => update("counterDefaults", { ...settings.counterDefaults, style: event.target.value as BrandSettings["counterDefaults"]["style"] })}><option value="fraction">{t("counterFraction")}</option><option value="number">{t("counterNumber")}</option><option value="none">{t("counterHidden")}</option></select></label>
         {selected ? <><p className="meta">{t("applyNote")}</p><div className="row" style={{ gap: 10 }}><Button onClick={() => void save()}>{t("save")}</Button><Button variant="danger" onClick={() => void startDelete()}>{t("delete")}</Button></div></> : <Button onClick={create}>{t("create")}</Button>}

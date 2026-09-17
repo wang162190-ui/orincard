@@ -161,6 +161,12 @@ const backgroundSchema = z
     value: z.string().min(1),
     shape: z.string().nullable().optional(),
     texture: z.string().nullable().optional(),
+    /**
+     * Generative vector drawing behind the text (src/render/motifs.ts). Free-form for the same
+     * reason as `texture` and `bulletIcon`: a deck saved against a motif set this build does not
+     * have renders without one rather than failing validation.
+     */
+    motif: z.string().nullable().optional(),
     opacity: z.number().min(0).max(1),
   })
   .strict();
@@ -177,6 +183,13 @@ const themeSettingsSchema = z
     arrow: z.enum(["none", "line", "filled"]),
     radius: z.number().nonnegative(),
     counterStyle: z.enum(["none", "number", "fraction"]),
+    /**
+     * Name of a vendored icon (src/assets/generated/tabler-icons.ts) to use as the bullet marker
+     * and the numbered-point mark. Optional and free-form on purpose: the renderer falls back to
+     * the plain marker for a name it does not know, so a theme saved against a newer icon set
+     * still renders rather than failing document validation.
+     */
+    bulletIcon: z.string().min(1).nullable().optional(),
   })
   .strict()
   .refine((theme) => theme.paletteId || theme.colors, {

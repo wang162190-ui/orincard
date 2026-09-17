@@ -8,14 +8,14 @@
     "templateId": "paper",
     "slideCount": 4,
     "hasImages": true,
-    "thumbnail": "/media/templates/clear-idea-3325100795cb-1.png",
+    "thumbnail": "/media/templates/clear-idea-59fc0cca0981-1.webp",
     "previews": [
-      "/media/templates/clear-idea-3325100795cb-1.png",
-      "/media/templates/clear-idea-3325100795cb-2.png",
-      "/media/templates/clear-idea-3325100795cb-3.png",
-      "/media/templates/clear-idea-3325100795cb-4.png"
+      "/media/templates/clear-idea-59fc0cca0981-1.webp",
+      "/media/templates/clear-idea-59fc0cca0981-2.webp",
+      "/media/templates/clear-idea-59fc0cca0981-3.webp",
+      "/media/templates/clear-idea-59fc0cca0981-4.webp"
     ],
-    "previewVersion": "3325100795cb"
+    "previewVersion": "59fc0cca0981"
   },
   {
     "slug": "bold-launch",
@@ -26,14 +26,14 @@
     "templateId": "signal",
     "slideCount": 4,
     "hasImages": true,
-    "thumbnail": "/media/templates/bold-launch-76b28048a566-1.png",
+    "thumbnail": "/media/templates/bold-launch-9709664b4948-1.webp",
     "previews": [
-      "/media/templates/bold-launch-76b28048a566-1.png",
-      "/media/templates/bold-launch-76b28048a566-2.png",
-      "/media/templates/bold-launch-76b28048a566-3.png",
-      "/media/templates/bold-launch-76b28048a566-4.png"
+      "/media/templates/bold-launch-9709664b4948-1.webp",
+      "/media/templates/bold-launch-9709664b4948-2.webp",
+      "/media/templates/bold-launch-9709664b4948-3.webp",
+      "/media/templates/bold-launch-9709664b4948-4.webp"
     ],
-    "previewVersion": "76b28048a566"
+    "previewVersion": "9709664b4948"
   },
   {
     "slug": "vertical-story",
@@ -44,14 +44,14 @@
     "templateId": "sky",
     "slideCount": 4,
     "hasImages": true,
-    "thumbnail": "/media/templates/vertical-story-ae466a8c3f72-1.png",
+    "thumbnail": "/media/templates/vertical-story-dd1695059afa-1.webp",
     "previews": [
-      "/media/templates/vertical-story-ae466a8c3f72-1.png",
-      "/media/templates/vertical-story-ae466a8c3f72-2.png",
-      "/media/templates/vertical-story-ae466a8c3f72-3.png",
-      "/media/templates/vertical-story-ae466a8c3f72-4.png"
+      "/media/templates/vertical-story-dd1695059afa-1.webp",
+      "/media/templates/vertical-story-dd1695059afa-2.webp",
+      "/media/templates/vertical-story-dd1695059afa-3.webp",
+      "/media/templates/vertical-story-dd1695059afa-4.webp"
     ],
-    "previewVersion": "ae466a8c3f72"
+    "previewVersion": "dd1695059afa"
   },
   {
     "slug": "modern-brief",
@@ -61,16 +61,16 @@
     "platform": "linkedin",
     "templateId": "ink",
     "slideCount": 5,
-    "hasImages": true,
-    "thumbnail": "/media/templates/modern-brief-e64ef4d6c141-1.png",
+    "hasImages": false,
+    "thumbnail": "/media/templates/modern-brief-0e59b0a40af5-1.webp",
     "previews": [
-      "/media/templates/modern-brief-e64ef4d6c141-1.png",
-      "/media/templates/modern-brief-e64ef4d6c141-2.png",
-      "/media/templates/modern-brief-e64ef4d6c141-3.png",
-      "/media/templates/modern-brief-e64ef4d6c141-4.png",
-      "/media/templates/modern-brief-e64ef4d6c141-5.png"
+      "/media/templates/modern-brief-0e59b0a40af5-1.webp",
+      "/media/templates/modern-brief-0e59b0a40af5-2.webp",
+      "/media/templates/modern-brief-0e59b0a40af5-3.webp",
+      "/media/templates/modern-brief-0e59b0a40af5-4.webp",
+      "/media/templates/modern-brief-0e59b0a40af5-5.webp"
     ],
-    "previewVersion": "e64ef4d6c141"
+    "previewVersion": "0e59b0a40af5"
   },
   {
     "slug": "modern-metrics",
@@ -81,15 +81,15 @@
     "templateId": "signal",
     "slideCount": 5,
     "hasImages": false,
-    "thumbnail": "/media/templates/modern-metrics-0b6be82ba8e3-1.png",
+    "thumbnail": "/media/templates/modern-metrics-397dcb4810c5-1.webp",
     "previews": [
-      "/media/templates/modern-metrics-0b6be82ba8e3-1.png",
-      "/media/templates/modern-metrics-0b6be82ba8e3-2.png",
-      "/media/templates/modern-metrics-0b6be82ba8e3-3.png",
-      "/media/templates/modern-metrics-0b6be82ba8e3-4.png",
-      "/media/templates/modern-metrics-0b6be82ba8e3-5.png"
+      "/media/templates/modern-metrics-397dcb4810c5-1.webp",
+      "/media/templates/modern-metrics-397dcb4810c5-2.webp",
+      "/media/templates/modern-metrics-397dcb4810c5-3.webp",
+      "/media/templates/modern-metrics-397dcb4810c5-4.webp",
+      "/media/templates/modern-metrics-397dcb4810c5-5.webp"
     ],
-    "previewVersion": "0b6be82ba8e3"
+    "previewVersion": "397dcb4810c5"
   },
   {
     "slug": "minimal-note",
@@ -99,15 +99,15 @@
     "platform": "square",
     "templateId": "paper",
     "slideCount": 4,
-    "hasImages": true,
-    "thumbnail": "/media/templates/minimal-note-21b927790c17-1.png",
+    "hasImages": false,
+    "thumbnail": "/media/templates/minimal-note-53cefed9a3d1-1.webp",
     "previews": [
-      "/media/templates/minimal-note-21b927790c17-1.png",
-      "/media/templates/minimal-note-21b927790c17-2.png",
-      "/media/templates/minimal-note-21b927790c17-3.png",
-      "/media/templates/minimal-note-21b927790c17-4.png"
+      "/media/templates/minimal-note-53cefed9a3d1-1.webp",
+      "/media/templates/minimal-note-53cefed9a3d1-2.webp",
+      "/media/templates/minimal-note-53cefed9a3d1-3.webp",
+      "/media/templates/minimal-note-53cefed9a3d1-4.webp"
     ],
-    "previewVersion": "21b927790c17"
+    "previewVersion": "53cefed9a3d1"
   },
   {
     "slug": "minimal-quote",
@@ -118,14 +118,14 @@
     "templateId": "ink",
     "slideCount": 4,
     "hasImages": false,
-    "thumbnail": "/media/templates/minimal-quote-63cc2042faf5-1.png",
+    "thumbnail": "/media/templates/minimal-quote-e726c29d8d41-1.webp",
     "previews": [
-      "/media/templates/minimal-quote-63cc2042faf5-1.png",
-      "/media/templates/minimal-quote-63cc2042faf5-2.png",
-      "/media/templates/minimal-quote-63cc2042faf5-3.png",
-      "/media/templates/minimal-quote-63cc2042faf5-4.png"
+      "/media/templates/minimal-quote-e726c29d8d41-1.webp",
+      "/media/templates/minimal-quote-e726c29d8d41-2.webp",
+      "/media/templates/minimal-quote-e726c29d8d41-3.webp",
+      "/media/templates/minimal-quote-e726c29d8d41-4.webp"
     ],
-    "previewVersion": "63cc2042faf5"
+    "previewVersion": "e726c29d8d41"
   },
   {
     "slug": "bold-statement",
@@ -136,14 +136,14 @@
     "templateId": "butter",
     "slideCount": 4,
     "hasImages": false,
-    "thumbnail": "/media/templates/bold-statement-6cfd7661cdfa-1.png",
+    "thumbnail": "/media/templates/bold-statement-3243971dad4c-1.webp",
     "previews": [
-      "/media/templates/bold-statement-6cfd7661cdfa-1.png",
-      "/media/templates/bold-statement-6cfd7661cdfa-2.png",
-      "/media/templates/bold-statement-6cfd7661cdfa-3.png",
-      "/media/templates/bold-statement-6cfd7661cdfa-4.png"
+      "/media/templates/bold-statement-3243971dad4c-1.webp",
+      "/media/templates/bold-statement-3243971dad4c-2.webp",
+      "/media/templates/bold-statement-3243971dad4c-3.webp",
+      "/media/templates/bold-statement-3243971dad4c-4.webp"
     ],
-    "previewVersion": "6cfd7661cdfa"
+    "previewVersion": "3243971dad4c"
   },
   {
     "slug": "bold-hot-take",
@@ -154,14 +154,14 @@
     "templateId": "ink",
     "slideCount": 4,
     "hasImages": false,
-    "thumbnail": "/media/templates/bold-hot-take-238fa7d94551-1.png",
+    "thumbnail": "/media/templates/bold-hot-take-5475c4a75a81-1.webp",
     "previews": [
-      "/media/templates/bold-hot-take-238fa7d94551-1.png",
-      "/media/templates/bold-hot-take-238fa7d94551-2.png",
-      "/media/templates/bold-hot-take-238fa7d94551-3.png",
-      "/media/templates/bold-hot-take-238fa7d94551-4.png"
+      "/media/templates/bold-hot-take-5475c4a75a81-1.webp",
+      "/media/templates/bold-hot-take-5475c4a75a81-2.webp",
+      "/media/templates/bold-hot-take-5475c4a75a81-3.webp",
+      "/media/templates/bold-hot-take-5475c4a75a81-4.webp"
     ],
-    "previewVersion": "238fa7d94551"
+    "previewVersion": "5475c4a75a81"
   },
   {
     "slug": "playful-checklist",
@@ -172,15 +172,15 @@
     "templateId": "blush",
     "slideCount": 5,
     "hasImages": false,
-    "thumbnail": "/media/templates/playful-checklist-8715f92f5ae1-1.png",
+    "thumbnail": "/media/templates/playful-checklist-6da37af4b8a0-1.webp",
     "previews": [
-      "/media/templates/playful-checklist-8715f92f5ae1-1.png",
-      "/media/templates/playful-checklist-8715f92f5ae1-2.png",
-      "/media/templates/playful-checklist-8715f92f5ae1-3.png",
-      "/media/templates/playful-checklist-8715f92f5ae1-4.png",
-      "/media/templates/playful-checklist-8715f92f5ae1-5.png"
+      "/media/templates/playful-checklist-6da37af4b8a0-1.webp",
+      "/media/templates/playful-checklist-6da37af4b8a0-2.webp",
+      "/media/templates/playful-checklist-6da37af4b8a0-3.webp",
+      "/media/templates/playful-checklist-6da37af4b8a0-4.webp",
+      "/media/templates/playful-checklist-6da37af4b8a0-5.webp"
     ],
-    "previewVersion": "8715f92f5ae1"
+    "previewVersion": "6da37af4b8a0"
   },
   {
     "slug": "playful-myths",
@@ -191,14 +191,14 @@
     "templateId": "butter",
     "slideCount": 4,
     "hasImages": false,
-    "thumbnail": "/media/templates/playful-myths-9e0e9dac91dd-1.png",
+    "thumbnail": "/media/templates/playful-myths-5612b5d114ad-1.webp",
     "previews": [
-      "/media/templates/playful-myths-9e0e9dac91dd-1.png",
-      "/media/templates/playful-myths-9e0e9dac91dd-2.png",
-      "/media/templates/playful-myths-9e0e9dac91dd-3.png",
-      "/media/templates/playful-myths-9e0e9dac91dd-4.png"
+      "/media/templates/playful-myths-5612b5d114ad-1.webp",
+      "/media/templates/playful-myths-5612b5d114ad-2.webp",
+      "/media/templates/playful-myths-5612b5d114ad-3.webp",
+      "/media/templates/playful-myths-5612b5d114ad-4.webp"
     ],
-    "previewVersion": "9e0e9dac91dd"
+    "previewVersion": "5612b5d114ad"
   },
   {
     "slug": "education-breakdown",
@@ -208,16 +208,16 @@
     "platform": "presentation",
     "templateId": "sky",
     "slideCount": 5,
-    "hasImages": true,
-    "thumbnail": "/media/templates/education-breakdown-96be79e7b528-1.png",
+    "hasImages": false,
+    "thumbnail": "/media/templates/education-breakdown-bd90d09d0502-1.webp",
     "previews": [
-      "/media/templates/education-breakdown-96be79e7b528-1.png",
-      "/media/templates/education-breakdown-96be79e7b528-2.png",
-      "/media/templates/education-breakdown-96be79e7b528-3.png",
-      "/media/templates/education-breakdown-96be79e7b528-4.png",
-      "/media/templates/education-breakdown-96be79e7b528-5.png"
+      "/media/templates/education-breakdown-bd90d09d0502-1.webp",
+      "/media/templates/education-breakdown-bd90d09d0502-2.webp",
+      "/media/templates/education-breakdown-bd90d09d0502-3.webp",
+      "/media/templates/education-breakdown-bd90d09d0502-4.webp",
+      "/media/templates/education-breakdown-bd90d09d0502-5.webp"
     ],
-    "previewVersion": "96be79e7b528"
+    "previewVersion": "bd90d09d0502"
   },
   {
     "slug": "launch-changelog",
@@ -228,15 +228,15 @@
     "templateId": "ink",
     "slideCount": 5,
     "hasImages": false,
-    "thumbnail": "/media/templates/launch-changelog-ce00d12bb5ce-1.png",
+    "thumbnail": "/media/templates/launch-changelog-313cdf88061f-1.webp",
     "previews": [
-      "/media/templates/launch-changelog-ce00d12bb5ce-1.png",
-      "/media/templates/launch-changelog-ce00d12bb5ce-2.png",
-      "/media/templates/launch-changelog-ce00d12bb5ce-3.png",
-      "/media/templates/launch-changelog-ce00d12bb5ce-4.png",
-      "/media/templates/launch-changelog-ce00d12bb5ce-5.png"
+      "/media/templates/launch-changelog-313cdf88061f-1.webp",
+      "/media/templates/launch-changelog-313cdf88061f-2.webp",
+      "/media/templates/launch-changelog-313cdf88061f-3.webp",
+      "/media/templates/launch-changelog-313cdf88061f-4.webp",
+      "/media/templates/launch-changelog-313cdf88061f-5.webp"
     ],
-    "previewVersion": "ce00d12bb5ce"
+    "previewVersion": "313cdf88061f"
   },
   {
     "slug": "story-lessons",
@@ -247,13 +247,51 @@
     "templateId": "blush",
     "slideCount": 4,
     "hasImages": false,
-    "thumbnail": "/media/templates/story-lessons-3d589088024d-1.png",
+    "thumbnail": "/media/templates/story-lessons-b1f1f74012d1-1.webp",
     "previews": [
-      "/media/templates/story-lessons-3d589088024d-1.png",
-      "/media/templates/story-lessons-3d589088024d-2.png",
-      "/media/templates/story-lessons-3d589088024d-3.png",
-      "/media/templates/story-lessons-3d589088024d-4.png"
+      "/media/templates/story-lessons-b1f1f74012d1-1.webp",
+      "/media/templates/story-lessons-b1f1f74012d1-2.webp",
+      "/media/templates/story-lessons-b1f1f74012d1-3.webp",
+      "/media/templates/story-lessons-b1f1f74012d1-4.webp"
     ],
-    "previewVersion": "3d589088024d"
+    "previewVersion": "b1f1f74012d1"
+  },
+  {
+    "slug": "prism-launch",
+    "name": "Prism Launch",
+    "description": "A saturated vector set for announcing something you are proud of.",
+    "category": "Vector",
+    "platform": "linkedin",
+    "templateId": "prism",
+    "slideCount": 5,
+    "hasImages": false,
+    "thumbnail": "/media/templates/prism-launch-f1af3770a57b-1.webp",
+    "previews": [
+      "/media/templates/prism-launch-f1af3770a57b-1.webp",
+      "/media/templates/prism-launch-f1af3770a57b-2.webp",
+      "/media/templates/prism-launch-f1af3770a57b-3.webp",
+      "/media/templates/prism-launch-f1af3770a57b-4.webp",
+      "/media/templates/prism-launch-f1af3770a57b-5.webp"
+    ],
+    "previewVersion": "f1af3770a57b"
+  },
+  {
+    "slug": "pulse-briefing",
+    "name": "Pulse Briefing",
+    "description": "A bold geometric deck for a room, not a feed.",
+    "category": "Vector",
+    "platform": "presentation",
+    "templateId": "pulse",
+    "slideCount": 5,
+    "hasImages": false,
+    "thumbnail": "/media/templates/pulse-briefing-89f19c410df8-1.webp",
+    "previews": [
+      "/media/templates/pulse-briefing-89f19c410df8-1.webp",
+      "/media/templates/pulse-briefing-89f19c410df8-2.webp",
+      "/media/templates/pulse-briefing-89f19c410df8-3.webp",
+      "/media/templates/pulse-briefing-89f19c410df8-4.webp",
+      "/media/templates/pulse-briefing-89f19c410df8-5.webp"
+    ],
+    "previewVersion": "89f19c410df8"
   }
 ]

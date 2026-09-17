@@ -12,18 +12,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "paper",
-        "fontPairId": "source-serif-inter",
+        "fontPairId": "serif-sans",
         "textScale": 1,
         "spacing": "comfortable",
         "alignment": "left",
         "background": {
           "kind": "solid",
           "value": "#F5F1E8",
+          "texture": "paper-grain",
           "opacity": 1
         },
         "arrow": "line",
         "radius": 32,
-        "counterStyle": "fraction"
+        "counterStyle": "fraction",
+        "bulletIcon": "point-filled"
       },
       "brandSnapshot": null,
       "slides": [
@@ -40,7 +42,7 @@
           "assetSlots": [
             {
               "slotId": "curated-1",
-              "assetId": "local-curated-clear-idea-01",
+              "assetId": "local-curated-paper-lotus-sphere",
               "fit": "cover",
               "crop": {
                 "x": 0,
@@ -49,7 +51,7 @@
                 "height": 1
               },
               "opacity": 1,
-              "alt": "Clear Idea — original editorial illustration"
+              "alt": "A glass sphere resting inside folded cream paper petals"
             }
           ],
           "counterVisible": false,
@@ -59,8 +61,8 @@
           "id": "local-clear-02",
           "revision": 1,
           "role": "content",
-          "mode": "text_image",
-          "layoutId": "content-split",
+          "mode": "text",
+          "layoutId": "statement",
           "eyebrow": "01",
           "title": "Start with the conclusion",
           "bodyBlocks": [
@@ -71,21 +73,7 @@
             }
           ],
           "cta": null,
-          "assetSlots": [
-            {
-              "slotId": "curated-2",
-              "assetId": "local-curated-clear-idea-02",
-              "fit": "cover",
-              "crop": {
-                "x": 0,
-                "y": 0,
-                "width": 1,
-                "height": 1
-              },
-              "opacity": 1,
-              "alt": "Clear Idea — original editorial illustration"
-            }
-          ],
+          "assetSlots": [],
           "counterVisible": true,
           "overrides": {}
         },
@@ -127,13 +115,7 @@
       "caption": "A simple structure for explaining one useful idea.",
       "assetRefs": [
         {
-          "id": "local-curated-clear-idea-01",
-          "kind": "library",
-          "mimeType": "image/webp",
-          "rightsStatus": "verified"
-        },
-        {
-          "id": "local-curated-clear-idea-02",
+          "id": "local-curated-paper-lotus-sphere",
           "kind": "library",
           "mimeType": "image/webp",
           "rightsStatus": "verified"
@@ -154,18 +136,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "signal",
-        "fontPairId": "inter",
+        "fontPairId": "sans-serif",
         "textScale": 1,
         "spacing": "comfortable",
         "alignment": "left",
         "background": {
           "kind": "solid",
           "value": "#151515",
+          "texture": "grid-lines",
           "opacity": 1
         },
         "arrow": "filled",
         "radius": 20,
-        "counterStyle": "number"
+        "counterStyle": "number",
+        "bulletIcon": "chevron-right"
       },
       "brandSnapshot": null,
       "slides": [
@@ -182,7 +166,7 @@
           "assetSlots": [
             {
               "slotId": "curated-1",
-              "assetId": "local-curated-bold-launch-01",
+              "assetId": "local-curated-paper-arrow-steps",
               "fit": "cover",
               "crop": {
                 "x": 0,
@@ -191,7 +175,7 @@
                 "height": 1
               },
               "opacity": 1,
-              "alt": "Bold Launch — original editorial illustration"
+              "alt": "A folded yellow paper arrow climbing across paper blocks"
             }
           ],
           "counterVisible": false,
@@ -201,8 +185,8 @@
           "id": "local-launch-02",
           "revision": 1,
           "role": "content",
-          "mode": "text_image",
-          "layoutId": "content-split",
+          "mode": "text",
+          "layoutId": "statement",
           "eyebrow": "THE PROBLEM",
           "title": "Name the friction in one sentence.",
           "bodyBlocks": [
@@ -213,21 +197,7 @@
             }
           ],
           "cta": null,
-          "assetSlots": [
-            {
-              "slotId": "curated-2",
-              "assetId": "local-curated-bold-launch-02",
-              "fit": "cover",
-              "crop": {
-                "x": 0,
-                "y": 0,
-                "width": 1,
-                "height": 1
-              },
-              "opacity": 1,
-              "alt": "Bold Launch — original editorial illustration"
-            }
-          ],
+          "assetSlots": [],
           "counterVisible": true,
           "overrides": {}
         },
@@ -269,13 +239,7 @@
       "caption": "A direct four-page launch narrative.",
       "assetRefs": [
         {
-          "id": "local-curated-bold-launch-01",
-          "kind": "library",
-          "mimeType": "image/webp",
-          "rightsStatus": "verified"
-        },
-        {
-          "id": "local-curated-bold-launch-02",
+          "id": "local-curated-paper-arrow-steps",
           "kind": "library",
           "mimeType": "image/webp",
           "rightsStatus": "verified"
@@ -296,18 +260,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "sky",
-        "fontPairId": "inter",
+        "fontPairId": "serif-sans",
         "textScale": 1,
         "spacing": "comfortable",
         "alignment": "center",
         "background": {
           "kind": "solid",
           "value": "#DCEEFF",
+          "texture": "concentric-rings",
           "opacity": 1
         },
         "arrow": "line",
         "radius": 28,
-        "counterStyle": "fraction"
+        "counterStyle": "fraction",
+        "bulletIcon": "circle-check"
       },
       "brandSnapshot": null,
       "slides": [
@@ -324,7 +290,7 @@
           "assetSlots": [
             {
               "slotId": "curated-1",
-              "assetId": "local-curated-vertical-story-01",
+              "assetId": "local-curated-paper-crane-cards",
               "fit": "cover",
               "crop": {
                 "x": 0,
@@ -333,7 +299,7 @@
                 "height": 1
               },
               "opacity": 1,
-              "alt": "Vertical Story — original editorial illustration"
+              "alt": "A blue origami crane beside a stack of cream cards"
             }
           ],
           "counterVisible": false,
@@ -343,8 +309,8 @@
           "id": "local-story-02",
           "revision": 1,
           "role": "content",
-          "mode": "text_image",
-          "layoutId": "content-split",
+          "mode": "text",
+          "layoutId": "statement",
           "eyebrow": "BEFORE",
           "title": "The obvious approach kept failing.",
           "bodyBlocks": [
@@ -355,21 +321,7 @@
             }
           ],
           "cta": null,
-          "assetSlots": [
-            {
-              "slotId": "curated-2",
-              "assetId": "local-curated-vertical-story-02",
-              "fit": "cover",
-              "crop": {
-                "x": 0,
-                "y": 0,
-                "width": 1,
-                "height": 1
-              },
-              "opacity": 1,
-              "alt": "Vertical Story — original editorial illustration"
-            }
-          ],
+          "assetSlots": [],
           "counterVisible": true,
           "overrides": {}
         },
@@ -411,13 +363,7 @@
       "caption": "A mobile-first story with one practical takeaway.",
       "assetRefs": [
         {
-          "id": "local-curated-vertical-story-01",
-          "kind": "library",
-          "mimeType": "image/webp",
-          "rightsStatus": "verified"
-        },
-        {
-          "id": "local-curated-vertical-story-02",
+          "id": "local-curated-paper-crane-cards",
           "kind": "library",
           "mimeType": "image/webp",
           "rightsStatus": "verified"
@@ -438,18 +384,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "ink",
-        "fontPairId": "source-serif-inter",
+        "fontPairId": "serif-sans",
         "textScale": 1,
         "spacing": "comfortable",
         "alignment": "left",
         "background": {
           "kind": "solid",
           "value": "#1F1F1D",
+          "texture": "diagonal-stripes",
           "opacity": 1
         },
         "arrow": "line",
         "radius": 32,
-        "counterStyle": "fraction"
+        "counterStyle": "fraction",
+        "bulletIcon": "arrow-narrow-right"
       },
       "brandSnapshot": null,
       "slides": [
@@ -457,27 +405,13 @@
           "id": "local-modernbr-01",
           "revision": 1,
           "role": "intro",
-          "mode": "text_image",
-          "layoutId": "intro-split",
+          "mode": "text",
+          "layoutId": "intro-centered",
           "eyebrow": "BRIEF",
           "title": "The brief that gets read",
           "bodyBlocks": [],
           "cta": null,
-          "assetSlots": [
-            {
-              "slotId": "curated-1",
-              "assetId": "local-curated-modern-brief-01",
-              "fit": "cover",
-              "crop": {
-                "x": 0,
-                "y": 0,
-                "width": 1,
-                "height": 1
-              },
-              "opacity": 1,
-              "alt": "Modern Brief — original editorial illustration"
-            }
-          ],
+          "assetSlots": [],
           "counterVisible": false,
           "overrides": {}
         },
@@ -485,8 +419,8 @@
           "id": "local-modernbr-02",
           "revision": 1,
           "role": "content",
-          "mode": "text_image",
-          "layoutId": "content-split",
+          "mode": "text",
+          "layoutId": "statement",
           "eyebrow": "01",
           "title": "Lead with the claim",
           "bodyBlocks": [
@@ -497,21 +431,7 @@
             }
           ],
           "cta": null,
-          "assetSlots": [
-            {
-              "slotId": "curated-2",
-              "assetId": "local-curated-modern-brief-02",
-              "fit": "cover",
-              "crop": {
-                "x": 0,
-                "y": 0,
-                "width": 1,
-                "height": 1
-              },
-              "opacity": 1,
-              "alt": "Modern Brief — original editorial illustration"
-            }
-          ],
+          "assetSlots": [],
           "counterVisible": true,
           "overrides": {}
         },
@@ -571,20 +491,7 @@
         }
       ],
       "caption": "Four beats: claim, evidence, objection, next step.",
-      "assetRefs": [
-        {
-          "id": "local-curated-modern-brief-01",
-          "kind": "library",
-          "mimeType": "image/webp",
-          "rightsStatus": "verified"
-        },
-        {
-          "id": "local-curated-modern-brief-02",
-          "kind": "library",
-          "mimeType": "image/webp",
-          "rightsStatus": "verified"
-        }
-      ]
+      "assetRefs": []
     }
   },
   {
@@ -600,18 +507,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "signal",
-        "fontPairId": "source-serif-inter",
+        "fontPairId": "mono-sans",
         "textScale": 1.04,
         "spacing": "spacious",
         "alignment": "left",
         "background": {
           "kind": "solid",
           "value": "#526CB8",
+          "texture": "halftone",
           "opacity": 1
         },
         "arrow": "filled",
         "radius": 24,
-        "counterStyle": "number"
+        "counterStyle": "number",
+        "bulletIcon": "chevron-right"
       },
       "brandSnapshot": null,
       "slides": [
@@ -721,18 +630,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "paper",
-        "fontPairId": "source-serif-inter",
+        "fontPairId": "sans-serif",
         "textScale": 1,
         "spacing": "comfortable",
         "alignment": "left",
         "background": {
           "kind": "solid",
           "value": "#F5F1E8",
+          "texture": "dot-grid",
           "opacity": 1
         },
         "arrow": "line",
         "radius": 32,
-        "counterStyle": "fraction"
+        "counterStyle": "fraction",
+        "bulletIcon": "point-filled"
       },
       "brandSnapshot": null,
       "slides": [
@@ -740,27 +651,13 @@
           "id": "local-minimaln-01",
           "revision": 1,
           "role": "intro",
-          "mode": "text_image",
-          "layoutId": "intro-split",
+          "mode": "text",
+          "layoutId": "intro-centered",
           "eyebrow": "NOTE",
           "title": "Say less, land more",
           "bodyBlocks": [],
           "cta": null,
-          "assetSlots": [
-            {
-              "slotId": "curated-1",
-              "assetId": "local-curated-minimal-note-01",
-              "fit": "cover",
-              "crop": {
-                "x": 0,
-                "y": 0,
-                "width": 1,
-                "height": 1
-              },
-              "opacity": 1,
-              "alt": "Minimal Note — original editorial illustration"
-            }
-          ],
+          "assetSlots": [],
           "counterVisible": false,
           "overrides": {}
         },
@@ -768,8 +665,8 @@
           "id": "local-minimaln-02",
           "revision": 1,
           "role": "content",
-          "mode": "text_image",
-          "layoutId": "content-split",
+          "mode": "text",
+          "layoutId": "statement",
           "eyebrow": "01",
           "title": "Cut the setup",
           "bodyBlocks": [
@@ -780,21 +677,7 @@
             }
           ],
           "cta": null,
-          "assetSlots": [
-            {
-              "slotId": "curated-2",
-              "assetId": "local-curated-minimal-note-02",
-              "fit": "cover",
-              "crop": {
-                "x": 0,
-                "y": 0,
-                "width": 1,
-                "height": 1
-              },
-              "opacity": 1,
-              "alt": "Minimal Note — original editorial illustration"
-            }
-          ],
+          "assetSlots": [],
           "counterVisible": true,
           "overrides": {}
         },
@@ -834,20 +717,7 @@
         }
       ],
       "caption": "A 1:1 set for a single idea and plenty of quiet space.",
-      "assetRefs": [
-        {
-          "id": "local-curated-minimal-note-01",
-          "kind": "library",
-          "mimeType": "image/webp",
-          "rightsStatus": "verified"
-        },
-        {
-          "id": "local-curated-minimal-note-02",
-          "kind": "library",
-          "mimeType": "image/webp",
-          "rightsStatus": "verified"
-        }
-      ]
+      "assetRefs": []
     }
   },
   {
@@ -863,18 +733,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "ink",
-        "fontPairId": "source-serif-inter",
+        "fontPairId": "serif-sans",
         "textScale": 1,
         "spacing": "comfortable",
         "alignment": "left",
         "background": {
           "kind": "solid",
           "value": "#1F1F1D",
+          "texture": "cross-hatch",
           "opacity": 1
         },
         "arrow": "line",
         "radius": 32,
-        "counterStyle": "fraction"
+        "counterStyle": "fraction",
+        "bulletIcon": "arrow-narrow-right"
       },
       "brandSnapshot": null,
       "slides": [
@@ -964,18 +836,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "butter",
-        "fontPairId": "source-serif-inter",
+        "fontPairId": "serif-sans",
         "textScale": 1,
         "spacing": "comfortable",
         "alignment": "left",
         "background": {
           "kind": "solid",
           "value": "#E7CF62",
+          "texture": "scales",
           "opacity": 1
         },
         "arrow": "filled",
         "radius": 28,
-        "counterStyle": "number"
+        "counterStyle": "number",
+        "bulletIcon": "bulb-filled"
       },
       "brandSnapshot": null,
       "slides": [
@@ -1065,18 +939,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "ink",
-        "fontPairId": "source-serif-inter",
+        "fontPairId": "sans-serif",
         "textScale": 1,
         "spacing": "comfortable",
         "alignment": "left",
         "background": {
           "kind": "solid",
           "value": "#1F1F1D",
+          "texture": "lattice",
           "opacity": 1
         },
         "arrow": "line",
         "radius": 32,
-        "counterStyle": "fraction"
+        "counterStyle": "fraction",
+        "bulletIcon": "arrow-narrow-right"
       },
       "brandSnapshot": null,
       "slides": [
@@ -1166,18 +1042,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "blush",
-        "fontPairId": "source-serif-inter",
+        "fontPairId": "serif-sans",
         "textScale": 1,
         "spacing": "comfortable",
         "alignment": "center",
         "background": {
           "kind": "solid",
           "value": "#E8C8D8",
+          "texture": "confetti",
           "opacity": 1
         },
         "arrow": "line",
         "radius": 40,
-        "counterStyle": "fraction"
+        "counterStyle": "fraction",
+        "bulletIcon": "sparkles"
       },
       "brandSnapshot": null,
       "slides": [
@@ -1293,18 +1171,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "butter",
-        "fontPairId": "source-serif-inter",
+        "fontPairId": "sans-serif",
         "textScale": 1,
         "spacing": "comfortable",
         "alignment": "left",
         "background": {
           "kind": "solid",
           "value": "#E7CF62",
+          "texture": "lattice",
           "opacity": 1
         },
         "arrow": "filled",
         "radius": 28,
-        "counterStyle": "number"
+        "counterStyle": "number",
+        "bulletIcon": "bulb-filled"
       },
       "brandSnapshot": null,
       "slides": [
@@ -1394,18 +1274,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "sky",
-        "fontPairId": "source-serif-inter",
+        "fontPairId": "mono-sans",
         "textScale": 1,
         "spacing": "spacious",
         "alignment": "center",
         "background": {
           "kind": "solid",
           "value": "#BFD5EB",
+          "texture": "dot-grid",
           "opacity": 1
         },
         "arrow": "line",
         "radius": 36,
-        "counterStyle": "fraction"
+        "counterStyle": "fraction",
+        "bulletIcon": "circle-check"
       },
       "brandSnapshot": null,
       "slides": [
@@ -1413,27 +1295,13 @@
           "id": "local-educatio-01",
           "revision": 1,
           "role": "intro",
-          "mode": "text_image",
-          "layoutId": "intro-split",
+          "mode": "text",
+          "layoutId": "intro-centered",
           "eyebrow": "BREAKDOWN",
           "title": "How compounding actually works",
           "bodyBlocks": [],
           "cta": null,
-          "assetSlots": [
-            {
-              "slotId": "curated-1",
-              "assetId": "local-curated-education-breakdown-01",
-              "fit": "cover",
-              "crop": {
-                "x": 0,
-                "y": 0,
-                "width": 1,
-                "height": 1
-              },
-              "opacity": 1,
-              "alt": "Education Breakdown — original editorial illustration"
-            }
-          ],
+          "assetSlots": [],
           "counterVisible": false,
           "overrides": {}
         },
@@ -1441,8 +1309,8 @@
           "id": "local-educatio-02",
           "revision": 1,
           "role": "content",
-          "mode": "text_image",
-          "layoutId": "content-split",
+          "mode": "text",
+          "layoutId": "statement",
           "eyebrow": "01",
           "title": "It is a rate, not an amount",
           "bodyBlocks": [
@@ -1453,21 +1321,7 @@
             }
           ],
           "cta": null,
-          "assetSlots": [
-            {
-              "slotId": "curated-2",
-              "assetId": "local-curated-education-breakdown-02",
-              "fit": "cover",
-              "crop": {
-                "x": 0,
-                "y": 0,
-                "width": 1,
-                "height": 1
-              },
-              "opacity": 1,
-              "alt": "Education Breakdown — original editorial illustration"
-            }
-          ],
+          "assetSlots": [],
           "counterVisible": true,
           "overrides": {}
         },
@@ -1527,20 +1381,7 @@
         }
       ],
       "caption": "A 16:9 walkthrough: definition, mechanism, mistake, practice.",
-      "assetRefs": [
-        {
-          "id": "local-curated-education-breakdown-01",
-          "kind": "library",
-          "mimeType": "image/webp",
-          "rightsStatus": "verified"
-        },
-        {
-          "id": "local-curated-education-breakdown-02",
-          "kind": "library",
-          "mimeType": "image/webp",
-          "rightsStatus": "verified"
-        }
-      ]
+      "assetRefs": []
     }
   },
   {
@@ -1556,18 +1397,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "ink",
-        "fontPairId": "source-serif-inter",
+        "fontPairId": "mono-sans",
         "textScale": 1,
         "spacing": "comfortable",
         "alignment": "left",
         "background": {
           "kind": "solid",
           "value": "#1F1F1D",
+          "texture": "grid-lines",
           "opacity": 1
         },
         "arrow": "line",
         "radius": 32,
-        "counterStyle": "fraction"
+        "counterStyle": "fraction",
+        "bulletIcon": "arrow-narrow-right"
       },
       "brandSnapshot": null,
       "slides": [
@@ -1677,18 +1520,20 @@
       "templateVersion": 1,
       "theme": {
         "paletteId": "blush",
-        "fontPairId": "source-serif-inter",
+        "fontPairId": "serif-sans",
         "textScale": 1,
         "spacing": "comfortable",
         "alignment": "center",
         "background": {
           "kind": "solid",
           "value": "#E8C8D8",
+          "texture": "paper-grain",
           "opacity": 1
         },
         "arrow": "line",
         "radius": 40,
-        "counterStyle": "fraction"
+        "counterStyle": "fraction",
+        "bulletIcon": "sparkles"
       },
       "brandSnapshot": null,
       "slides": [
@@ -1762,6 +1607,260 @@
         }
       ],
       "caption": "One experience, three lessons someone else can use.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "prism-launch",
+    "name": "Prism Launch",
+    "category": "Vector",
+    "description": "A saturated vector set for announcing something you are proud of.",
+    "document": {
+      "schemaVersion": 1,
+      "title": "We shipped the thing we kept promising",
+      "platform": "linkedin",
+      "templateId": "prism",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "prism",
+        "fontPairId": "sans-serif",
+        "textScale": 1.02,
+        "spacing": "spacious",
+        "alignment": "left",
+        "background": {
+          "kind": "solid",
+          "value": "#1B1338",
+          "texture": "halftone",
+          "motif": "ring",
+          "opacity": 1
+        },
+        "arrow": "filled",
+        "radius": 28,
+        "counterStyle": "number",
+        "bulletIcon": "chevron-right"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-prism-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-centered",
+          "eyebrow": "LAUNCH",
+          "title": "We shipped the thing we kept promising",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-prism-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "01",
+          "title": "The problem, in one line",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Teams write five posts a week and design none of them.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-prism-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "numbered-point",
+          "eyebrow": "02",
+          "title": "What is different now",
+          "bodyBlocks": [
+            {
+              "kind": "bullets",
+              "items": [
+                "Drafts arrive already on-brand",
+                "Every slide exports at full resolution",
+                "One deck, five platform sizes"
+              ]
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-prism-04",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "content-editorial",
+          "eyebrow": "03",
+          "title": "What it is not",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Not a template pack. The layout reacts to how much you actually wrote.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-prism-05",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-cta",
+          "eyebrow": null,
+          "title": "Try it on your next post",
+          "bodyBlocks": [],
+          "cta": "Start a free deck",
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "Launch note in five beats: promise, problem, change, boundary, ask.",
+      "assetRefs": []
+    }
+  },
+  {
+    "slug": "pulse-briefing",
+    "name": "Pulse Briefing",
+    "category": "Vector",
+    "description": "A bold geometric deck for a room, not a feed.",
+    "document": {
+      "schemaVersion": 1,
+      "title": "This quarter in four numbers",
+      "platform": "presentation",
+      "templateId": "pulse",
+      "templateVersion": 1,
+      "theme": {
+        "paletteId": "pulse",
+        "fontPairId": "mono-sans",
+        "textScale": 1,
+        "spacing": "comfortable",
+        "alignment": "left",
+        "background": {
+          "kind": "solid",
+          "value": "#F4F3EF",
+          "texture": "dot-grid",
+          "motif": "bauhaus",
+          "opacity": 1
+        },
+        "arrow": "filled",
+        "radius": 20,
+        "counterStyle": "fraction",
+        "bulletIcon": "arrow-bar-right"
+      },
+      "brandSnapshot": null,
+      "slides": [
+        {
+          "id": "local-pulse-01",
+          "revision": 1,
+          "role": "intro",
+          "mode": "text",
+          "layoutId": "intro-editorial",
+          "eyebrow": "Q3 REVIEW",
+          "title": "This quarter in four numbers",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        },
+        {
+          "id": "local-pulse-02",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "statement",
+          "eyebrow": "01",
+          "title": "Growth came from one channel",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "Sixty-two percent of new accounts arrived through shared decks.",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-pulse-03",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "numbered-point",
+          "eyebrow": "02",
+          "title": "Where the time went",
+          "bodyBlocks": [
+            {
+              "kind": "bullets",
+              "items": [
+                "Export pipeline rewrite",
+                "Two new platform sizes",
+                "Brand kits out of beta"
+              ]
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-pulse-04",
+          "revision": 1,
+          "role": "content",
+          "mode": "text",
+          "layoutId": "quote",
+          "eyebrow": "03",
+          "title": "What a customer said",
+          "bodyBlocks": [
+            {
+              "kind": "paragraph",
+              "text": "“We stopped opening the design tool entirely.” — Head of Content, fintech",
+              "emphasisRanges": []
+            }
+          ],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": true,
+          "overrides": {}
+        },
+        {
+          "id": "local-pulse-05",
+          "revision": 1,
+          "role": "outro",
+          "mode": "text",
+          "layoutId": "outro-centered",
+          "eyebrow": null,
+          "title": "Next quarter: fewer, larger bets",
+          "bodyBlocks": [],
+          "cta": null,
+          "assetSlots": [],
+          "counterVisible": false,
+          "overrides": {}
+        }
+      ],
+      "caption": "A quarterly readout that fits on a projector.",
       "assetRefs": []
     }
   }

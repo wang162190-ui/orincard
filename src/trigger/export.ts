@@ -13,6 +13,7 @@ import {
 } from "../server/export-package";
 import type { JobDispatchPayload } from "../server/jobs";
 import type { TriggerDispatcher } from "../server/jobs";
+import { isBuiltinAssetId, loadBuiltinAsset } from "../server/assets/builtin";
 import { createAdminSupabaseClient } from "../server/supabase";
 import { BASIC_EXPORT_TASK_ID } from "./dispatch";
 
@@ -72,7 +73,8 @@ async function failJob(client: SupabaseClient, jobId: string, exportId: string, 
     .eq("state", "pending");
 }
 
-async function loadRenderAssets(
+/** Exported for tests/unit/export-builtin-assets.test.ts; the task itself is the only caller. */
+export async function loadRenderAssets(
   client: SupabaseClient,
   ownerId: string,
   document: { readonly assetRefs: readonly { readonly id: string; readonly kind: string; readonly rightsStatus: string }[] },
@@ -81,7 +83,19 @@ async function loadRenderAssets(
   if (document.assetRefs.some((asset) => asset.rightsStatus === "restricted")) {
     throw new Error("ASSET_NOT_EXPORTABLE");
   }
-  const ids = document.assetRefs.map((asset) => asset.id);
+  const output: Record<string, SlideRenderAsset> = {};
+
+  // Artwork that ships with the product is read from disk, not from the assets table. Its ids are
+  // slugs, and assets.id is a uuid column, so sending them to Postgres raises
+  // `invalid input syntax for type uuid` rather than returning no rows — which is why every
+  // template carrying a built-in picture used to fail the whole export.
+  for (const ref of document.assetRefs.filter((asset) => isBuiltinAssetId(asset.id))) {
+    output[ref.id] = await loadBuiltinAsset(ref.id);
+  }
+
+  const ids = document.assetRefs.filter((asset) => !isBuiltinAssetId(asset.id)).map((asset) => asset.id);
+  if (ids.length === 0) return output;
+
   const { data, error } = await client
     .from("assets")
     .select("id,kind,bucket,object_key,mime,width,height,state,accepted_at")
@@ -90,7 +104,6 @@ async function loadRenderAssets(
   if (error || !data || data.length !== ids.length) {
     throw new Error("ASSET_NOT_EXPORTABLE");
   }
-  const output: Record<string, SlideRenderAsset> = {};
   for (const row of data) {
     const declared = document.assetRefs.find((asset) => asset.id === row.id);
     if (

@@ -109,13 +109,16 @@ async function deckHtml(
   width: number,
   height: number,
 ): Promise<string> {
-  const [slideCss, inter, serif, noto, notoBold] = await Promise.all([
+  const [slideCss, inter, serif, mono, noto, notoBold] = await Promise.all([
     // Bundlers rewrite import.meta.url to the entry module, which in the deployed
     // Trigger worker resolved to src/trigger/. Anchor on the working directory so the
     // same path holds for the Next.js server and the worker container.
     readFile(join(process.cwd(), "src/render/slide.css"), "utf8"),
     loadExportFont("inter-latin-variable", require.resolve("@fontsource-variable/inter/package.json")),
     loadExportFont("source-serif-4-latin-variable", require.resolve("@fontsource-variable/source-serif-4/package.json")),
+    // 只有 mono-sans 配对用得上，但它的拉丁子集是 40KB——按主题条件加载省下的字节，
+    // 还不够抵消「导出件里缺字体」这一类问题的调试成本。
+    loadExportFont("jetbrains-mono-latin-variable", require.resolve("@fontsource-variable/jetbrains-mono/package.json")),
     loadExportFont("noto-sans-sc-simplified-400", require.resolve("@fontsource/noto-sans-sc/package.json")),
     // 中文标题是粗的。只嵌 400 的话浏览器会合成伪粗体，笔画糊成一团，
     // 而且和 PPTX 里真正的 Noto Sans SC Bold 对不上。
@@ -124,11 +127,15 @@ async function deckHtml(
   const fontCss = [
     ["Inter Variable", inter],
     ["Source Serif 4 Variable", serif],
+    ["JetBrains Mono Variable", mono],
     ["Noto Sans SC", noto],
     ["Noto Sans SC", notoBold],
   ].map(([family, font]) => {
     const loaded = font as Awaited<ReturnType<typeof loadExportFont>>;
-    return `@font-face{font-family:${family};font-style:${loaded.entry.style};font-weight:${loaded.entry.weight};font-display:block;src:url(data:font/woff2;base64,${loaded.bytes.toString("base64")}) format("woff2")}`;
+    // 家族名必须加引号：不加引号时它是一串 CSS 标识符，而标识符不能以数字开头——
+    // "Source Serif 4 Variable" 里的 `4` 让整条 @font-face 被丢弃，导出件里所有衬线
+    // 标题都静默回退成 Inter（编辑器没这个问题，它走 fontsource 自己的 CSS）。
+    return `@font-face{font-family:"${family}";font-style:${loaded.entry.style};font-weight:${loaded.entry.weight};font-display:block;src:url(data:font/woff2;base64,${loaded.bytes.toString("base64")}) format("woff2")}`;
   }).join("\n");
   const slides = await Promise.all(document.slides.map(async (slide, index) => {
     const { prelude } = await prerender(
