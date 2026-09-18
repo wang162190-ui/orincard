@@ -700,14 +700,14 @@
   - Batch: B15
   - Depends: T083
   - Check: `pnpm exec vitest run tests/unit/waitlist-route.test.ts`
-  - Status: ⏳ 2026-09-17 代码与单测通过；`waitlist_signups` 尚未推到开发库，推之前 POST /waitlist 返回 503 WAITLIST_UNAVAILABLE。
+  - Status: ✅ 2026-09-18 迁移已推到开发库 `ettuzeunkadkfnawawdy`；同一地址连续 POST 两次都返回 201，service role 查表只有一行；anon key 读回 0 行、写入被 RLS 拒（`new row violates row-level security policy`）。
   - Expect: 邮箱真的写进 `public.waitlist_signups`（RLS 开、无策略，只有 service role 能写），重复提交按小写去重、不报错也不产生第二条；跨源提交在碰库之前就被拒；写库失败返回 503 而不是谎报成功。
 
 - [x] T104 `src/server/billing/plan-benefits.ts`, `src/app/[locale]/pricing/page.tsx`, `tests/unit/plan-benefits.test.ts`, `tests/e2e/waitlist.spec.ts` — 定价页权益展示与等候名单集成冒烟 → AC-009, AC-011
   - Batch: B15
   - Depends: T103
   - Check: `pnpm exec playwright test tests/e2e/waitlist.spec.ts`
-  - Status: ⏳ 2026-09-17 页面与单测通过；端到端提交的最终状态要等迁移落库后才能断言成「已登记」。
+  - Status: ✅ 2026-09-18 `waitlist.spec.ts` 3 条 + `billing.spec.ts` 2 条 + `marketing.spec.ts` 2 条全绿；用例提交的两个地址（pricing/billing 各一）事后在库里都查得到。
   - Expect: 定价页的额度数字全部来自运行时 `BILLING_POLICY_JSON`，付费档在策略仍为 `testOnly` 时只给定性描述、不给数字；价格一律留空，不得自行编造；表单确实把邮箱 POST 到 `/api/v1/waitlist`，而不是只在前端显示一句提示。
 
 ## AC覆盖索引
