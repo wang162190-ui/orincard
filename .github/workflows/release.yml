@@ -22,6 +22,18 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # guard 3（tests/cloud/release-guards.test.ts）读的是进程环境里这六个变量。不映射进来，
+    # 它在 CI 里就是恒红的——那不是「发布被拦住」，是闸门自己坏了，而这两种红分不出来就等于没有闸门。
+    # 放仓库级而不是 environment 级：environment 可以挂人工审批，挂上去会变成「先审批再跑测试」，
+    # 把「测试通过才提升」的顺序整个倒过来。这六个是测试模式的配置，仓库级的暴露面可以接受。
+    # STRIPE_LIVE_SECRET_KEY 故意不映射：guard 3 要求它在验收期间必须为空。
+    env:
+      STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+      STRIPE_TEST_MONTHLY_PRICES_JSON: ${{ secrets.STRIPE_TEST_MONTHLY_PRICES_JSON }}
+      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+      STRIPE_TEST_ACCEPTANCE_PLAN_KEY: ${{ vars.STRIPE_TEST_ACCEPTANCE_PLAN_KEY }}
+      NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
+      RUN_STRIPE_SANDBOX_LIFECYCLE: ${{ vars.RUN_STRIPE_SANDBOX_LIFECYCLE }}
     steps:
       - uses: actions/checkout@v4
         with:

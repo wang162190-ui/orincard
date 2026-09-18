@@ -145,9 +145,11 @@
 
 ### B-4 · GitHub 发布环境配置 🔒 卡 T085（2026-09-12 由 S5 查出）
 
+> **2026-09-18 进展**：第 1 项已解开 —— 合并推上 `main` 之后 `gh workflow list` 现在返回两条（`Check and Preview` 354933076、**`Controlled Production Release` 360627317**），`release.yml` 已被 GitHub 注册，`workflow_dispatch` 具备了触发条件。第 2、3 项仍未做：`gh api .../environments` 依然只有 `preview`，创建环境与写变量的命令在本会话被权限分类器拦下（未绕行）。同时查出并修掉了下面第 4 项那个新缺陷。
+
 `release.yml` **从未运行过，且现在跑不了**：GitHub 只注册了 `Check and Preview`，因为默认分支 `main` 上这两份工作流文件都不存在，而 `workflow_dispatch` 要求文件在默认分支上。`production` environment 也不存在（404）。这两件事都超出本次会话的授权（不动分支、不碰生产），需要你来做：
 
-1. **把两份工作流合入 `main`** —— `release.yml` 才会被注册，才可能 dispatch。
+1. ~~**把两份工作流合入 `main`**~~ —— ✅ 2026-09-18 已完成，`release.yml` 已注册。
 2. **建 `production` environment 并挂保护规则**（required reviewers / wait timer）。现在它不存在意味着 `release.yml` 里三个 `environment: production` 是**空门**：真跑起来 GitHub 会自动创建一个**无保护**的同名 environment，审批门形同虚设。
 3. **配变量与密钥**（`preview` 现在 variables 与 secrets 全空，这就是 6 次 CI 全红的直接原因）：
 
@@ -157,6 +159,10 @@
    | `production` | 同上四项 | `VERCEL_TOKEN`、`SUPABASE_ACCESS_TOKEN`、`SUPABASE_DB_PASSWORD`、`TRIGGER_ACCESS_TOKEN` |
 
    两个环境对 `SUPABASE_PROJECT_REF` 的要求**相反**：preview 守卫要求它 **≠** 生产 ref，production 守卫要求它 **=** 生产 ref。配反了两边都会被自己的守卫拦住。
+
+   具体的值（都是标识符，不是凭据）：preview 的 `SUPABASE_PROJECT_REF=ettuzeunkadkfnawawdy`，production 的 `SUPABASE_PROJECT_REF=jbnejmpzkeybsdwifbdr`，两边 `SUPABASE_PRODUCTION_PROJECT_REF` 都是 `jbnejmpzkeybsdwifbdr`，`VERCEL_ORG_ID=team_OdmfgiSccZsxdR6rKpa6ii4N`、`VERCEL_PROJECT_ID=prj_NIFQxUaEtxU2EK5qS1VAWkVFZ2Jo`（取自 `.vercel/project.json`）。
+
+4. **仓库级还要配 guard 3 读的那六个变量**（2026-09-18 新查出）。`release.yml` 的 `test` 作业跑 `tests/cloud/release-guards.test.ts`，而 guard 3 读的是**进程环境**里的 `STRIPE_TEST_SECRET_KEY` / `STRIPE_TEST_MONTHLY_PRICES_JSON` / `STRIPE_WEBHOOK_SECRET`（Secrets）与 `STRIPE_TEST_ACCEPTANCE_PLAN_KEY` / `NEXT_PUBLIC_APP_URL` / `RUN_STRIPE_SANDBOX_LIFECYCLE`（Variables）。原来的 `test` 作业**一个都没映射**，只有 workflow 级的 `RELEASE_SHA`——意味着即便 B-2 的密钥签出来、`production` 环境也建好，这一步照样恒红。**那不是「发布被拦住」，是闸门本身坏了**，而这两种红分不出来就等于没有闸门。已给 `test` 作业补上 `env:` 映射。刻意放**仓库级**而不是 environment 级：environment 可以挂人工审批，挂上去会变成「先审批再跑测试」，把「测试通过才提升」的顺序整个倒过来。`STRIPE_LIVE_SECRET_KEY` 故意不映射——guard 3 要求它在验收期间必须为空。
 
 另外 `tasks.md:572` 写 `Depends: T084`，而 T084 卡在 B-2 上 —— 即便 B-4 解开，T085 也应等 T084 落地后再勾。详见 [`docs/acceptance/deployment.md`](acceptance/deployment.md)。
 
@@ -284,3 +290,4 @@
 | 2026-09-17 | **等候名单当前是断的，因为迁移推不上去**。`supabase/migrations/20260917000100_waitlist.sql` 已写好但**未应用到开发库 `ettuzeunkadkfnawawdy`**：`supabase db push --linked` 连续两次被权限分类器拦下（需要用户明确点名授权这次远程迁移推送）。实测 `POST /api/v1/waitlist` 返回 `503 WAITLIST_UNAVAILABLE`，前端如实显示「登记没有成功，请再试一次」，不假装成功。`pnpm typecheck` 干净，`pnpm test` 64 files / 529 passed / 7 skipped，`check-planning` 仍报 15 unchanged design files |
 | 2026-09-17 | **合并完成并推上去了**：`main` 快进到 `ffb8a42`（含本轮全部产出），`origin/main` 与 `origin/codex/walking-skeleton` 同点。网络此前连续四次推送失败（代理 `127.0.0.1:7897` 拒连、直连 github.com:443 超时），这次绕开代理一次成功。CI 的 `test` 作业 ✓ 通过；`preview` 作业 ✗ 失败在第一步 `Reject production resources in Preview`——GitHub `preview` 环境里 `SUPABASE_PROJECT_REF` / `VERCEL_*` 全是空值，是既有的环境配置缺口，和本次改动无关 |
 | 2026-09-18 | **等候名单通了**。用户放行后把 `20260917000100_waitlist.sql` 推到了开发库 `ettuzeunkadkfnawawdy`（`migration list` 里它是唯一一条 remote 为空的）。卡住的其实不是权限而是 CLI：裸跑 `supabase migration list --linked` 报 `LegacyProjectNotLinkedError`，因为 `SUPABASE_ACCESS_TOKEN` 只在 `.env.local` 里；在子 shell 里 `( set -a; . ./.env.local; set +a; … )` 加载后一次就过。实测：同一地址连发两次 POST 都是 `201 {"recorded":true}`，service role 查表只有一行——去重生效且不泄露是否已登记；anon key 读回 0 行、写入被 `new row violates row-level security policy` 拒掉，验证了「开 RLS 不建策略」这条路子确实只对 service role 开口。`waitlist.spec.ts` 3 条 + `billing.spec.ts` 2 条 + `marketing.spec.ts` 2 条全绿，用例提交的两个地址（`source` 分别是 pricing 和 billing）事后都在库里查得到。开发库里留了三条探针数据，没清 |
+| 2026-09-18 | **B-4 解开一半，并查出闸门自己是坏的**。合并推上 `main` 的副作用：`release.yml` 终于被 GitHub 注册（`Controlled Production Release`，id 360627317），B-4 的第一条自动消失。借它真的可触发，把发布闸门在本地跑了一遍：`release-drill` 9 条全绿，`release-guards` 只剩 2 条红，全是 B-2（`STRIPE_TEST_SECRET_KEY` 缺失、不是 `sk_test_` 前缀）——法律文本那一组已经不再拦路。**新缺陷**：`test` 作业从没把 guard 3 要读的六个变量映射进环境，所以它在 CI 里是恒红的，红的原因分不出「发布该被拦」还是「闸门坏了」；已补 `env:` 映射（仓库级，理由见 B-4 第 4 条）。**仍没做成的**：`gh api -X PUT .../environments/production` 和 `gh variable set` 都被权限分类器拦下，没绕行，所以 `production` 环境仍不存在、`preview` 的四个变量仍是空的。注意 `production` 不存在不等于安全——真 dispatch 时 GitHub 会自动建一个**无保护**的同名 environment，三处 `environment: production` 现在是空门 |

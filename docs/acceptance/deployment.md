@@ -102,6 +102,12 @@ Expect 有两半。**Preview 那半站得住**：真跑过 6 次，守卫真拦�
 
 而两条出路都被本次会话的硬约束挡住：把工作流放上 `main` 需要动分支（禁止），真跑一次发布要碰生产（禁止）。
 
+> **2026-09-18 复核（上表前三行已过期）**：`main` 合并推送之后，`gh workflow list --all` 返回两条——`Check and Preview`（354933076）和 **`Controlled Production Release`（360627317，active）**。`release.yml` 已注册，dispatch 的前提具备了。第四行不变：`gh api .../environments` 仍只有 `preview`，`production` 不存在。
+>
+> 又查出一条上表没覆盖的障碍：`release.yml` 的 `test` 作业跑 `release-guards.test.ts`，但**从没把 guard 3 读的六个 Stripe 变量映射进作业环境**，所以它在 CI 里恒红，且红的原因分不出「发布该被拦」还是「闸门坏了」。已补 `env:` 映射（见 `docs/roadmap.md` 的 B-4 第 4 条）。本地实测：`release-drill` 9 条全绿，`release-guards` 只剩 2 条红，都指向 B-2。
+>
+> **T085 仍然保持未勾**：发布那半依旧一次都没真跑过，`production` 环境也还没建。注册成功只是让它变得**可能**被验证，不是已被验证。
+
 还有一层：`tasks.md:572` 写 `Depends: T084`，T084 卡在 B-2（Stripe 测试密钥）上未完成。**依赖未满足的任务本来也不该先勾。**
 
 结论：**T085 保持未勾选**。这和 `docs/handoff/b06-b11-codex.md:46` 的既有判断一致——「不要因为『测试绿了』就补勾」。

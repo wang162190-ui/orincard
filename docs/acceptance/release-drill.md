@@ -81,6 +81,8 @@ Check：`pnpm exec vitest run tests/cloud/release-drill.test.ts` —— **9 条�
 
 换句话说：**回滚的地基是好的，回滚本身没试过。** B-4 解开之前无法改变这个结论。
 
+> **2026-09-18 更新**：上面「从未运行过，也无法运行」的后半句不再成立——`main` 合并推送之后 GitHub 已注册 `Controlled Production Release`（360627317），`workflow_dispatch` 可以触发了。前半句仍然成立：**它至今一次都没运行过**，`production` environment 也还没建。结论因此不变，只是障碍从「不可能」降级成「还没做」。
+
 ## 四、DB 恢复：S7 已真实做过一次
 
 不重复造轮子。完整证据在 [`docs/acceptance/backup.md`](backup.md)：真 `pg_dump`、真下载 19 个对象、隔离 Postgres 容器、开发项目里的临时私有桶，`verifyRestore` 四项全过，三个真实反例全部被拦。
