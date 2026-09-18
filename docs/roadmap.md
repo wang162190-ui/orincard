@@ -164,6 +164,48 @@
 
 4. **仓库级还要配 guard 3 读的那六个变量**（2026-09-18 新查出）。`release.yml` 的 `test` 作业跑 `tests/cloud/release-guards.test.ts`，而 guard 3 读的是**进程环境**里的 `STRIPE_TEST_SECRET_KEY` / `STRIPE_TEST_MONTHLY_PRICES_JSON` / `STRIPE_WEBHOOK_SECRET`（Secrets）与 `STRIPE_TEST_ACCEPTANCE_PLAN_KEY` / `NEXT_PUBLIC_APP_URL` / `RUN_STRIPE_SANDBOX_LIFECYCLE`（Variables）。原来的 `test` 作业**一个都没映射**，只有 workflow 级的 `RELEASE_SHA`——意味着即便 B-2 的密钥签出来、`production` 环境也建好，这一步照样恒红。**那不是「发布被拦住」，是闸门本身坏了**，而这两种红分不出来就等于没有闸门。已给 `test` 作业补上 `env:` 映射。刻意放**仓库级**而不是 environment 级：environment 可以挂人工审批，挂上去会变成「先审批再跑测试」，把「测试通过才提升」的顺序整个倒过来。`STRIPE_LIVE_SECRET_KEY` 故意不映射——guard 3 要求它在验收期间必须为空。
 
+#### 照抄即可的命令（2026-09-18 整理，值都已核对）
+
+```sh
+R=wang162190-ui/orincard
+DEV=ettuzeunkadkfnawawdy          # 开发库 orincard-dev
+PROD=jbnejmpzkeybsdwifbdr         # 生产库 orincard-prod
+ORG=team_OdmfgiSccZsxdR6rKpa6ii4N # .vercel/project.json
+PRJ=prj_NIFQxUaEtxU2EK5qS1VAWkVFZ2Jo
+
+# 1. 建 production 环境，并挂上人工审批。不挂 reviewers 等于没有闸门：
+#    environment 不存在时，真 dispatch 会让 GitHub 自动建一个无保护的同名环境。
+gh api -X PUT repos/$R/environments/production \
+  -F 'reviewers[][type]=User' -F "reviewers[][id]=$(gh api users/wang162190-ui -q .id)"
+
+# 2. preview 环境的四个变量（守卫要求 REF ≠ 生产 REF）
+gh variable set SUPABASE_PROJECT_REF            --env preview --body "$DEV"
+gh variable set SUPABASE_PRODUCTION_PROJECT_REF --env preview --body "$PROD"
+gh variable set VERCEL_ORG_ID                   --env preview --body "$ORG"
+gh variable set VERCEL_PROJECT_ID               --env preview --body "$PRJ"
+
+# 3. production 环境的四个变量（守卫要求 REF = 生产 REF）
+gh variable set SUPABASE_PROJECT_REF            --env production --body "$PROD"
+gh variable set SUPABASE_PRODUCTION_PROJECT_REF --env production --body "$PROD"
+gh variable set VERCEL_ORG_ID                   --env production --body "$ORG"
+gh variable set VERCEL_PROJECT_ID               --env production --body "$PRJ"
+
+# 4. 仓库级：guard 3 读的三个非密钥变量
+gh variable set NEXT_PUBLIC_APP_URL             --body "https://orincard.vercel.app"
+gh variable set RUN_STRIPE_SANDBOX_LIFECYCLE    --body "1"
+gh variable set STRIPE_TEST_ACCEPTANCE_PLAN_KEY --body "pro"   # 取值必须是 STRIPE_TEST_MONTHLY_PRICES_JSON 里真实存在的键
+
+
+# 5. 密钥。这几条**必须你自己跑**，值不能经手第三方：
+#    仓库级 secrets（guard 3 读）：STRIPE_TEST_SECRET_KEY（sk_test_ 开头）、STRIPE_TEST_MONTHLY_PRICES_JSON、STRIPE_WEBHOOK_SECRET
+#    preview  环境 secrets：VERCEL_TOKEN
+#    production 环境 secrets：VERCEL_TOKEN、SUPABASE_ACCESS_TOKEN、SUPABASE_DB_PASSWORD、TRIGGER_ACCESS_TOKEN
+#    注意 SUPABASE_ACCESS_TOKEN / SUPABASE_DB_PASSWORD 必须是**生产库**的，
+#    .env.local 里那两个是开发库的，灌进 production 是错的。
+```
+
+配完自查一遍：`gh variable list --env preview`、`gh variable list --env production`、`gh api repos/$R/environments -q '.environments[].name'` 应返回两个环境。
+
 另外 `tasks.md:572` 写 `Depends: T084`，而 T084 卡在 B-2 上 —— 即便 B-4 解开，T085 也应等 T084 落地后再勾。详见 [`docs/acceptance/deployment.md`](acceptance/deployment.md)。
 
 ---
