@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { curatedAssets } from "../../features/assets/curated";
 import type { SlideRenderAsset } from "../../render/slide";
 
@@ -25,9 +26,14 @@ export async function loadBuiltinAsset(refId: string): Promise<SlideRenderAsset>
   const asset = curatedAssets.find((candidate) => candidate.refId === refId);
   if (!asset) throw new Error("ASSET_NOT_EXPORTABLE");
 
-  // asset.src is a site-absolute path such as /media/curated/paper-crane-cards.webp; the file
-  // lives under public/ in both dev and the deployed bundle.
-  const path = new URL(`../../../public${asset.src}`, import.meta.url);
+  // asset.src is a site-absolute path such as /media/curated/paper-crane-cards.webp.
+  //
+  // 锚在工作目录上，和 src/render/render-deck.ts:116 同一个理由：打包器会把 import.meta.url
+  // 改写成入口模块，在部署的 Trigger worker 里那是 src/trigger/。而且带动态段的
+  // `new URL(..., import.meta.url)` 连 Turbopack 的静态分析都过不去——它会当成模块引用去解析，
+  // `pnpm build` 因此以 `Can't resolve '../../../public' <dynamic>` 整体失败。
+  // 字节进容器靠 trigger.config.ts 的 additionalFiles，和 slide.css 走同一条路。
+  const path = join(process.cwd(), "public", asset.src);
   let bytes: Buffer;
   try {
     bytes = await readFile(path);

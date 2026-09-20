@@ -93,7 +93,12 @@ export default defineConfig({
       playwright({ browsers: ["chromium"], version: "1.57.0" }),
       // render-deck reads the slide stylesheet off disk at run time; the bundle only
       // carries JavaScript, so ship the file itself into the worker container.
-      additionalFiles({ files: ["src/render/slide.css"] }),
+      //
+      // 三个精选素材同理：src/server/assets/builtin.ts 在导出时按路径读字节，而
+      // loadBuiltinAsset 的唯一调用点就在这个 worker 里（src/trigger/export.ts:93）。
+      // 不装进容器，本地能导出、线上一律 ASSET_NOT_EXPORTABLE——那正是 builtin.ts
+      // 当初要修掉的症状。
+      additionalFiles({ files: ["src/render/slide.css", "public/media/curated/*.webp"] }),
       // poppler-utils and tesseract cover the whole PDF source path as separate
       // processes: pdfinfo reports encryption and page count, pdftotext reads the text
       // layer, pdftoppm rasterises only the pages that turn out to be scans, tesseract

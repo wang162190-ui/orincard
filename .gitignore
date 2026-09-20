@@ -3,6 +3,9 @@
 node_modules/
 next-env.d.ts
 .next/
+# NEXT_DIST_DIR 开出来的验证性构建产物（.next-verify / .next-deploycheck 等），
+# 它们和 .next 一样是产物，不该进仓库。
+.next-*/
 .vercel/
 .trigger/
 dist/
